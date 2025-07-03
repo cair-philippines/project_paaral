@@ -12,7 +12,7 @@ This repository contains code for analyzing spatial relationships between school
 
 ## Core Components
 
-### Datasets Module (`datasets_v2.py`)
+### Datasets Module (`datasets.py`)
 This module handles loading and preprocessing various school datasets:
 - Public and private school coordinates
 - Enrollment data
@@ -20,7 +20,7 @@ This module handles loading and preprocessing various school datasets:
 - School shifting schedules
 - GASTPE (Government Assistance to Students and Teachers in Private Education) data
 
-### Map Resources (`map_resources_v2.py`)
+### Map Resources (`map_resources.py`)
 Manages geographic and administrative data:
 - Loads and processes Philippines administrative boundary shapefiles
 - Validates and processes school coordinates
@@ -35,16 +35,11 @@ Constructs networks of schools and roads using an optimized builder:
 - Generates nodal routes and consolidates results for analysis
 - See **docs/optimized_network_builder.md** for a detailed overview of this module
 
-## Example Notebooks
-Two Jupyter notebooks show different stages of the workflow:
-- `051525_GN_ntbk1.ipynb` – initial network analysis for **Antipolo City**
-- `052125_GN_ntbk4_Naic.ipynb` – latest demo focused on **Naic, Cavite**, showcasing the optimized builder
-
 ## Methodology
 The project follows these general steps:
 1. Load school data and administrative boundaries
 2. Build a road network graph of the target region
-3. For each public school:
+3. For each public and private (or origin) school:
    - Define a buffer zone (catchment area)
    - Identify private and other public schools within the buffer
    - Calculate the shortest paths to those schools
