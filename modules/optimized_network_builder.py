@@ -688,19 +688,20 @@ class OptimizedSchoolNetworkBuilder:
                 seen_vertices.add(dest_vertex)  # Mark as seen
             elif dest_vertex in seen_vertices:
                 # Skip duplicate vertex but still add the school ID for tracking
-                print(
-                    f"Skipping duplicate vertex {dest_vertex} for school {dest_id}"
-                )
+                # print(
+                #     f"Skipping duplicate vertex {dest_vertex} for school {dest_id}"
+                # )
+                pass
 
         if not dest_vertices:
-            print(
-                f"Warning: No valid destination vertices found for school {origin_school_id}"
-            )
+            # print(
+            #     f"Warning: No valid destination vertices found for school {origin_school_id}"
+            # )
             return pd.DataFrame()
 
-        print(
-            f"Calculating distances from {origin_school_id} to {len(dest_vertices)} unique destinations"
-        )
+        # print(
+        #     f"Calculating distances from {origin_school_id} to {len(dest_vertices)} unique destinations"
+        # )
 
         # Calculate distances using iGraph
         try:
@@ -720,13 +721,13 @@ class OptimizedSchoolNetworkBuilder:
                 columns=valid_destinations,  # Only includes schools with unique vertices
             )
 
-            print(f"Distance calculation successful: {distance_matrix.shape}")
+            # print(f"Distance calculation successful: {distance_matrix.shape}")
             return distance_matrix
 
         except Exception as e:
-            print(
-                f"Distance calculation error for school {origin_school_id}: {e}"
-            )
+            # print(
+            #     f"Distance calculation error for school {origin_school_id}: {e}"
+            # )
             return pd.DataFrame()
 
     def _get_candidates_fast(self, distance_matrix):
@@ -846,8 +847,11 @@ class OptimizedSchoolNetworkBuilder:
         )
         print(f"✅ Consolidated {len(all_routes)} route sets")
 
-        # Build pruned graph based on valid distances
-        pruned_graph = self._create_pruned_school_graph(consolidated_distances)
+        # Include subsidy beneficiary edges when constructing the pruned graph
+        beneficiary_edges = self._load_beneficiary_edges()
+        pruned_graph = self._create_pruned_school_graph(
+            consolidated_distances, beneficiary_edges
+        )
 
         return {
             "distance_matrix": consolidated_distances,
@@ -923,31 +927,139 @@ class OptimizedSchoolNetworkBuilder:
         print(f"Created 4326 iGraph with {len(ig_graph_4326.vs)} vertices")
         return ig_graph_4326
 
-    def _create_pruned_school_graph(self, distance_df):
-        """Create an igraph of public, private and peripheral schools with valid distances."""
+    def _load_beneficiary_edges(
+        self,
+        esc_path=os.path.join(
+            "../datasets/public",
+            "SY 2024-2025 JHS ESC Tagged Learners in LIS (from their previous G6 Schools).xlsx",
+        ),
+        shs_vp_path=os.path.join(
+            "../datasets/public",
+            "SY 2024-2025 SHS QVR Tagged Learners in LIS (from their previous G10 Schools).xlsx",
+        ),
+    ):
+        """Load ESC and SHS VP beneficiary information as edges.
 
-        if distance_df.empty:
+        Each Excel file is expected to contain columns
+        ``[origin_id, origin_name, dest_id, dest_name, count]``. Only the IDs and
+        count are used. Missing files or columns are skipped with a warning.
+
+        Parameters
+        ----------
+        esc_path : str, optional
+            Path to the ESC workbook.
+        shs_vp_path : str, optional
+            Path to the SHS VP workbook.
+
+        Returns
+        -------
+        list
+            List of tuples ``(origin_id, dest_id, count)``.
+        """
+
+        edges = {}
+        sheet_info = [
+            (
+                esc_path,
+                "esc_beneficiaries",
+                {
+                    "School ID (Origin Grade 6)": "origin_id",
+                    "School Name (Origin Grade 6)": "origin_school_name",
+                    "School ID (Destination Grade 7)": "dest_id",
+                    "School Name (Destination Grade 7)": "dest_school_name",
+                    "Count of Learners": "count",
+                },
+                "Sheet1",
+            ),
+            (
+                shs_vp_path,
+                "shsvp_beneficiaries",
+                {
+                    "School ID (Origin Grade 10)": "origin_id",
+                    "School Name (Origin Grade 10)": "origin_school_name",
+                    "School ID (Destination Grade 11)": "dest_id",
+                    "School Name (Destination Grade 11)": "dest_school_name",
+                    "Count of Learners": "count",
+                },
+                "qvr_grantees_jhs",
+            ),
+        ]
+        for path, label, rename_map, sheet in sheet_info:
+            if not path or not os.path.exists(path):
+                print(f"Warning: beneficiary file missing -> {path}")
+                continue
+
+            try:
+                df = pd.read_excel(path, sheet_name=sheet)
+            except Exception as e:  # pragma: no cover - runtime environment varies
+                print(f"Warning: could not read {path}: {e}")
+                continue
+
+            if not set(rename_map).issubset(df.columns):
+                print(
+                    f"Warning: expected columns {set(rename_map)} not found in {path}"
+                )
+                continue
+
+            df = df.rename(columns=rename_map)
+            for _, row in df.iterrows():
+                try:
+                    o = row["origin_id"]
+                    d = row["dest_id"]
+                    c = int(row["count"])
+                    key = (o, d)
+                    if key not in edges:
+                        edges[key] = {"esc_beneficiaries": None, "shsvp_beneficiaries": None}
+                    edges[key][label] = c
+                except Exception as e:  # pragma: no cover - data issues
+                    print(f"Warning: skipping row in {path}: {e}")
+
+        return [
+            (o, d, attrs.get("esc_beneficiaries"), attrs.get("shsvp_beneficiaries"))
+            for (o, d), attrs in edges.items()
+        ]
+
+    def _create_pruned_school_graph(self, distance_df, beneficiary_edges=None):
+        """Create an igraph of schools combining distance and beneficiary edges."""
+
+        if distance_df.empty and not beneficiary_edges:
             return iG.Graph()
 
         public_ids = set(self.public_schools["school_id"])
         private_ids = set(self.private_schools["school_id"])
         peripheral_ids = set(self.peripheral_schools["school_id"])
 
-        edges = []
+        edge_dict = {}
         nodes = set()
 
-        for origin_id, row in distance_df.iterrows():
-            if origin_id not in public_ids and origin_id not in private_ids:
-                continue
-            for dest_id, dist in row.dropna().items():
-                if (
-                    dest_id in public_ids
-                    or dest_id in private_ids
-                    or dest_id in peripheral_ids
-                ):
-                    edges.append((origin_id, dest_id, float(dist)))
-                    nodes.add(origin_id)
-                    nodes.add(dest_id)
+        # Edges from distance matrix
+        if not distance_df.empty:
+            for origin_id, row in distance_df.iterrows():
+                if origin_id not in public_ids and origin_id not in private_ids:
+                    continue
+                for dest_id, dist in row.dropna().items():
+                    if (
+                        dest_id in public_ids
+                        or dest_id in private_ids
+                        or dest_id in peripheral_ids
+                    ):
+                        key = (origin_id, dest_id)
+                        edge_dict[key] = {"length": float(dist), "esc_beneficiaries": None, "shsvp_beneficiaries": None}
+                        nodes.add(origin_id)
+                        nodes.add(dest_id)
+
+        # Edges from ESC / SHS VP beneficiary counts
+        if beneficiary_edges:
+            for origin_id, dest_id, esc_count, shsvp_count in beneficiary_edges:
+                key = (origin_id, dest_id)
+                attrs = edge_dict.get(key, {"length": None, "esc_beneficiaries": None, "shsvp_beneficiaries": None})
+                if esc_count is not None:
+                    attrs["esc_beneficiaries"] = esc_count
+                if shsvp_count is not None:
+                    attrs["shsvp_beneficiaries"] = shsvp_count
+                edge_dict[key] = attrs
+                nodes.add(origin_id)
+                nodes.add(dest_id)
 
         node_list = sorted(nodes)
         name_to_idx = {sid: i for i, sid in enumerate(node_list)}
@@ -971,20 +1083,35 @@ class OptimizedSchoolNetworkBuilder:
                 row = per_gdf.loc[sid]
                 g.vs[idx]["school_type"] = "peripheral"
             else:
-                continue
+                row = None
+                g.vs[idx]["school_type"] = "unknown"
 
-            g.vs[idx]["school_name"] = row.get("school_name", "")
-            g.vs[idx]["x"] = row.geometry.x
-            g.vs[idx]["y"] = row.geometry.y
-            g.vs[idx]["school_attrs"] = [self._extract_school_attributes(row)]
+            if row is not None:
+                g.vs[idx]["school_name"] = row.get("school_name", "")
+                g.vs[idx]["x"] = getattr(row.geometry, "x", None)
+                g.vs[idx]["y"] = getattr(row.geometry, "y", None)
+                g.vs[idx]["school_attrs"] = [self._extract_school_attributes(row)]
+            else:
+                g.vs[idx]["school_name"] = ""
+                g.vs[idx]["x"] = None
+                g.vs[idx]["y"] = None
+                g.vs[idx]["school_attrs"] = [{}]
             g.vs[idx]["is_school"] = True
 
-        if edges:
-            edge_pairs = [
-                (name_to_idx[o], name_to_idx[d]) for o, d, _ in edges
-            ]
-            lengths = [l for _, _, l in edges]
+        if edge_dict:
+            edge_pairs = []
+            lengths = []
+            esc_beneficiaries = []
+            shsvp_beneficiaries = []
+            for (o, d), attrs in edge_dict.items():
+                edge_pairs.append((name_to_idx[o], name_to_idx[d]))
+                lengths.append(attrs.get("length"))
+                esc_beneficiaries.append(attrs.get("esc_beneficiaries"))
+                shsvp_beneficiaries.append(attrs.get("shsvp_beneficiaries"))
+
             g.add_edges(edge_pairs)
             g.es["length"] = lengths
+            g.es["esc_beneficiaries"] = esc_beneficiaries
+            g.es["shsvp_beneficiaries"] = shsvp_beneficiaries
 
         return g
