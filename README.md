@@ -16,6 +16,7 @@ This notebook explores how students might choose between public and private scho
 ## Repository Structure
 ```
 project_paaral/
+├── config/      # for dir & file paths
 ├── data/        # raw datasets (empty by default)
 ├── modules/     # core Python modules
 ├── output/      # generated networks and analysis results (empty by default)
