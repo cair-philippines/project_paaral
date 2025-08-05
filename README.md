@@ -1,4 +1,4 @@
-# Project PAARAL (Phase 2)
+# Project PAARAL
 
 ## High-Level Overview
 Project PAARAL is a geospatial decision support system for analyzing school accessibility and planning educational subsidies in the Philippines. The repository revolves around two main workflows demonstrated in accompanying Jupyter notebooks.
