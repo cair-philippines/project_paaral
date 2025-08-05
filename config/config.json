@@ -1,0 +1,21 @@
+{
+  "data_paths": {
+    "data": "data",
+    "public_data": "data/public",
+    "private_data": "data/private",
+    "processed_data": "data/processed",
+    "ph_shapefiles": "data/philippines-psgc-maps",
+    "ph_roadNetworks": "data/networks",
+    "results": "results"
+  },
+  "file_patterns": {
+    "input_pattern": "*.csv",
+    "model_config": "model_config.yaml",
+    "log_file": "experiment.log"
+  },
+  "experiment_settings": {
+    "batch_size": 32,
+    "max_epochs": 100,
+    "validation_split": 0.2
+  }
+}
