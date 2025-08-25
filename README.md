@@ -28,8 +28,8 @@ project_paaral/
 ## Data and Outputs
 The `data` and `output` directories are placeholders. Download the required files from Google Drive and place them in the corresponding folders:
 
-- Data directory: [https://drive.google.com/drive/folders/1K9QuUvo47rbFZ4LHtN6PEzVuRoR91PL4?usp=sharing]
-- Output directory: [https://drive.google.com/drive/folders/1d31485Ib4Pob-A2vqdIlRN64tIvmqyr4?usp=sharing]
+- Data directory: https://drive.google.com/drive/folders/1K9QuUvo47rbFZ4LHtN6PEzVuRoR91PL4?usp=sharing
+- Output directory: https://drive.google.com/drive/folders/1d31485Ib4Pob-A2vqdIlRN64tIvmqyr4?usp=sharing
 
 ## Getting Started
 ```
