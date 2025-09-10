@@ -9,7 +9,6 @@ import igraph as ig
 
 import numpy as np
 import pandas as pd
-import warnings
 
 from config.config import Config
 cf = Config()
@@ -166,26 +165,12 @@ class Experiments:
     def _transfer_enrollment(self, es_node, jhs_idx, enrollment_df, graph):
         """Move Grade 6 enrollment from ES node to a JHS vertex."""
         es_id = es_node['school_id']
-
-        # Ensure the lookup uses the same type as the enrollment DataFrame index
-        if len(enrollment_df.index) > 0:
-            index_example = enrollment_df.index[0]
-            try:
-                es_id_lookup = type(index_example)(es_id)
-            except (ValueError, TypeError):
-                es_id_lookup = es_id
-        else:
-            es_id_lookup = es_id
-
         try:
-            g6 = enrollment_df.loc[es_id_lookup, 'enr_grade_6']
+            g6 = enrollment_df.loc[es_id, 'enr_grade_6']
         except KeyError:
-            warnings.warn(
-                f"School ID {es_id} not found in enrollment data", RuntimeWarning
-            )
             return
         if g6 > 0 and not math.isnan(g6):
-            enrollment_df.loc[es_id_lookup, 'enr_grade_6'] -= g6
+            enrollment_df.loc[es_id, 'enr_grade_6'] -= g6
             graph.vs[jhs_idx]['school_attrs'][0]['enrollment_jhs'] += g6
 
     def _compute_mean_congestion(self, graph, jhs_cocs):
@@ -252,7 +237,7 @@ class Experiments:
         g6_enr = pivot_enr[['Grade 6']]
         g6_enr.columns = ['enr_grade_6']
         g6_enr = g6_enr.reset_index()
-        g6_enr['school_id'] = g6_enr['school_id'].astype(int)
+        g6_enr['school_id'] = g6_enr['school_id'].astype(str)
 
         return g6_enr
 
