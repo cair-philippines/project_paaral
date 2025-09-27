@@ -308,11 +308,125 @@ data_with_coords = processor.get_processed_data()
 4. **Validate Assumptions**: Column detection needs content validation, not just name matching
 5. **Iterate Based on Results**: Real data reveals issues that theoretical design misses
 
+---
+
+## Seat-Learner Ratio Data Processing
+
+### Overview
+Created a simple and straightforward preprocessing module for the seat-learner ratio dataset to extract seat count data for public schools and transform it into long format.
+
+### Key Files
+- **Data Source**: `data/public/SY 2023-2024 SEAT-LEARNER RATIO.xlsx`
+- **Module Created**: `modules/seat_learner_preprocessor.py`
+- **Target Sheet**: DATABASE (headers start at row 7)
+
+### Data Structure
+The Excel file contains:
+- **Headers**: Start at row 7 (use `header=6` in pandas)
+- **School Information**: School ID in column D labeled "SCHOOL ID"
+- **Seat Count Data**: Columns T, U, V containing seat counts for:
+  - Column T (index 19): Elementary seats
+  - Column U (index 20): Junior High School seats
+  - Column V (index 21): Senior High School seats
+
+### Issues Resolved
+
+#### Issue 1: Incorrect School ID Column
+- **Problem**: Module initially assumed school IDs were in the first column
+- **Actual Location**: School IDs are in column D labeled "SCHOOL ID"
+- **Solution**: Updated `wide_to_long()` method to use correct column reference
+
+### Current Module Features
+```python
+class SeatLearnerProcessor:
+    def __init__(file_path)        # Initialize with Excel file path
+    def load_data()                # Read Excel with proper header handling (row 7)
+    def wide_to_long()             # Transform seat data from wide to long format
+    def process()                  # Main processing pipeline
+    def _trim_whitespaces()        # Clean leading/trailing whitespaces
+    def get_summary()              # Data summary statistics
+    def filter_by_education_level() # Filter by education levels
+    def export_processed()         # Export to CSV
+    def get_processed_data()       # Get processed DataFrame
+```
+
+### Data Transformation Logic
+- **Input**: Wide format with seat counts in columns T, U, V
+- **Output Structure**:
+  - `school_id` (string): School identifier from "SCHOOL ID" column
+  - `education_level` (categorical, ordered): Elementary, Junior High School, Senior High School
+  - `seat_count` (integer): Number of seats for each education level
+- **Data Types**: Optimized with categorical education levels and string school IDs
+- **Validation**: Only includes valid, positive seat counts
+
+### Data Type Enhancements
+- **`education_level`**: Categorical dtype with intrinsic order (Elementary → Junior High School → Senior High School)
+- **`school_id`**: String dtype for consistent joining with other datasets
+
+### Usage
+```python
+from modules.seat_learner_preprocessor import SeatLearnerProcessor
+
+processor = SeatLearnerProcessor()
+long_data = processor.process()  # Returns long format DataFrame
+summary = processor.get_summary()
+processor.export_processed('output/seats_long_format.csv')
+```
+
+### Integration Strategy
+- **Primary Key**: School ID (string type) for joining with enrollment and coordinate data
+- **Output Format**: Long format with standardized education level names
+- **Data Quality**: Filters out invalid/zero seat counts, handles missing values appropriately
+
+---
+
+## Module Enhancements - Data Type Optimization
+
+### Enrollment Preprocessor Updates
+Enhanced the existing `modules/enrollment_preprocessor.py` with:
+
+#### Whitespace Trimming
+- **New Method**: `_trim_whitespaces()` added to clean leading/trailing whitespaces
+- **Integration Points**: Applied during data loading and after wide-to-long transformation
+- **Coverage**: Processes all string/object columns efficiently with null value handling
+
+#### Grade Level Categorization
+- **Enhancement**: `grade_level` column converted to categorical dtype
+- **Ordering**: Custom order: K → G1 → G2 → G3 → G4 → G5 → G6 → Elementary → G7 → G8 → G9 → G10 → JHS → G11 → G12
+- **Benefits**: Enables proper sorting and analysis of educational progression
+
+### Implementation Details
+```python
+# Whitespace trimming (added to both processors)
+def _trim_whitespaces(self, df: pd.DataFrame) -> pd.DataFrame:
+    # Efficiently strips whitespaces from string columns only
+    # Handles null values safely using masking
+
+# Grade level categorization (enrollment processor)
+grade_order = ['K', 'G1', 'G2', 'G3', 'G4', 'G5', 'G6', 'Elementary', 'G7', 'G8', 'G9', 'G10', 'JHS', 'G11', 'G12']
+self.processed_data['grade_level'] = pd.Categorical(
+    self.processed_data['grade_level'],
+    categories=grade_order,
+    ordered=True
+)
+
+# Education level categorization (seat processor)
+education_order = ['Elementary', 'Junior High School', 'Senior High School']
+self.processed_data['education_level'] = pd.Categorical(
+    self.processed_data['education_level'],
+    categories=education_order,
+    ordered=True
+)
+```
+
 ## Notes
-- **Enrollment CSV**: Complex hierarchical structure with both individual and aggregate columns
+- **Enrollment CSV**: Complex hierarchical structure with both individual and aggregate columns, now with optimized data types
 - **Public Coordinates Excel**: Metadata in first 5 rows, requires specific header handling
 - **Private Coordinates Excel**: Variable metadata rows, requires dynamic "Region" detection
+- **Seat-Learner Ratio Excel**: Headers at row 7, seat data in columns T,U,V, school IDs in column D
 - **Multi-Format Challenge**: Private schools use mixed coordinate formats requiring validation
+- **Data Type Optimization**: Categorical columns enable efficient sorting and analysis
+- **Whitespace Cleaning**: Comprehensive trimming ensures clean data across all processors
 - Special care needed to avoid double-counting (enrollment) and coordinate validation errors
 - All modules designed for extensibility to handle additional datasets in the project
 - Integration ready: School IDs standardized for seamless data joining across public/private datasets

@@ -34,6 +34,9 @@ class EnrollmentDataProcessor:
             # Remove any completely empty rows
             self.raw_data = self.raw_data.dropna(how='all')
 
+            # Trim whitespaces from raw data string columns
+            self.raw_data = self._trim_whitespaces(self.raw_data)
+
             logger.info(f"Loaded {len(self.raw_data)} records with {len(self.raw_data.columns)} columns")
             return self.raw_data
 
@@ -85,20 +88,61 @@ class EnrollmentDataProcessor:
             self.processed_data['enrollment_count'], errors='coerce'
         ).fillna(0)
 
+        # Trim whitespaces from string columns
+        self.processed_data = self._trim_whitespaces(self.processed_data)
+
+        # Preprocess headers and assign data types to essential columns
+        all_columns = self.processed_data.columns
+        processed_columns = ['_'.join(col.strip().lower().split(' ')) for col in all_columns]
+        self.processed_data.columns = processed_columns
+        self.processed_data['school_id_processed'] = self.processed_data['school_id'].astype('string')
+
+        # Transform grade_level to categorical with proper ordering
+        grade_order = ['K', 'G1', 'G2', 'G3', 'G4', 'G5', 'G6', 'Elementary', 'G7', 'G8', 'G9', 'G10', 'JHS', 'G11', 'G12']
+        self.processed_data['grade_level'] = pd.Categorical(
+            self.processed_data['grade_level'],
+            categories=grade_order,
+            ordered=True
+        )
+
         # Remove rows with zero enrollment (optional - uncomment if needed)
         # self.processed_data = self.processed_data[self.processed_data['enrollment_count'] > 0]
 
         logger.info(f"Transformed to long format: {len(self.processed_data)} records")
         return self.processed_data
 
+    def extract_shs_offerings(self) -> pd.DataFrame:
+        "Generates a wide table of 1s and NaNs based on SHS offerings."
+        shs_cocs = ['JHS with SHS','All Offering','Purely SHS']
+        mask_shs = self.processed_data['modified_coc'].isin(shs_cocs)
+        long_shs = self.processed_data.loc[mask_shs].copy()
+
+        pvt_shs = long_shs.pivot_table(
+            index='school_id_processed',
+            columns='shs_offering',
+            values='enrollment_count',
+            aggfunc='sum'
+        )
+        pvt_vals = pvt_shs.values
+        pvt_vals[pvt_vals > 0] = 1
+        pvt_vals[pvt_vals == 0] = np.nan
+        
+        self.shs_offerings = pd.DataFrame(
+            data=pvt_vals,
+            index=pvt_shs.index,
+            columns=pvt_shs.columns
+        )
+
+        return self.shs_offerings
+    
     def _parse_column_name(self, col_name: str) -> Dict[str, Any]:
-        """Parse column name to extract grade, gender, and academic track."""
+        """Parse column name to extract grade, gender, and shs offering."""
         col_name = str(col_name).strip()
 
         result = {
             'grade_level': None,
             'gender': None,
-            'academic_track': None,
+            'shs_offering': None,
             'student_type': 'regular'
         }
 
@@ -147,21 +191,21 @@ class EnrollmentDataProcessor:
         # Handle academic tracks for SHS (be more specific)
         if 'G11' in col_name or 'G12' in col_name:
             if 'ACAD - ABM' in col_name:
-                result['academic_track'] = 'ABM'
+                result['shs_offering'] = 'ABM'
             elif 'ACAD - HUMSS' in col_name:
-                result['academic_track'] = 'HUMSS'
+                result['shs_offering'] = 'HUMSS'
             elif 'ACAD STEM' in col_name:
-                result['academic_track'] = 'STEM'
+                result['shs_offering'] = 'STEM'
             elif 'ACAD GAS' in col_name:
-                result['academic_track'] = 'GAS'
+                result['shs_offering'] = 'GAS'
             elif 'ACAD PBM' in col_name:
-                result['academic_track'] = 'PBM'
+                result['shs_offering'] = 'PBM'
             elif 'TVL' in col_name:
-                result['academic_track'] = 'TVL'
+                result['shs_offering'] = 'TVL'
             elif 'SPORTS' in col_name:
-                result['academic_track'] = 'SPORTS'
+                result['shs_offering'] = 'SPORTS'
             elif 'ARTS' in col_name:
-                result['academic_track'] = 'ARTS & DESIGN'
+                result['shs_offering'] = 'ARTS & DESIGN'
 
         return result
 
@@ -192,6 +236,31 @@ class EnrollmentDataProcessor:
 
         return col_name in exclude_patterns
 
+    def _trim_whitespaces(self, df: pd.DataFrame) -> pd.DataFrame:
+        """
+        Efficiently trim leading and trailing whitespaces from string columns.
+
+        Args:
+            df: DataFrame to process
+
+        Returns:
+            DataFrame with trimmed string columns
+        """
+        # Create a copy to avoid modifying the original DataFrame
+        df_trimmed = df.copy()
+
+        # Get string/object columns that might contain whitespaces
+        string_columns = df_trimmed.select_dtypes(include=['object', 'string']).columns
+
+        # Apply strip operation only to string columns
+        for col in string_columns:
+            # Only apply strip to non-null values to avoid errors
+            mask = df_trimmed[col].notna()
+            df_trimmed.loc[mask, col] = df_trimmed.loc[mask, col].astype(str).str.strip()
+
+        logger.info(f"Trimmed whitespaces from {len(string_columns)} string columns")
+        return df_trimmed
+
     def process(self) -> pd.DataFrame:
         """Main processing pipeline."""
         self.load_data()
@@ -208,7 +277,7 @@ class EnrollmentDataProcessor:
             'total_enrollment': self.processed_data['enrollment_count'].sum(),
             'unique_schools': self.processed_data['School ID'].nunique() if 'School ID' in self.processed_data else 0,
             'grade_levels': self.processed_data['grade_level'].value_counts().to_dict(),
-            'academic_tracks': self.processed_data['academic_track'].value_counts().to_dict(),
+            'shs_offerings': self.processed_data['shs_offering'].value_counts().to_dict(),
             'gender_distribution': self.processed_data['gender'].value_counts().to_dict()
         }
 
