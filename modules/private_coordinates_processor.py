@@ -216,11 +216,42 @@ class PrivateSchoolsProcessor:
             sheet_name_idx = final_df.columns.get_loc('sheet_name')
             final_df = final_df.iloc[:, :sheet_name_idx+1]
 
-        self.processed_data = final_df
         self._log(f"Processing complete: {len(final_df)} rows, {len(final_df.columns)} columns")
+
+        self.processed_data = final_df
 
         return self.processed_data
 
+    def replace_unclean_region_values(self) -> pd.DataFrame:
+        tmp_df = self.processed_data.copy()
+        tmp_df = tmp_df[tmp_df['region'].notna()]
+        
+        mask = tmp_df['region'] == 'hud'
+        tmp_df.loc[mask, 'region'] = 'NCR'
+        
+        mask = tmp_df['region'] == 'Corrected'
+        tmp_df = tmp_df.loc[~mask]
+        
+        tmp_df['region'] = tmp_df['region'].replace(
+            {
+                'REGION 10 - Misamis Occidental':'Region X',
+                'REGION 10 - Ozamis City':'Region X',
+                ' ':'Region IV-A',
+                'REGION 4A':'Region IV-A',
+                'REGION 4A ':'Region IV-A',
+                'REGION 4A - BACOOR CITY':'Region IV-A',
+                'IV-A':'Region IV-A',
+                'REGION 4A - BINAN CITY':'Region IV-A',
+                'Region IV-A ':'Region IV-A',
+                8.23803:'Region IX'
+            }
+        )
+        tmp_df['region'] = tmp_df['region'].astype('string')
+
+        self.processed_data = tmp_df
+
+        return self.processed_data
+    
     def get_processed_data(self) -> pd.DataFrame:
         """Return processed DataFrame."""
         if self.processed_data is None:
