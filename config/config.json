@@ -1,18 +1,47 @@
 {
-  "data_paths": {
+  "project_name": "Project Paaral - Philippines Education Data Processing",
+  "description": "Configuration file for portable notebook execution across environments",
+
+  "paths": {
     "data": "data",
+    "modules": "modules",
+    "notebooks": "notebooks",
+    "output": "output",
+    "results": "results",
+    "psgc_shapefiles": "data/philippines-psgc-shapefiles/dist",
     "public_data": "data/public",
     "private_data": "data/private",
+    "reconciled": "data/reconciled",
     "processed_data": "data/processed",
-    "ph_shapefiles": "data/philippines-psgc-maps",
-    "ph_roadNetworks": "data/networks",
-    "results": "results"
+    "networks": "data/networks"
   },
+
+  "psgc": {
+    "adm0": "PH_Adm0_Country.shp.zip",
+    "adm1": "PH_Adm1_Regions.shp.zip",
+    "adm2": "PH_Adm2_ProvDists.shp.zip",
+    "adm3": "PH_Adm3_MuniCities.shp.zip",
+    "adm4": "PH_Adm4_BgySubMuns.shp.zip"
+  },
+
+  "logging": {
+    "level": "INFO",
+    "format": "%(asctime)s - %(name)s - %(levelname)s - %(message)s",
+    "date_format": "%Y-%m-%d %H:%M:%S"
+  },
+
+  "jupyter": {
+    "default_figsize": [12, 8],
+    "dpi": 100,
+    "style": "default"
+  },
+
   "file_patterns": {
     "input_pattern": "*.csv",
     "model_config": "model_config.yaml",
     "log_file": "experiment.log"
   },
+
   "experiment_settings": {
     "batch_size": 32,
     "max_epochs": 100,
