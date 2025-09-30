@@ -9,7 +9,18 @@ The consolidation process:
 1. Loads administrative data at 4 levels: Regions (Adm1), Provinces/Districts (Adm2),
    Municipalities/Cities (Adm3), and Barangays/Sub-Municipalities (Adm4)
 2. Performs hierarchical joins using PSGC codes
-3. Merges with shapefile geometries to create a complete GeoDataFrame
+3. Fixes City of Manila missing data (897 NCR barangays)
+4. Adds leading zeros to PSGC codes (ensures 10-digit format)
+5. Reorders columns for better organization (PSGC codes, names, other data)
+6. Prepares shapefile: standardizes codes, filters null geometries, selects relevant columns
+7. Merges: shapefile (left) → consolidated CSV (right) for complete geographic coverage
+
+Key improvements:
+- Automatic City of Manila detection and filling for NCR barangays
+- PSGC code standardization with leading zeros (string type)
+- Cleaner column organization (codes → names → data)
+- Better merge strategy (shapefile-first to preserve all valid geometries)
+- Selective shapefile columns (psgc_code, corr_code, name, adm4_en, geometry)
 
 Author: Data Processing System
 """
@@ -146,6 +157,46 @@ class PSGCConsolidator:
         logger.info(f"Trimmed whitespaces from {len(string_columns)} string columns")
         return df_trimmed
 
+    def _add_leading_zeros(self, psgc_code) -> str:
+        """
+        Add leading zeros to PSGC codes to ensure 10-digit format.
+
+        Args:
+            psgc_code: PSGC code (int or str)
+
+        Returns:
+            10-digit PSGC code as string
+        """
+        code_str = str(psgc_code)
+        if len(code_str) == 9:
+            return '0' + code_str
+        else:
+            return code_str
+
+    def _fix_city_of_manila(self, df: pd.DataFrame) -> pd.DataFrame:
+        """
+        Fill missing City of Manila data for NCR barangays.
+
+        Args:
+            df: DataFrame with hierarchical data
+
+        Returns:
+            DataFrame with City of Manila filled in
+        """
+        # Identify NCR barangays without city/municipality name
+        mask = (
+            (df['adm1_en'].astype('string').str.contains(r'capital', flags=2, na=False))
+            & (df['adm3_en'].isna())
+            & (df['adm2_en'].isna())
+        )
+
+        rows_fixed = mask.sum()
+        if rows_fixed > 0:
+            df.loc[mask, 'adm3_en'] = 'City of Manila'
+            logger.info(f"Fixed {rows_fixed} City of Manila records")
+
+        return df
+
     def consolidate_hierarchy(self) -> pd.DataFrame:
         """
         Perform hierarchical joins on PSGC codes to consolidate all administrative levels.
@@ -155,6 +206,9 @@ class PSGCConsolidator:
         2. Join with Adm3 (Municipalities) on [adm1_psgc, adm2_psgc, adm3_psgc]
         3. Join with Adm2 (Provinces) on [adm1_psgc, adm2_psgc]
         4. Join with Adm1 (Regions) on [adm1_psgc]
+        5. Fix City of Manila missing data
+        6. Add leading zeros to PSGC codes
+        7. Reorder columns for better organization
 
         Returns:
             Consolidated DataFrame with all hierarchical information
@@ -215,6 +269,28 @@ class PSGCConsolidator:
                 consolidated = consolidated.drop(columns=cols_to_drop)
                 logger.info(f"Cleaned duplicate column: {col}")
 
+        # Fix City of Manila missing data
+        logger.info("Fixing City of Manila missing data...")
+        consolidated = self._fix_city_of_manila(consolidated)
+
+        # Add leading zeros to PSGC codes and convert to string
+        logger.info("Adding leading zeros to PSGC codes...")
+        psgc_columns = [col for col in consolidated.columns if '_psgc' in col]
+        for col in psgc_columns:
+            consolidated[col] = consolidated[col].apply(self._add_leading_zeros)
+            consolidated[col] = consolidated[col].astype('string')
+        logger.info(f"Standardized {len(psgc_columns)} PSGC code columns to 10-digit string format")
+
+        # Reorder columns: [psgc codes] + [names (reversed)] + [other columns]
+        logger.info("Reordering columns for better organization...")
+        columns_psgc = [col for col in consolidated.columns if '_psgc' in col]
+        columns_en = [col for col in consolidated.columns if '_en' in col]
+        columns_other = [col for col in consolidated.columns if col not in columns_psgc + columns_en]
+
+        # Reverse the _en columns so most specific (adm4) comes last
+        consolidated = consolidated[columns_psgc + columns_en[::-1] + columns_other]
+        logger.info("Columns reordered: PSGC codes first, names (reversed), then other data")
+
         self.consolidated_data = consolidated
         logger.info(f"Hierarchical consolidation complete: {len(self.consolidated_data)} rows, {len(self.consolidated_data.columns)} columns")
 
@@ -238,9 +314,45 @@ class PSGCConsolidator:
         else:
             logger.info(f"Merge validation passed for {level_name}")
 
+    def _prepare_shapefile_for_merge(self) -> gpd.GeoDataFrame:
+        """
+        Prepare shapefile data for merging by filtering and selecting relevant columns.
+
+        Returns:
+            Prepared GeoDataFrame with only valid geometries and relevant columns
+        """
+        shapefile = self.adm4_geodata.copy()
+
+        # Add leading zeros to psgc_code
+        logger.info("Standardizing shapefile PSGC codes...")
+        shapefile['psgc_code'] = shapefile['psgc_code'].apply(self._add_leading_zeros)
+        shapefile['psgc_code'] = shapefile['psgc_code'].astype('string')
+
+        # Select only relevant columns
+        relevant_columns = ['psgc_code', 'corr_code', 'name', 'adm4_en', 'geometry']
+        shapefile = shapefile[relevant_columns]
+
+        # Filter out rows without geometry
+        initial_count = len(shapefile)
+        mask_valid_geometry = shapefile['geometry'].notna()
+        shapefile = shapefile.loc[mask_valid_geometry].copy()
+        removed_count = initial_count - len(shapefile)
+
+        if removed_count > 0:
+            logger.info(f"Filtered out {removed_count} shapefile rows without valid geometry")
+
+        logger.info(f"Shapefile prepared: {len(shapefile)} features with valid geometry")
+
+        return shapefile
+
     def merge_with_geometry(self) -> gpd.GeoDataFrame:
         """
-        Merge consolidated CSV data with shapefile geometries.
+        Merge consolidated CSV data with shapefile geometries using preferred approach.
+
+        Preferred merge strategy:
+        1. Prepare shapefile: add leading zeros, filter out null geometries, select relevant columns
+        2. Left join: shapefile (left) → consolidated CSV (right) on psgc_code = adm4_psgc
+        3. Result includes all valid geometries, with matched CSV data where available
 
         Returns:
             GeoDataFrame with all hierarchical data and geometries
@@ -251,28 +363,25 @@ class PSGCConsolidator:
         if self.adm4_geodata is None:
             raise ValueError("Shapefile not loaded. Call load_data() first.")
 
-        logger.info("Merging consolidated data with geometries...")
+        logger.info("Merging consolidated data with geometries using preferred approach...")
 
-        # Identify PSGC column in shapefile
-        logger.info(f"Shapefile columns: {list(self.adm4_geodata.columns)}")
+        # Prepare shapefile for merge
+        shapefile_prepared = self._prepare_shapefile_for_merge()
 
         # The shapefile uses 'psgc_code' while CSV uses 'adm4_psgc'
-        # Merge on these keys
-        if 'psgc_code' not in self.adm4_geodata.columns:
-            raise ValueError(f"Could not find psgc_code column in shapefile. Available columns: {list(self.adm4_geodata.columns)}")
-
+        # Merge: shapefile (left) → consolidated CSV (right)
         if 'adm4_psgc' not in self.consolidated_data.columns:
             raise ValueError(f"Could not find adm4_psgc column in consolidated data. Available columns: {list(self.consolidated_data.columns)}")
 
-        logger.info("Merging on shapefile 'psgc_code' = consolidated 'adm4_psgc'")
+        logger.info("Merging: shapefile (left) → consolidated CSV (right) on psgc_code = adm4_psgc")
 
-        # Merge on the PSGC code columns
-        consolidated_geo = self.adm4_geodata.merge(
+        # Left join: shapefile → consolidated data
+        consolidated_geo = shapefile_prepared.merge(
             self.consolidated_data,
             left_on='psgc_code',
             right_on='adm4_psgc',
-            how='right',
-            suffixes=('_shp', '_csv')
+            how='left',
+            suffixes=('_psgc', '_shapes')
         )
 
         # Convert to GeoDataFrame
@@ -282,21 +391,15 @@ class PSGCConsolidator:
             crs=self.adm4_geodata.crs
         )
 
-        # Clean up duplicate columns from merge
-        # Keep non-geometry columns from consolidated_data
-        duplicate_cols = [col for col in self.consolidated_geodata.columns if col.endswith('_geo')]
-        if duplicate_cols:
-            # For each duplicate, check if we should keep it
-            for col in duplicate_cols:
-                base_col = col.replace('_geo', '')
-                if base_col in self.consolidated_geodata.columns and base_col != 'geometry':
-                    # Drop the _geo version if base column exists
-                    self.consolidated_geodata = self.consolidated_geodata.drop(columns=[col])
-                    logger.info(f"Dropped duplicate geometry column: {col}")
-
         logger.info(f"Geometry merge complete: {len(self.consolidated_geodata)} features")
         logger.info(f"Features with valid geometry: {self.consolidated_geodata.geometry.notna().sum()}")
         logger.info(f"Features with null geometry: {self.consolidated_geodata.geometry.isna().sum()}")
+
+        # Log match statistics
+        matched_count = self.consolidated_geodata['adm1_psgc'].notna().sum()
+        unmatched_count = self.consolidated_geodata['adm1_psgc'].isna().sum()
+        logger.info(f"Matched with CSV data: {matched_count} features")
+        logger.info(f"No CSV match (shapefile only): {unmatched_count} features")
 
         return self.consolidated_geodata
 
