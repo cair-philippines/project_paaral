@@ -1,77 +1,72 @@
 # Claude Code Session Log - Education Data Processing
 
-## Modules Created
+## Modules Created (SY 2023-2024)
 
 ### 1. Enrollment Data (`modules/enrollment_preprocessor.py`)
 - **Source**: `data/public/Copy of SY 2023-2024 SCHOOL LEVEL DATA ON ENROLLMENT.csv`
-- **Structure**: CSV with complex headers (rows 1-6), wide format by grade/gender/track
-- **Target**: 27,081,292 total enrollment
-- **Output**: Long format with `school_id`, `grade_level` (categorical: K→G1→G2→G3→G4→G5→G6→Elementary→G7→G8→G9→G10→JHS→G11→G12), `gender`, `academic_track`, `student_type`, `enrollment_count`
-- **Key Issues Resolved**: Double counting, missing Special Needs data (164,538 students)
+- **Output**: Long format with `school_id`, `grade_level`, `gender`, `academic_track`, `student_type`, `enrollment_count`
+- **Key Data**: 27M+ enrollments, grade levels K→G12, resolved double counting & Special Needs data (164K students)
 
 ### 2. Public School Coordinates (`modules/school_coordinates_preprocessor.py`)
 - **Source**: `data/public/SY 2023-2024 LIST OF SCHOOLS WITH LONGITUDE AND LATITUDE.xlsx`
-- **Structure**: Excel with headers at row 6, ~47K schools
-- **Output**: Coordinates with quality flags (`coord_valid`, `coord_missing`, `coord_out_of_bounds`, `coord_potentially_switched`)
+- **Output**: ~47K schools with coordinates + quality flags (valid/missing/out_of_bounds/potentially_switched)
 - **Validation**: Philippine bounds (116°-127°E, 4°-21°N), lat/lon reversal detection
 
 ### 3. Private School Coordinates (`modules/private_schools_processor.py`)
 - **Source**: `data/private/raw_validation_sheets/` (16 regional Excel files)
-- **Structure**: Multi-sheet files, variable metadata rows, ~11,837 schools
-- **Output**: Collated coordinates with region/division tracking
-- **Key Feature**: Dynamic "Region" detection using regex, handles DMS/DMM coordinate formats
-- **Performance**: Optimized Excel reading with automatic engine selection (calamine/fastexcel/openpyxl) - up to 10x faster
+- **Output**: ~11,837 schools with coordinates, region/division tracking
+- **Features**: Dynamic "Region" detection (regex), DMS/DMM formats, optimized Excel reading (10x faster)
 
 ### 4. Seat-Learner Ratio (`modules/seat_learner_preprocessor.py`)
 - **Source**: `data/public/SY 2023-2024 SEAT-LEARNER RATIO.xlsx`
-- **Structure**: Headers at row 7, School ID in column D, seat data in columns T,U,V
-- **Output**: Long format with `school_id`, `education_level` (categorical: Elementary→Junior High School→Senior High School), `seat_count`
-- **Data**: Elementary, Junior High, Senior High seat counts per school
+- **Output**: Long format with `school_id`, `education_level` (Elementary/JHS/SHS), `seat_count`
 
 ### 5. Private Furniture (`modules/private_furniture_preprocessor.py`)
 - **Source**: `data/private/priv_classroom_furniture.xlsx`
-- **Structure**: Headers at row 10, School ID in column G, furniture data in columns I-X
-- **Output**: Long format with `school_id`, `raw_grade_level` (categorical: Kinder→Gr1to6→JHS→SHS), `grade_level` (standardized), `furniture_type`, `furniture_count`, `alt_furniture_counts`
-- **Features**: DepEd EMISD furniture multipliers (Desks: 2x), grade level mapping for integration
+- **Output**: Long format with `school_id`, `grade_level`, `furniture_type`, `furniture_count`
+- **Features**: DepEd EMISD furniture multipliers (Desks: 2x), grade level standardization
 
-## Common Enhancements
-- **Whitespace Trimming**: `_trim_whitespaces()` method across all processors
-- **Data Type Optimization**: Categorical columns with proper ordering for efficient sorting
+### 6. Subsidy Tuition (`modules/subsidy_tuition_processor.py`)
+- **Source**: `data/private/ESC and SHSVP Tuition.xlsx`
+- **Tab 1 (ESC)**: Wide→Long transformation for G7-G10 tuition/fees
+- **Tab 2 (SHSVP)**: Long format SHS tuition by Track/Strand
+- **Output**: Two DataFrames with `school_id`, grade/track/strand info, fee types, amounts
+- **Features**: Automatic strand expansion (splits concatenated NC I/II/III programs into separate rows)
+
+## Common Features (All Modules)
+- **Verbose Logging**: `verbose` parameter (default: True) controls INFO vs WARNING level logging
+- **Whitespace Trimming**: `_trim_whitespaces()` method for string columns
+- **Data Type Optimization**: Categorical columns with proper ordering
 - **Validation**: Bounds checking, null handling, data type conversion
-- **Integration Ready**: Standardized School IDs for cross-dataset joining
+- **Integration Ready**: Standardized School IDs (string type) for cross-dataset joining
 
-## Data Integration Strategy
-- **Primary Keys**: School IDs (string type) standardized across all datasets
+## Data Integration
+- **Primary Keys**: School IDs (string) across all 6 modules
+- **Coverage**: Public (~47K) + Private (~11K) schools with coordinates, enrollment, seats, furniture, tuition data
 - **Grade Level Harmonization**: Multiple categorical systems aligned for analysis
-- **Quality Flags**: Coordinate validation, furniture capacity adjustments
-- **Geographic Coverage**: Public (~47K) + Private (~11K) schools with coordinates
-- **Comprehensive Inventory**: Enrollment, seats, furniture, and location data
+- **Quality Flags**: Coordinate validation, furniture multipliers, strand expansion
 
-## Key Processing Patterns
-1. **Header Detection**: Variable row positions (CSV: skip 5, Excel: rows 6-10)
-2. **Column Identification**: School IDs in different positions (A, D, G)
-3. **Wide-to-Long Transformation**: Consistent long format output across all modules
-4. **Categorical Ordering**: Custom education level progressions for analysis
-5. **Quality Validation**: Philippine geographic bounds, positive counts, data type consistency
+## Key Patterns
+1. **Variable Header Detection**: CSV skip 5 rows, Excel rows 6-10
+2. **Wide→Long Transformation**: Consistent long format output
+3. **Categorical Ordering**: Custom education progressions for analysis
+4. **Quality Validation**: Geographic bounds, positive counts, data consistency
 
-## Performance Optimizations (2025-09-30)
-- **Excel Reading Enhancement**: `private_schools_processor.py` optimized for faster Excel file processing
-- **Engine Auto-Selection**: Automatically chooses fastest available engine (calamine → fastexcel → openpyxl)
-- **Performance Gains**: Up to 10x faster reading of 16 regional Excel files (~11,837 private schools)
-- **Backward Compatible**: Existing API unchanged, graceful fallbacks ensure reliability
-- **Optional Dependencies**: `pip install python-calamine fastexcel` for maximum performance
+## Session History
 
-## Session Log - 2025-09-30
-### Excel Performance Optimization Project
-1. **Initial Request**: Optimize Excel reading in `private_furniture_preprocessor.py`
-2. **Correction Applied**: User clarified target should be `private_schools_processor.py` instead
-3. **Implementation**: Added multi-engine Excel reading with automatic performance optimization
-4. **Testing**: Comprehensive validation with cleanup of temporary files
-5. **Result**: Maintained 100% backward compatibility while achieving significant performance improvements
+### 2025-09-30 (Earlier)
+- **Excel Performance**: Optimized `private_schools_processor.py` with multi-engine selection (calamine→fastexcel→openpyxl) for 10x speedup
+- Validated all modules against source data totals
 
-## Next Steps Ready
-- Modules tested and validated against source data totals
-- Integration pipelines established with standardized School ID keys
-- Quality control systems in place for geographic and inventory data
-- Extensible architecture for additional datasets
-- Performance-optimized Excel reading for private school coordinate processing
+### 2025-09-30 (Current)
+- **Subsidy Tuition Module**: Created `subsidy_tuition_processor.py` for ESC/SHSVP tuition data
+  - Wide→Long transformation for ESC (G7-G10)
+  - Strand expansion: splits concatenated NC I/II/III programs (regex: `r'\(NC\s*I+\)|NC\s*I+'`)
+- **Verbose Logging**: Added `verbose` parameter to all 6 preprocessor modules
+- **Agent Update**: Updated `.claude/agents/data-extractor.md` to always include verbose option in future modules
+
+## Architecture
+- **Pattern**: All processors follow consistent architecture (load→process→validate→export)
+- **Logging**: `verbose=True` (INFO level) or `verbose=False` (WARNING only)
+- **Integration**: Standardized School IDs enable cross-dataset merging
+- **Extensible**: Easy to add new datasets following established patterns
