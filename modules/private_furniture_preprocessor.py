@@ -29,19 +29,25 @@ class PrivateFurnitureProcessor:
     with other datasets.
     """
 
-    def __init__(self, file_path: Optional[str] = None):
+    def __init__(self, file_path: Optional[str] = None, verbose: bool = True):
         """
         Initialize the processor.
 
         Args:
             file_path: Path to the Excel file. If None, uses default path.
+            verbose: If True, logs at INFO level. If False, logs at WARNING level only.
         """
         if file_path is None:
             file_path = "data/private/priv_classroom_furniture.xlsx"
 
         self.file_path = Path(file_path)
+        self.verbose = verbose
         self.raw_data = None
         self.processed_data = None
+
+        # Set logging level based on verbose flag
+        if not verbose:
+            logger.setLevel(logging.WARNING)
 
     def load_data(self) -> pd.DataFrame:
         """

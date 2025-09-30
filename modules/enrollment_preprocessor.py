@@ -16,11 +16,22 @@ logger = logging.getLogger(__name__)
 class EnrollmentDataProcessor:
     """Compact processor for enrollment data transformation from wide to long format."""
 
-    def __init__(self, csv_path: Optional[str] = None):
-        """Initialize processor with optional CSV path."""
+    def __init__(self, csv_path: Optional[str] = None, verbose: bool = True):
+        """
+        Initialize processor with optional CSV path.
+
+        Args:
+            csv_path: Path to the CSV file. If None, uses default path.
+            verbose: If True, logs at INFO level. If False, logs at WARNING level only.
+        """
         self.csv_path = csv_path or "data/public/Copy of SY 2023-2024 SCHOOL LEVEL DATA ON ENROLLMENT.csv"
+        self.verbose = verbose
         self.raw_data = None
         self.processed_data = None
+
+        # Set logging level based on verbose flag
+        if not verbose:
+            logger.setLevel(logging.WARNING)
 
     def load_data(self) -> pd.DataFrame:
         """Load and clean raw enrollment data."""
