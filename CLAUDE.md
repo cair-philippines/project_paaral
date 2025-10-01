@@ -56,16 +56,31 @@
 
 ### 8. PSGC Reconciler (`modules/psgc_reconciler.py`)
 - **Purpose**: Resolve PSGC code discrepancies between shapefile and CSV data
-- **Input**: Shapefile GeoDataFrame + CSV DataFrame from module 7
 - **Problem**: ~3,500 barangays have mismatched PSGC codes between OCHA shapefiles and PSA CSV data
-- **Multi-Strategy Matching Pipeline** (sequential execution):
-  1. **corr_code matching**: Direct mapping using shapefile's correction code field
-  2. **Spatial join**: Geographic containment (barangay within municipality) + name matching
-  3. **Hierarchical matching**: Admin hierarchy (region/province/municipality) + normalized names
-  4. **Fuzzy matching**: String similarity at 90%, 85%, 80% thresholds (requires `rapidfuzz`)
-- **Output**: Two GeoDataFrames - matched records and unmatched (for manual review)
-- **Statistics Tracking**: Records matched/unmatched at each strategy level
+- **Multi-Strategy Matching Pipeline**:
+  1. corr_code matching → 2. Spatial join → 3. Hierarchical matching → 4. Fuzzy matching (90%, 85%, 80%)
+- **Output**: Matched/unmatched GeoDataFrames for manual review
 - **Export Formats**: CSV, GeoJSON, Shapefile, GeoPackage
+
+### 9. Regional Road Network Extractor (`modules/regional_road_network_extractor.py`)
+- **Purpose**: Extract OSM drive networks for Philippine regions using OSMNx with province-level querying for archipelagic reliability
+- **Input**: GeoDataFrame from psgc_consolidator (module 7)
+- **PSGC Code Structure**: First 2 digits = region, first 4 digits = province, digits 5-7 = municipality, digits 8-10 = barangay
+- **Query Methods**:
+  - **Province Breakdown** (default, recommended): Queries each province separately then merges → complete coverage
+  - **Direct Query**: Queries entire region shapefile → faster but may miss islands in multi-polygon regions
+- **Key Features**:
+  - MultiPolygon decomposition: Splits islands for individual querying when `decompose_islands=True`
+  - Automatic caching: Repeated queries return instantly
+  - Edge deduplication: Merges graphs by osmid to remove border duplicates
+  - Region/province filtering by 2-digit/4-digit codes or names
+- **Visualization Methods**:
+  - `plot_graph()`: OSMnx native plotting (no igraph dependency, ARM-compatible)
+  - `plot_graph_with_boundary()`: Network overlaid on region/province shapefile boundaries
+  - Customizable styling: colors, linewidths, transparency, DPI
+- **Output**: NetworkX MultiDiGraph + metadata (nodes, edges, query method, statistics)
+- **Export Options**: GeoDataFrame (shapefile/GeoJSON), GraphML
+- **Use Case**: Extract complete road networks for spatial analysis, network metrics, accessibility studies
 
 ## Common Features (All Modules)
 - **Verbose Logging**: `verbose` parameter (default: True) controls INFO vs WARNING level logging
@@ -77,13 +92,14 @@
 ## Data Integration
 - **Primary Keys**:
   - School IDs (string) across education modules 1-6
-  - PSGC codes (integer) for geographic hierarchy in module 7
+  - PSGC codes (10-digit string): First 2 digits = region, first 4 = province, digits 5-7 = municipality, 8-10 = barangay
 - **Coverage**:
-  - Education: Public (~47K) + Private (~11K) schools with coordinates, enrollment, seats, furniture, tuition data
-  - Geography: Complete PH administrative hierarchy with 42K+ barangays and geometries
-- **Grade Level Harmonization**: Multiple categorical systems aligned for analysis
-- **Quality Flags**: Coordinate validation, furniture multipliers, strand expansion
-- **Spatial Integration**: School coordinates can be joined with PSGC geographic boundaries for spatial analysis
+  - Education: Public (~47K) + Private (~11K) schools with coordinates, enrollment, seats, furniture, tuition
+  - Geography: Complete PH admin hierarchy (42K+ barangays) with geometries
+  - Infrastructure: OSM road networks by region/province via module 9
+- **Spatial Integration**:
+  - School coordinates → PSGC boundaries → Road networks
+  - Enable accessibility analysis, catchment areas, network metrics
 
 ## Key Patterns
 1. **Variable Header Detection**: CSV skip 5 rows, Excel rows 6-10
@@ -93,126 +109,31 @@
 
 ## Session History
 
-### 2025-09-30 (Earlier)
-- **Excel Performance**: Optimized `private_schools_processor.py` with multi-engine selection (calamine→fastexcel→openpyxl) for 10x speedup
-- Validated all modules against source data totals
+### 2025-09-30 Sessions (Summary)
+- **Modules 1-6**: Created education data preprocessors (enrollment, coordinates, seats, furniture, tuition)
+- **Module 7**: PSGC Consolidator - hierarchical merge of 4 admin levels + 366MB shapefile, 42,048 features
+  - Fixed City of Manila missing data, 10-digit PSGC standardization, shapefile-first left join
+- **Module 8**: PSGC Reconciler - 4-strategy pipeline to resolve ~3,500 mismatched barangay codes
+- **Configuration System**: Created `config/` package for environment-agnostic notebook execution
+  - Auto-detects project root, centralized paths, 3-line bootstrap solution
 
-### 2025-09-30 (Earlier Session)
-- **Subsidy Tuition Module**: Created `subsidy_tuition_processor.py` for ESC/SHSVP tuition data
-  - Wide→Long transformation for ESC (G7-G10)
-  - Strand expansion: splits concatenated NC I/II/III programs (regex: `r'\(NC\s*I+\)|NC\s*I+'`)
-- **Verbose Logging**: Added `verbose` parameter to all 6 preprocessor modules
-- **Agent Update**: Updated `.claude/agents/data-extractor.md` to always include verbose option in future modules
-
-### 2025-09-30 (Earlier in Session)
-- **PSGC Geographic Consolidator Module**: Created `psgc_consolidator.py` for Philippine geographic hierarchy
-  - **Data Source Investigation**: Examined `philippines-psgc-shapefiles` repository structure
-    - Found 4 administrative levels (Adm0-4) with CSV + shapefile pairs
-    - Source: https://github.com/altcoder/philippines-psgc-shapefiles
-  - **Consolidation Strategy**: Designed hierarchical merge approach
-    - Start with Adm4 (barangay) as base: 42,017 records
-    - Sequential left joins: Adm4→Adm3→Adm2→Adm1
-    - PSGC code matching: multi-column joins for proper hierarchy
-  - **Git LFS Challenge**: Repository shapefiles were Git LFS pointers (134 bytes each)
-    - LFS bandwidth quota exceeded on GitHub
-    - Resolution: Downloaded 366 MB `PH_Adm4_BgySubMuns.shp.zip` directly from OCHA source
-  - **Module Implementation**:
-    - Initial attempt: Manual zip extraction with `zipfile` + `tempfile` → Failed
-    - Fix: Geopandas native zip reading with `zip://` protocol
-    - Column mapping issue: Shapefile uses `psgc_code`, CSV uses `adm4_psgc`
-    - Final merge: `left_on='psgc_code'`, `right_on='adm4_psgc'`
-  - **Output**: GeoDataFrame with 42K barangays, complete hierarchy, EPSG:4326 CRS
-  - **Notebook**: Created `notebooks/consolidate_psgc_data.ipynb` for interactive exploration
-
-### 2025-09-30 (Session 2)
-- **PSGC Reconciler Module**: Created `psgc_reconciler.py` to resolve shapefile-CSV PSGC code mismatches
-  - **Problem Identified**: ~3,500 barangays (out of 45,597 in shapefile) don't match CSV PSGC codes
-    - Same barangay names, different PSGC codes between OCHA shapefile and PSA CSV data
-    - Example: "Agapito del Rosario" has code `0305401001` in shapefile vs `0305403013` in CSV
-  - **Multi-Strategy Matching Approach** (in priority order):
-    1. **corr_code field**: Use shapefile's correction code field for direct mapping
-    2. **Spatial join**: Match by geography (which municipality contains barangay) + name
-    3. **Hierarchical matching**: Match using region→province→municipality→barangay hierarchy + normalized names
-    4. **Fuzzy string matching**: Handle name variations with 90%, 85%, 80% similarity thresholds
-  - **Implementation Features**:
-    - Verbose logging tracks progress through each matching strategy
-    - Statistics tracking for each strategy's success rate
-    - Name normalization (lowercase, whitespace, special characters)
-    - PSGC code standardization (leading zeros)
-    - Requires `rapidfuzz` library for fuzzy matching (optional dependency)
-  - **Module Methods**:
-    - `reconcile()`: Main pipeline running all strategies
-    - `print_summary()`: Display match statistics
-    - `export_results()`: Save matched/unmatched to CSV, GeoJSON, GeoPackage
-  - **Deliverables**:
-    - `modules/psgc_reconciler.py`: Core reconciliation module
-    - `test_psgc_reconciler.py`: Command-line test script
-    - `notebooks/0.3-psgc-reconciliation.ipynb`: Interactive demonstration notebook
-
-### 2025-09-30 (Current Session)
-- **Repository Analysis**: Examined `philippines-psgc-shapefiles` repository structure
-  - **script.py Investigation**: Analyzed the repository's data processing pipeline
-    - Uses Q4 2023 PSGC codes (not 2024) to update shapefiles
-    - Implements 5-stage matching: exact match → manual corrections → corr_code → municipality name → admin hierarchy
-    - ~70 manual municipality PSGC updates (highly urbanized cities, NCR, Maguindanao)
-    - ~3,500 barangays failed all matching stages - these are the discrepancies we found
-  - **dist/ Files Clarification**: Confirmed processed files in `dist/` are script.py outputs
-    - Not raw data, but partially processed with known limitations
-    - Repository README claims "cleaned and matched with most recent PSGC codes" but matching incomplete
-    - Our reconciler module complements/completes the repository's work
-  - **OSM Reverse Geocoding Discussion**: Proposed 5th matching strategy
-    - Use barangay polygon centroids to query OpenStreetMap Nominatim API
-    - Extract municipality/province names from OSM
-    - Match OSM admin names with CSV data
-    - Pros: Fresh data, handles renamed areas. Cons: API rate limits (~1 req/sec), 60 min for 3,500 queries
-
-- **PSGC Consolidator Revision**: Rewrote `modules/psgc_consolidator.py` based on user's preferred approach
-  - **User's Requirements** (from `notebooks/0.2-map-resources.ipynb` section 1.1.3):
-    1. Fix City of Manila missing data (897 NCR barangays with NaN municipality)
-    2. Standardize PSGC codes to 10-digit string format (add leading zeros)
-    3. Reorder columns: [PSGC codes] + [names reversed] + [other data]
-    4. Shapefile→CSV left join (preserve all valid geometries, not CSV-first)
-    5. Filter null geometries before merge (42,048 features vs 45,597)
-    6. Select only relevant shapefile columns (5 columns: psgc_code, corr_code, name, adm4_en, geometry)
-    7. String dtype for all PSGC codes
-  - **New Helper Methods**:
-    - `_add_leading_zeros()`: Converts 9-digit codes to 10-digit strings
-    - `_fix_city_of_manila()`: Fills missing NCR municipality names
-    - `_prepare_shapefile_for_merge()`: Standardizes codes, filters geometry, selects columns
-  - **Enhanced consolidate_hierarchy()**: Now includes 7-step process (was 4 steps)
-  - **Revised merge_with_geometry()**: Shapefile-first left join strategy (was right join)
-  - **Output Changes**: 42,048 features (was 42,017), 0 missing City of Manila (was 897), cleaner columns
-  - **Testing**: Created `test_revised_psgc_consolidator.py` validation script
-
-- **Configuration System**: Created portable config system for environment-agnostic notebook execution
-  - **config/config.json**: Centralized path configuration
-    - All relative paths (data, modules, notebooks, output, psgc_shapefiles, etc.)
-    - PSGC shapefile names (adm0-adm4)
-    - Logging and Jupyter settings
-  - **config/config.py**: Path resolution module
-    - `Config` class with automatic project root detection (searches for modules/, data/, notebooks/)
-    - `setup_notebook()`: One-line notebook setup (changes dir, adds to sys.path)
-    - `get_path()`, `get_psgc_path()`, `get_data_path()`, `get_output_path()`: Path utilities
-    - `PROJECT_ROOT` constant for backward compatibility
-  - **config/__init__.py**: Package initialization with exports
-  - **config/README.md**: Complete documentation (API reference, migration guide, troubleshooting)
-  - **config/USAGE_EXAMPLES.md**: 10 real-world usage examples
-  - **config/notebook_setup.py**: Bootstrap helper for notebooks
-  - **config/NOTEBOOK_TEMPLATE.md**: Copy-paste templates for notebook setup
-  - **Bootstrap Solution**: Fixed `ModuleNotFoundError` when importing config
-    - Problem: Notebooks run from `notebooks/`, Python can't find `config` without project root in sys.path
-    - Solution: 3-line bootstrap adds project root to path before importing config
-    ```python
-    import sys
-    from pathlib import Path
-    project_root = Path.cwd().parent
-    if str(project_root) not in sys.path:
-        sys.path.insert(0, str(project_root))
-    from config import setup_notebook
-    setup_notebook()
-    ```
-  - **Testing**: Created `test_config.py` comprehensive test suite
-  - **Benefits**: Environment-agnostic, no hardcoded paths, single import replaces manual setup
+### 2025-10-01 (Current Session)
+- **Module 9: Regional Road Network Extractor** (`modules/regional_road_network_extractor.py`)
+  - **Problem**: Archipelagic regions (MIMAROPA, Central Visayas) return incomplete OSMNx queries
+  - **Solution**: Province-level querying with automatic island decomposition
+  - **PSGC Digit Structure Implementation**:
+    - Updated all methods to use first 2 digits for region codes (e.g., '07' = Central Visayas)
+    - First 4 digits for province codes (e.g., '0722' = Cebu)
+    - Helper methods: `_extract_region_code()`, `_extract_province_code()`
+  - **Query Options**:
+    - `use_province_breakdown=True` (default): Queries each province → merge → complete coverage
+    - `use_province_breakdown=False`: Direct region query → faster but may miss islands
+  - **Visualization Methods** (OSMnx native, no igraph dependency):
+    - `plot_graph()`: Simple network plot
+    - `plot_graph_with_boundary()`: Network overlaid on region/province shapefiles
+    - Both support custom styling (colors, linewidths, alpha, DPI)
+  - **Features**: Caching, edge deduplication by osmid, MultiPolygon decomposition
+  - **Added comprehensive docstring examples**: 13 usage patterns covering all methods
 
 ## Architecture
 - **Pattern**: All processors follow consistent architecture (load→process→validate→export)
