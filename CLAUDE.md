@@ -54,15 +54,7 @@
   - Filter methods by region/province
   - Export to GeoJSON, Shapefile, GeoPackage, CSV
 
-### 8. PSGC Reconciler (`modules/psgc_reconciler.py`)
-- **Purpose**: Resolve PSGC code discrepancies between shapefile and CSV data
-- **Problem**: ~3,500 barangays have mismatched PSGC codes between OCHA shapefiles and PSA CSV data
-- **Multi-Strategy Matching Pipeline**:
-  1. corr_code matching → 2. Spatial join → 3. Hierarchical matching → 4. Fuzzy matching (90%, 85%, 80%)
-- **Output**: Matched/unmatched GeoDataFrames for manual review
-- **Export Formats**: CSV, GeoJSON, Shapefile, GeoPackage
-
-### 9. Regional Road Network Extractor (`modules/regional_road_network_extractor.py`)
+### 8. Regional Road Network Extractor (`modules/regional_road_network_extractor.py`)
 - **Purpose**: Extract OSM drive networks for Philippine regions using OSMNx with province-level querying for archipelagic reliability
 - **Input**: GeoDataFrame from psgc_consolidator (module 7)
 - **PSGC Code Structure**: First 2 digits = region, first 4 digits = province, digits 5-7 = municipality, digits 8-10 = barangay
@@ -96,7 +88,7 @@
 - **Coverage**:
   - Education: Public (~47K) + Private (~11K) schools with coordinates, enrollment, seats, furniture, tuition
   - Geography: Complete PH admin hierarchy (42K+ barangays) with geometries
-  - Infrastructure: OSM road networks by region/province via module 9
+  - Infrastructure: OSM road networks by region/province via module 8
 - **Spatial Integration**:
   - School coordinates → PSGC boundaries → Road networks
   - Enable accessibility analysis, catchment areas, network metrics
@@ -113,12 +105,11 @@
 - **Modules 1-6**: Created education data preprocessors (enrollment, coordinates, seats, furniture, tuition)
 - **Module 7**: PSGC Consolidator - hierarchical merge of 4 admin levels + 366MB shapefile, 42,048 features
   - Fixed City of Manila missing data, 10-digit PSGC standardization, shapefile-first left join
-- **Module 8**: PSGC Reconciler - 4-strategy pipeline to resolve ~3,500 mismatched barangay codes
 - **Configuration System**: Created `config/` package for environment-agnostic notebook execution
   - Auto-detects project root, centralized paths, 3-line bootstrap solution
 
 ### 2025-10-01 (Current Session)
-- **Module 9: Regional Road Network Extractor** (`modules/regional_road_network_extractor.py`)
+- **Module 8: Regional Road Network Extractor** (`modules/regional_road_network_extractor.py`)
   - **Problem**: Archipelagic regions (MIMAROPA, Central Visayas) return incomplete OSMNx queries
   - **Solution**: Province-level querying with automatic island decomposition
   - **PSGC Digit Structure Implementation**:
@@ -134,6 +125,42 @@
     - Both support custom styling (colors, linewidths, alpha, DPI)
   - **Features**: Caching, edge deduplication by osmid, MultiPolygon decomposition
   - **Added comprehensive docstring examples**: 13 usage patterns covering all methods
+
+### 2025-10-02 (Current Session)
+- **Module 8 Investigation: Provincial Breakdown vs Direct Query Limitations**
+  - **Problem**: Provincial breakdown method showed disjointed edges at boundaries
+    - Separate provincial queries generate duplicate nodes with different IDs at same coordinates
+    - `truncate_by_edge=True` was cutting roads at exact boundary, creating disconnected segments
+    - Roads crossing boundaries appeared disconnected in merged graph
+
+  - **Attempted Solutions**:
+    1. **Spatial proximity-based node deduplication** (`_merge_boundary_nodes()`)
+       - Uses scipy KDTree for efficient spatial indexing
+       - Union-find algorithm to merge duplicate node clusters
+       - Tested tolerances: 5m, 20m
+    2. **Edge preservation** - Changed `truncate_by_edge=False` in all `graph_from_polygon()` calls
+    3. **Increased buffer** - Tested up to 1000m
+
+  - **Findings**: Provincial breakdown has **fundamental limitations**
+    - OSM Overpass API returns **different/incomplete data** for small provincial queries vs large regional queries
+    - Provincial breakdown shows significantly **lower road network density** in central areas
+    - Node merging and edge preservation cannot fix incomplete source data
+    - Visual comparison (Region III): Direct query shows dense connected network, provincial breakdown shows sparse disconnected segments
+
+  - **Recommendations**:
+    - **Contiguous regions** (Region III, NCR, etc.): Use **direct query only**
+      - Better data quality and density
+      - Natural connectivity preservation
+    - **Archipelagic regions** (MIMAROPA, Central Visayas): Use **provincial breakdown**
+      - Accepts some data loss for geographic completeness
+      - Direct query may miss entire islands
+    - Provincial breakdown is a **coverage vs quality tradeoff**, not a superior method
+
+  - **Current Investigation**: Buffer behavior
+    - Buffer parameter (e.g., `buffer_meters=1000`) applied to query polygon
+    - Expected: Roads extend beyond region boundary (shows cross-boundary connections)
+    - Observed: Roads still contained within original boundary even with 1km buffer
+    - Investigating if OSMNx simplification or boundary recognition is trimming results post-query
 
 ## Architecture
 - **Pattern**: All processors follow consistent architecture (load→process→validate→export)
