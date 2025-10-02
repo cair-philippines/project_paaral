@@ -507,7 +507,7 @@ class RegionalRoadNetworkExtractor:
                     network_type=network_type,
                     simplify=True,
                     retain_all=True,  # Keep disconnected components
-                    truncate_by_edge=True
+                    truncate_by_edge=False  # Keep complete edges across boundaries
                 )
 
                 if G is not None and len(G.nodes) > 0:
@@ -543,7 +543,8 @@ class RegionalRoadNetworkExtractor:
             self.logger.info(f"Single graph: {len(combined_graph.nodes)} nodes, {len(combined_graph.edges)} edges")
         else:
             self.logger.info(f"Merging {len(graphs)} graphs...")
-            combined_graph = self._merge_graphs(graphs)
+            # No boundary merging needed within single province
+            combined_graph = self._merge_graphs(graphs, merge_boundary_nodes=False)
             self.logger.info(f"Merged graph: {len(combined_graph.nodes)} nodes, {len(combined_graph.edges)} edges")
 
         # Prepare metadata
@@ -572,7 +573,9 @@ class RegionalRoadNetworkExtractor:
         buffer_meters: float = 100,
         simplify_tolerance: float = 0.0001,
         decompose_islands: bool = True,
-        use_province_breakdown: bool = True
+        use_province_breakdown: bool = True,
+        merge_boundary_nodes: bool = True,
+        boundary_tolerance_meters: float = 5.0
     ) -> Tuple[Optional[nx.MultiDiGraph], Dict]:
         """
         Query road network for a region.
@@ -592,6 +595,12 @@ class RegionalRoadNetworkExtractor:
         use_province_breakdown : bool, default True
             If True, query each province separately then merge (RECOMMENDED for archipelagic regions).
             If False, query entire region shapefile directly (faster but may miss islands).
+        merge_boundary_nodes : bool, default True
+            If True, merge duplicate nodes at provincial boundaries based on spatial proximity.
+            Only applies when use_province_breakdown=True. Fixes disconnected edges at boundaries.
+        boundary_tolerance_meters : float, default 5.0
+            Distance threshold in meters for considering nodes as duplicates at boundaries.
+            Only applies when merge_boundary_nodes=True.
 
         Returns
         -------
@@ -664,7 +673,7 @@ class RegionalRoadNetworkExtractor:
                         network_type=network_type,
                         simplify=True,
                         retain_all=True,
-                        truncate_by_edge=True
+                        truncate_by_edge=False  # Keep complete edges across boundaries
                     )
 
                     if G is not None and len(G.nodes) > 0:
@@ -697,7 +706,8 @@ class RegionalRoadNetworkExtractor:
                 regional_graph = graphs[0]
             else:
                 self.logger.info(f"Merging {len(graphs)} graphs...")
-                regional_graph = self._merge_graphs(graphs)
+                # No boundary merging needed for direct query (single region)
+                regional_graph = self._merge_graphs(graphs, merge_boundary_nodes=False)
 
             self.logger.info(f"Regional graph: {len(regional_graph.nodes)} nodes, {len(regional_graph.edges)} edges")
 
@@ -766,7 +776,11 @@ class RegionalRoadNetworkExtractor:
         self.logger.info(f"Merging {len(province_graphs)} province graphs...")
         self.logger.info("="*60)
 
-        regional_graph = self._merge_graphs(province_graphs)
+        regional_graph = self._merge_graphs(
+            province_graphs,
+            merge_boundary_nodes=merge_boundary_nodes,
+            boundary_tolerance_meters=boundary_tolerance_meters
+        )
 
         self.logger.info(f"Regional graph: {len(regional_graph.nodes)} nodes, {len(regional_graph.edges)} edges")
 
@@ -787,7 +801,125 @@ class RegionalRoadNetworkExtractor:
 
         return regional_graph, metadata
 
-    def _merge_graphs(self, graphs: List[nx.MultiDiGraph]) -> nx.MultiDiGraph:
+    def _merge_boundary_nodes(self, G: nx.MultiDiGraph, tolerance_meters: float = 5.0) -> nx.MultiDiGraph:
+        """
+        Merge duplicate nodes at provincial boundaries based on spatial proximity.
+
+        When querying provinces separately, OSMNx creates separate node IDs for the same
+        physical location at boundaries. This method identifies and merges such duplicates.
+
+        Parameters
+        ----------
+        G : MultiDiGraph
+            Input graph with potential duplicate boundary nodes
+        tolerance_meters : float, default 5.0
+            Distance threshold in meters for considering nodes as duplicates
+
+        Returns
+        -------
+        MultiDiGraph
+            Graph with merged boundary nodes
+        """
+        try:
+            from scipy.spatial import cKDTree
+            import numpy as np
+        except ImportError:
+            self.logger.warning(
+                "scipy is not installed. Boundary node merging disabled. "
+                "Install with: pip install scipy"
+            )
+            return G
+
+        # Get node coordinates
+        nodes = list(G.nodes(data=True))
+        if len(nodes) == 0:
+            return G
+
+        # Build coordinate array (lon, lat)
+        node_ids = [n for n, _ in nodes]
+        coords = np.array([[data['x'], data['y']] for _, data in nodes])
+
+        # Convert tolerance from meters to degrees (approximate at equator)
+        tolerance_deg = tolerance_meters / 111320
+
+        # Build spatial index
+        tree = cKDTree(coords)
+
+        # Find all pairs of nodes within tolerance
+        pairs = tree.query_pairs(r=tolerance_deg)
+
+        if len(pairs) == 0:
+            self.logger.debug("No boundary nodes to merge")
+            return G
+
+        # Build merge mapping using union-find structure
+        parent = {node_id: node_id for node_id in node_ids}
+
+        def find(node):
+            if parent[node] != node:
+                parent[node] = find(parent[node])
+            return parent[node]
+
+        def union(node1, node2):
+            root1 = find(node1)
+            root2 = find(node2)
+            if root1 != root2:
+                # Keep the smaller ID as canonical
+                if root1 < root2:
+                    parent[root2] = root1
+                else:
+                    parent[root1] = root2
+
+        # Union all duplicate pairs
+        for idx1, idx2 in pairs:
+            node1 = node_ids[idx1]
+            node2 = node_ids[idx2]
+            union(node1, node2)
+
+        # Build final merge mapping
+        merge_mapping = {}
+        for node_id in node_ids:
+            canonical = find(node_id)
+            if canonical != node_id:
+                merge_mapping[node_id] = canonical
+
+        if len(merge_mapping) == 0:
+            self.logger.debug("No boundary nodes to merge")
+            return G
+
+        self.logger.info(f"Merging {len(merge_mapping)} duplicate boundary nodes (tolerance: {tolerance_meters}m)")
+
+        # Create new graph with merged nodes
+        G_merged = G.copy()
+
+        # Remap edges to use canonical node IDs
+        edges_to_add = []
+        edges_to_remove = []
+
+        for u, v, key, data in G_merged.edges(keys=True, data=True):
+            u_new = merge_mapping.get(u, u)
+            v_new = merge_mapping.get(v, v)
+
+            if u_new != u or v_new != v:
+                edges_to_remove.append((u, v, key))
+                edges_to_add.append((u_new, v_new, key, data))
+
+        # Apply edge modifications
+        G_merged.remove_edges_from(edges_to_remove)
+        for u, v, key, data in edges_to_add:
+            G_merged.add_edge(u, v, key=key, **data)
+
+        # Remove merged (duplicate) nodes
+        nodes_to_remove = list(merge_mapping.keys())
+        G_merged.remove_nodes_from(nodes_to_remove)
+
+        self.logger.info(f"Removed {len(nodes_to_remove)} duplicate nodes")
+        self.logger.info(f"Result: {len(G_merged.nodes)} nodes, {len(G_merged.edges)} edges")
+
+        return G_merged
+
+    def _merge_graphs(self, graphs: List[nx.MultiDiGraph], merge_boundary_nodes: bool = True,
+                     boundary_tolerance_meters: float = 5.0) -> nx.MultiDiGraph:
         """
         Merge multiple NetworkX graphs and deduplicate edges by osmid.
 
@@ -795,6 +927,10 @@ class RegionalRoadNetworkExtractor:
         ----------
         graphs : list of MultiDiGraph
             List of graphs to merge
+        merge_boundary_nodes : bool, default True
+            Whether to merge duplicate nodes at provincial boundaries
+        boundary_tolerance_meters : float, default 5.0
+            Distance threshold in meters for merging boundary nodes
 
         Returns
         -------
@@ -806,6 +942,11 @@ class RegionalRoadNetworkExtractor:
 
         # Compose all graphs
         combined = nx.compose_all(graphs)
+
+        # Merge duplicate boundary nodes (for provincial breakdown queries)
+        if merge_boundary_nodes:
+            self.logger.info("Merging boundary nodes from provincial queries...")
+            combined = self._merge_boundary_nodes(combined, tolerance_meters=boundary_tolerance_meters)
 
         # Deduplicate edges by osmid
         edges_to_remove = []
