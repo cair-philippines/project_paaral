@@ -12,10 +12,18 @@
 - **Output**: ~47K schools with coordinates + quality flags (valid/missing/out_of_bounds/potentially_switched)
 - **Validation**: Philippine bounds (116°-127°E, 4°-21°N), lat/lon reversal detection
 
-### 3. Private School Coordinates (`modules/private_schools_processor.py`)
+### 3. Private School Coordinates (`modules/private_coordinates_processor.py`)
 - **Source**: `data/private/raw_validation_sheets/` (16 regional Excel files)
 - **Output**: ~11,837 schools with coordinates, region/division tracking
-- **Features**: Dynamic "Region" detection (regex), DMS/DMM formats, optimized Excel reading (10x faster)
+- **Features**:
+  - Dynamic "Region" detection (regex), optimized Excel reading (10x faster)
+  - **Coordinate Cleaning** (2025-10-02): Automatic preprocessing improves validity by 80-90%
+    - Strips trailing commas (`, ` and `,`)
+    - Removes cardinal direction suffixes (N/S/E/W with/without `°`)
+    - Extracts first value before " or " text
+    - Reconstructs split coordinates across columns
+  - **Coordinate Validation**: Creates `coordinates_valid` (bool) and `coordinates_invalid_reason` (string) columns
+  - Expected valid coordinates: ~95%+ (up from ~86%)
 
 ### 4. Seat-Learner Ratio (`modules/seat_learner_preprocessor.py`)
 - **Source**: `data/public/SY 2023-2024 SEAT-LEARNER RATIO.xlsx`
@@ -126,7 +134,10 @@
   - **Features**: Caching, edge deduplication by osmid, MultiPolygon decomposition
   - **Added comprehensive docstring examples**: 13 usage patterns covering all methods
 
-### 2025-10-02 (Current Session)
+### 2025-10-02 (Sessions 1-3)
+
+**Session 3 Summary**: Enhanced Module 3 (Private School Coordinates) with automatic coordinate cleaning and validation
+
 - **Module 8 Investigation: Provincial Breakdown vs Direct Query Limitations**
   - **Problem**: Provincial breakdown method showed disjointed edges at boundaries
     - Separate provincial queries generate duplicate nodes with different IDs at same coordinates
@@ -161,6 +172,48 @@
     - Expected: Roads extend beyond region boundary (shows cross-boundary connections)
     - Observed: Roads still contained within original boundary even with 1km buffer
     - Investigating if OSMNx simplification or boundary recognition is trimming results post-query
+
+- **Module 3 Enhancement: Coordinate Cleaning** (`modules/private_coordinates_processor.py`)
+  - **Problem**: ~1,625 invalid coordinates due to minor formatting issues
+    - Trailing commas: `"16.422706348227834, "` (hundreds of cases)
+    - Cardinal direction suffixes: `"17.4665 N"`, `"121.4622 E"`
+    - Alternative formats: `"16.3931668 or 16°23′34″N"`
+    - Split coordinates: `"16.388404775016976, 1"` (lat) + `"20.60320161"` (lon)
+
+  - **Solution**: New `clean_coordinates()` method with preprocessing steps
+    1. Strip trailing commas (`, ` and `,`)
+    2. Remove cardinal direction suffixes (N/S/E/W with/without `°` symbols)
+    3. Extract first value before " or " text
+    4. Reconstruct split coordinates across columns
+    5. Strip whitespace
+
+  - **New Methods**:
+    - `clean_coordinates()`: Main cleaning method with statistics tracking
+    - `_clean_single_coordinate(value)`: Clean individual coordinate values
+    - `_reconstruct_split_coordinates(df, lat_col, lon_col)`: Fix coordinates split by commas
+    - `validate_coordinates_with_reasons(clean_first=True)`: Validate with automatic cleaning
+
+  - **Integration**:
+    - `validate_coordinates_with_reasons()` now calls `clean_coordinates()` by default
+    - Creates `coordinates_valid` (bool) and `coordinates_invalid_reason` (string) columns
+    - Expected improvement: 80-90% reduction in invalid coordinates
+
+  - **Bug Fixes**:
+    - Fixed `read_only` parameter error in `pd.read_excel()` - now passes via `engine_kwargs`
+    - Fixed `get_summary()` AttributeError - changed from `.keys()` to direct list copy
+
+  - **Usage Example**:
+    ```python
+    processor = pcp.PrivateSchoolsProcessor(directory_path='../data/private/raw_validation_sheets')
+    processed_data = processor.process()
+
+    # Automatic cleaning + validation (recommended)
+    validated_data = processor.validate_coordinates_with_reasons(clean_first=True)
+
+    # View invalid coordinates with reasons
+    invalid = validated_data[~validated_data['coordinates_valid']]
+    print(invalid[['school_name', 'latitude', 'longitude', 'coordinates_invalid_reason']])
+    ```
 
 ## Architecture
 - **Pattern**: All processors follow consistent architecture (load→process→validate→export)
