@@ -84,7 +84,7 @@ class Config:
             self.paths[key] = self.project_root / relative_path
 
             # Create output directories if they don't exist
-            if key in ['output', 'results', 'reconciled', 'processed_data']:
+            if key in ['output', 'results', 'processed_data']:
                 self.paths[key].mkdir(exist_ok=True, parents=True)
 
     def get_path(self, path_name: str) -> Path:
