@@ -14,13 +14,24 @@ The consolidation process:
 5. Reorders columns for better organization (PSGC codes, names, other data)
 6. Prepares shapefile: standardizes codes, filters null geometries, selects relevant columns
 7. Merges: shapefile (left) → consolidated CSV (right) for complete geographic coverage
+8. OPTIONAL: Spatial matching to fill ~3,580 unmatched barangays using point-in-polygon
 
-Key improvements:
+Key features:
 - Automatic City of Manila detection and filling for NCR barangays
 - PSGC code standardization with leading zeros (string type)
 - Cleaner column organization (codes → names → data)
 - Better merge strategy (shapefile-first to preserve all valid geometries)
 - Selective shapefile columns (psgc_code, corr_code, name, adm4_en, geometry)
+- Spatial matching using STRtree for efficient point-in-polygon queries
+- Preserves original data (with NaN) before spatial matching
+- Tags spatially-matched barangays with 'is_spatially_matched' column
+
+Spatial Matching:
+- Dissolves matched barangays to municipality boundaries (reference)
+- Uses centroid-based point-in-polygon for unmatched barangays
+- Falls back to nearest neighbor for boundary cases
+- ~1-2 minutes to match 3,580 unmatched barangays
+- Results in complete dataset with no NaN admin codes
 
 Author: Data Processing System
 """
@@ -68,6 +79,8 @@ class PSGCConsolidator:
         self.adm4_geodata = None  # Shapefile data
         self.consolidated_data = None  # Final consolidated DataFrame
         self.consolidated_geodata = None  # Final GeoDataFrame with geometry
+        self.consolidated_geodata_original = None  # Original geodata before spatial matching
+        self.reference_boundaries = None  # Dissolved municipality boundaries for spatial matching
 
         # Set logging level based on verbose flag
         if not verbose:
@@ -403,9 +416,217 @@ class PSGCConsolidator:
 
         return self.consolidated_geodata
 
-    def process(self) -> gpd.GeoDataFrame:
+    def _build_reference_boundaries(self) -> gpd.GeoDataFrame:
+        """
+        Build reference municipality boundaries from matched barangays for spatial matching.
+
+        Dissolves matched barangay geometries to municipality level to create reference
+        boundaries for spatially matching unmatched barangays.
+
+        Returns:
+            GeoDataFrame with dissolved municipality boundaries and admin codes
+        """
+        if self.consolidated_geodata is None:
+            raise ValueError("Data not processed. Call merge_with_geometry() first.")
+
+        logger.info("Building reference municipality boundaries for spatial matching...")
+
+        # Get only matched barangays (those with valid admin codes)
+        matched = self.consolidated_geodata[
+            self.consolidated_geodata['adm1_psgc'].notna()
+        ].copy()
+
+        logger.info(f"Using {len(matched)} matched barangays to build reference boundaries")
+
+        # Dissolve to municipality level
+        municipalities = matched.dissolve(
+            by=['adm1_psgc', 'adm2_psgc', 'adm3_psgc'],
+            as_index=False
+        ).reset_index(drop=True)
+
+        # Keep only needed columns
+        municipalities = municipalities[
+            ['adm1_psgc', 'adm2_psgc', 'adm3_psgc',
+             'adm1_en', 'adm2_en', 'adm3_en', 'geometry']
+        ]
+
+        logger.info(f"Created {len(municipalities)} municipality reference boundaries")
+
+        self.reference_boundaries = municipalities
+        return municipalities
+
+    def _spatial_match_unmatched(self, unmatched_gdf: gpd.GeoDataFrame,
+                                  reference_gdf: gpd.GeoDataFrame) -> pd.DataFrame:
+        """
+        Match unmatched barangays to admin units using spatial containment.
+
+        Uses STRtree spatial indexing for efficient point-in-polygon queries.
+        Falls back to nearest neighbor for barangays on boundaries.
+
+        Parameters:
+            unmatched_gdf : GeoDataFrame
+                Barangays without admin info
+            reference_gdf : GeoDataFrame
+                Dissolved municipality boundaries with admin codes
+
+        Returns:
+            DataFrame with matched admin codes for each unmatched barangay
+        """
+        from shapely.strtree import STRtree
+        from shapely.prepared import prep
+
+        logger.info(f"Starting spatial matching for {len(unmatched_gdf)} unmatched barangays...")
+
+        # Build spatial index from reference boundaries
+        ref_geoms = list(reference_gdf.geometry.values)
+        tree = STRtree(ref_geoms)
+
+        # Prepare geometries for faster containment tests
+        prepared = [prep(g) for g in ref_geoms]
+
+        # Results storage
+        matches = []
+        matched_count = 0
+        fallback_count = 0
+
+        for idx, row in unmatched_gdf.iterrows():
+            # Use centroid for point-in-polygon (much faster than full polygon)
+            centroid = row.geometry.centroid
+
+            # Query spatial index - returns INDICES in Shapely 2.x
+            candidates_idx = tree.query(centroid)
+
+            # Handle both return types (list/array)
+            if hasattr(candidates_idx, 'tolist'):
+                candidates_idx = candidates_idx.tolist()
+            else:
+                candidates_idx = list(candidates_idx) if not isinstance(candidates_idx, list) else candidates_idx
+
+            # Test actual containment
+            matched = False
+            for cand_idx in candidates_idx:
+                # Fast containment test using prepared geometry
+                if prepared[cand_idx].contains(centroid):
+                    # Found match - extract admin codes
+                    matches.append({
+                        'psgc_code': row['psgc_code'],
+                        'adm1_psgc': reference_gdf.iloc[cand_idx]['adm1_psgc'],
+                        'adm2_psgc': reference_gdf.iloc[cand_idx]['adm2_psgc'],
+                        'adm3_psgc': reference_gdf.iloc[cand_idx]['adm3_psgc'],
+                        'adm1_en': reference_gdf.iloc[cand_idx]['adm1_en'],
+                        'adm2_en': reference_gdf.iloc[cand_idx]['adm2_en'],
+                        'adm3_en': reference_gdf.iloc[cand_idx]['adm3_en']
+                    })
+                    matched = True
+                    matched_count += 1
+                    break
+
+            if not matched:
+                # Fallback: nearest neighbor (for barangays on boundaries)
+                nearest_idx = tree.nearest(centroid)
+                # Handle single index return
+                if hasattr(nearest_idx, '__iter__') and not isinstance(nearest_idx, str):
+                    nearest_idx = list(nearest_idx)[0] if len(list(nearest_idx)) > 0 else 0
+
+                matches.append({
+                    'psgc_code': row['psgc_code'],
+                    'adm1_psgc': reference_gdf.iloc[nearest_idx]['adm1_psgc'],
+                    'adm2_psgc': reference_gdf.iloc[nearest_idx]['adm2_psgc'],
+                    'adm3_psgc': reference_gdf.iloc[nearest_idx]['adm3_psgc'],
+                    'adm1_en': reference_gdf.iloc[nearest_idx]['adm1_en'],
+                    'adm2_en': reference_gdf.iloc[nearest_idx]['adm2_en'],
+                    'adm3_en': reference_gdf.iloc[nearest_idx]['adm3_en']
+                })
+                fallback_count += 1
+
+        logger.info(f"Spatial matching complete: {matched_count} direct matches, {fallback_count} nearest neighbor fallbacks")
+
+        return pd.DataFrame(matches)
+
+    def apply_spatial_matching(self, save_original: bool = True) -> gpd.GeoDataFrame:
+        """
+        Apply spatial matching to fill unmatched barangay admin codes.
+
+        This method uses spatial containment to match barangays that don't have
+        corresponding CSV data. It dissolves matched barangays to municipality level,
+        then uses point-in-polygon queries to assign admin codes to unmatched barangays
+        based on their geographic location.
+
+        Parameters:
+            save_original : bool, default True
+                If True, keeps original data with NaN values in self.consolidated_geodata_original
+
+        Returns:
+            GeoDataFrame with spatial matching applied and 'is_spatially_matched' column
+        """
+        if self.consolidated_geodata is None:
+            raise ValueError("Data not merged. Call merge_with_geometry() first.")
+
+        logger.info("Starting spatial matching process...")
+
+        # Save original if requested
+        if save_original:
+            self.consolidated_geodata_original = self.consolidated_geodata.copy()
+            logger.info("Original geodata (with NaN rows) saved to self.consolidated_geodata_original")
+
+        # Build reference boundaries from matched data
+        reference = self._build_reference_boundaries()
+
+        # Get unmatched rows
+        unmatched = self.consolidated_geodata[
+            self.consolidated_geodata['adm1_psgc'].isna()
+        ].copy()
+
+        unmatched_count = len(unmatched)
+        logger.info(f"Found {unmatched_count} unmatched barangays to process")
+
+        if unmatched_count == 0:
+            logger.info("No unmatched barangays found. Adding is_spatially_matched column (all False)")
+            self.consolidated_geodata['is_spatially_matched'] = False
+            return self.consolidated_geodata
+
+        # Run spatial matching
+        matched_codes = self._spatial_match_unmatched(unmatched, reference)
+
+        # Add is_spatially_matched column (initialize all as False)
+        self.consolidated_geodata['is_spatially_matched'] = False
+
+        # Update admin codes for unmatched rows
+        for col in ['adm1_psgc', 'adm2_psgc', 'adm3_psgc', 'adm1_en', 'adm2_en', 'adm3_en']:
+            # Create a mapping from psgc_code to matched value
+            mapping = dict(zip(matched_codes['psgc_code'], matched_codes[col]))
+
+            # Update only unmatched rows
+            mask = self.consolidated_geodata['adm1_psgc'].isna()
+            self.consolidated_geodata.loc[mask, col] = (
+                self.consolidated_geodata.loc[mask, 'psgc_code'].map(mapping)
+            )
+
+        # Mark spatially matched rows
+        matched_psgc_codes = set(matched_codes['psgc_code'])
+        self.consolidated_geodata.loc[
+            self.consolidated_geodata['psgc_code'].isin(matched_psgc_codes),
+            'is_spatially_matched'
+        ] = True
+
+        # Log final statistics
+        still_unmatched = self.consolidated_geodata['adm1_psgc'].isna().sum()
+        spatially_matched = self.consolidated_geodata['is_spatially_matched'].sum()
+
+        logger.info(f"Spatial matching results:")
+        logger.info(f"  - Spatially matched: {spatially_matched} barangays")
+        logger.info(f"  - Still unmatched: {still_unmatched} barangays")
+        logger.info(f"  - Total features: {len(self.consolidated_geodata)}")
+
+        return self.consolidated_geodata
+
+    def process(self, auto_spatial_match: bool = False) -> gpd.GeoDataFrame:
         """
         Main processing pipeline: load, consolidate, and merge with geometries.
+
+        Parameters:
+            auto_spatial_match : bool, default False
+                If True, automatically applies spatial matching to fill unmatched barangays
 
         Returns:
             GeoDataFrame with complete hierarchical geographic data
@@ -420,6 +641,11 @@ class PSGCConsolidator:
 
         # Merge with geometries
         self.merge_with_geometry()
+
+        # Apply spatial matching if requested
+        if auto_spatial_match:
+            logger.info("Auto-applying spatial matching...")
+            self.apply_spatial_matching(save_original=True)
 
         logger.info("PSGC consolidation pipeline completed successfully")
         return self.consolidated_geodata
@@ -534,6 +760,101 @@ class PSGCConsolidator:
         else:
             raise ValueError(f"Unsupported file format: {suffix}. Use .csv, .geojson, .shp, or .gpkg")
 
+    def export_original(self, output_path: str) -> None:
+        """
+        Export original GeoDataFrame (before spatial matching) to file.
+
+        This exports the data with unmatched barangays still containing NaN values
+        in admin code columns, exactly as it was before spatial matching was applied.
+
+        Supports multiple formats based on file extension:
+        - .geojson: GeoJSON format
+        - .shp: Shapefile format
+        - .gpkg: GeoPackage format
+        - .csv: CSV format (without geometry)
+
+        Args:
+            output_path: Path for the output file
+
+        Raises:
+            ValueError: If original data not available (spatial matching not applied)
+        """
+        if self.consolidated_geodata_original is None:
+            raise ValueError(
+                "Original data not available. Either spatial matching was not applied, "
+                "or save_original=False was used in apply_spatial_matching()"
+            )
+
+        output_path = Path(output_path)
+        output_path.parent.mkdir(parents=True, exist_ok=True)
+
+        suffix = output_path.suffix.lower()
+
+        if suffix == '.csv':
+            csv_data = self.consolidated_geodata_original.drop(columns=['geometry'])
+            csv_data.to_csv(output_path, index=False)
+            logger.info(f"Exported {len(csv_data)} original records to CSV: {output_path}")
+        elif suffix in ['.geojson', '.json']:
+            self.consolidated_geodata_original.to_file(output_path, driver='GeoJSON')
+            logger.info(f"Exported {len(self.consolidated_geodata_original)} original features to GeoJSON: {output_path}")
+        elif suffix == '.shp':
+            self.consolidated_geodata_original.to_file(output_path, driver='ESRI Shapefile')
+            logger.info(f"Exported {len(self.consolidated_geodata_original)} original features to Shapefile: {output_path}")
+        elif suffix == '.gpkg':
+            self.consolidated_geodata_original.to_file(output_path, driver='GPKG')
+            logger.info(f"Exported {len(self.consolidated_geodata_original)} original features to GeoPackage: {output_path}")
+        else:
+            raise ValueError(f"Unsupported file format: {suffix}. Use .csv, .geojson, .shp, or .gpkg")
+
+    def export_matched(self, output_path: str) -> None:
+        """
+        Export spatially-matched GeoDataFrame to file.
+
+        This exports the data with spatial matching applied. The 'is_spatially_matched'
+        column indicates which barangays had their admin codes filled via spatial matching.
+
+        Supports multiple formats based on file extension:
+        - .geojson: GeoJSON format
+        - .shp: Shapefile format
+        - .gpkg: GeoPackage format
+        - .csv: CSV format (without geometry)
+
+        Args:
+            output_path: Path for the output file
+
+        Raises:
+            ValueError: If data not processed or spatial matching not applied
+        """
+        if self.consolidated_geodata is None:
+            raise ValueError("Data not processed. Call process() first.")
+
+        if 'is_spatially_matched' not in self.consolidated_geodata.columns:
+            raise ValueError(
+                "Spatial matching not applied. Call apply_spatial_matching() first "
+                "or use process(auto_spatial_match=True)"
+            )
+
+        output_path = Path(output_path)
+        output_path.parent.mkdir(parents=True, exist_ok=True)
+
+        suffix = output_path.suffix.lower()
+
+        if suffix == '.csv':
+            csv_data = self.consolidated_geodata.drop(columns=['geometry'])
+            csv_data.to_csv(output_path, index=False)
+            logger.info(f"Exported {len(csv_data)} matched records to CSV: {output_path}")
+        elif suffix in ['.geojson', '.json']:
+            self.consolidated_geodata.to_file(output_path, driver='GeoJSON')
+            logger.info(f"Exported {len(self.consolidated_geodata)} matched features to GeoJSON: {output_path}")
+        elif suffix == '.shp':
+            self.consolidated_geodata.to_file(output_path, driver='ESRI Shapefile')
+            logger.info(f"Exported {len(self.consolidated_geodata)} matched features to Shapefile: {output_path}")
+        elif suffix == '.gpkg':
+            self.consolidated_geodata.to_file(output_path, driver='GPKG')
+            logger.info(f"Exported {len(self.consolidated_geodata)} matched features to GeoPackage: {output_path}")
+        else:
+            raise ValueError(f"Unsupported file format: {suffix}. Use .csv, .geojson, .shp, or .gpkg")
+
     def get_processed_data(self) -> gpd.GeoDataFrame:
         """
         Get the processed GeoDataFrame with all hierarchical data and geometries.
@@ -549,15 +870,22 @@ class PSGCConsolidator:
 
 # Example usage
 if __name__ == "__main__":
+    print("=" * 80)
+    print("PSGC Consolidator - Example Usage")
+    print("=" * 80)
+
+    # === Option 1: Manual control (process then optionally apply spatial matching) ===
+    print("\n--- Option 1: Manual Control ---")
+
     # Initialize consolidator
     consolidator = PSGCConsolidator()
 
-    # Process data
+    # Process data (default: no spatial matching)
     geodata = consolidator.process()
 
     # Get summary
     summary = consolidator.get_summary()
-    print("\nPSGC Consolidated Data Summary:")
+    print("\nPSGC Consolidated Data Summary (before spatial matching):")
     print(f"Total features: {summary['total_features']:,}")
     print(f"Features with geometry: {summary['features_with_geometry']:,}")
     print(f"Unique regions: {summary['unique_regions']}")
@@ -565,13 +893,39 @@ if __name__ == "__main__":
     print(f"Unique municipalities: {summary['unique_municipalities']}")
     print(f"Unique barangays: {summary['unique_barangays']}")
     print(f"CRS: {summary['crs']}")
-    if summary['total_area_km2']:
-        print(f"Total area: {summary['total_area_km2']:,.2f} km²")
 
-    # Show sample data
-    print("\nSample data:")
-    print(geodata.head(5))
+    # Export original (with NaN rows)
+    consolidator.export_processed("output/psgc_consolidated_original.gpkg")
+    print("\nOriginal data exported to: output/psgc_consolidated_original.gpkg")
 
-    # Export processed data
-    consolidator.export_processed("output/psgc_consolidated.geojson")
-    consolidator.export_processed("output/psgc_consolidated.csv")
+    # Apply spatial matching
+    print("\nApplying spatial matching...")
+    geodata_matched = consolidator.apply_spatial_matching(save_original=True)
+
+    # Export matched version
+    consolidator.export_matched("output/psgc_consolidated_matched.gpkg")
+    print("Matched data exported to: output/psgc_consolidated_matched.gpkg")
+
+    # Also export original separately (shows NaN rows before matching)
+    consolidator.export_original("output/psgc_consolidated_before_matching.gpkg")
+    print("Pre-matching data exported to: output/psgc_consolidated_before_matching.gpkg")
+
+    print("\n" + "=" * 80)
+    print("\n--- Option 2: Auto-match in pipeline ---")
+
+    # Initialize new consolidator
+    consolidator2 = PSGCConsolidator()
+
+    # Process with auto spatial matching
+    geodata_auto = consolidator2.process(auto_spatial_match=True)
+
+    print("\nData processed with automatic spatial matching")
+    print(f"Spatially matched barangays: {geodata_auto['is_spatially_matched'].sum():,}")
+
+    # Export final data
+    consolidator2.export_matched("output/psgc_consolidated_auto_matched.gpkg")
+    print("Auto-matched data exported to: output/psgc_consolidated_auto_matched.gpkg")
+
+    print("\n" + "=" * 80)
+    print("Example completed successfully!")
+    print("=" * 80)
