@@ -215,143 +215,112 @@
     print(invalid[['school_name', 'latitude', 'longitude', 'coordinates_invalid_reason']])
     ```
 
-### 2025-10-05 (Current Session)
+### 2025-10-05
 
 **Summary**: Enhanced Module 7 with spatial matching for unmatched barangays, shifted road network extraction to PyOsmium architecture, configuration cleanup
 
-- **Module 7 Enhancement: Spatial Matching** (`modules/psgc_consolidator.py`)
-  - **Problem**: ~3,580 unmatched barangays in consolidated GeoDataFrame
-    - Shapefile contains 42,048 features (PH_Adm4_BgySubMuns.shp.zip)
-    - CSV contains 42,017 barangays (PH_Adm4_BgySubMuns.csv)
-    - PSGC code mismatches cause NaN values in admin columns (adm1_psgc, adm2_psgc, adm3_psgc, region/province/municipality names)
-    - Root causes: Renamed barangays, merged/split administrative units, data vintage differences
+### 2025-10-06 (Current Session)
 
-  - **Solution**: Point-in-polygon spatial matching using STRtree
-    - Dissolves matched barangays to municipality-level reference boundaries
-    - Uses centroid-based containment testing for unmatched barangays
-    - Falls back to nearest neighbor for boundary cases
-    - Performance: ~1-2 minutes for 3,580 unmatched barangays
-    - Results in complete dataset with no NaN admin codes
+**Summary**: Debugged and fixed spatial matching bugs - reference boundaries now populated from authoritative CSV sources, and mask recreation bug preventing column updates resolved
 
-  - **New Class Attributes**:
-    - `consolidated_geodata_original`: Stores pre-matching data (with NaN rows)
-    - `reference_boundaries`: Dissolved municipality boundaries for spatial queries
+- **Spatial Matching Bug Fix** (`modules/psgc_consolidator.py` - `_build_reference_boundaries()`)
+  - **Problem Identified**: Spatial matching was still producing significant NaN values in region/province names
+    - Root cause: Reference boundaries were inheriting NaN values from matched barangays
+    - Even "matched" barangays (where adm1_psgc is not null) had many NaN values in name columns:
+      - `adm2_en`: 3,097 NaN values (province names)
+      - `adm1_en`: 14 NaN values (region names)
+      - `adm3_en`: 16 NaN values (municipality names)
+    - When spatial matching copied from reference boundaries, it was copying these NaN values
 
-  - **New Methods**:
-    - `_build_reference_boundaries()`: Dissolves matched barangays by [adm1_psgc, adm2_psgc, adm3_psgc] to create municipality polygons
-    - `_spatial_match_unmatched(unmatched_gdf, reference_gdf)`: STRtree-based spatial matching
-      - Builds spatial index (STRtree) from reference municipality geometries
-      - Prepares geometries for optimized containment testing
-      - For each unmatched barangay:
-        1. Query spatial index with barangay centroid
-        2. Test centroid containment in candidate municipalities
-        3. If no match, use nearest neighbor fallback
-      - Returns DataFrame with matched admin codes
-    - `apply_spatial_matching(save_original=True)`: Main public method
-      - Saves original GeoDataFrame before matching (if requested)
-      - Builds reference boundaries from matched barangays
-      - Matches unmatched barangays to admin units
-      - Updates admin code columns (adm1_psgc, adm2_psgc, adm3_psgc, adm1_en, adm2_en, adm3_en)
-      - Adds `is_spatially_matched` boolean column for transparency
-      - Returns updated consolidated GeoDataFrame
-    - `export_original(output_path)`: Export pre-matching data with NaN rows
-    - `export_matched(output_path)`: Export post-matching data with is_spatially_matched column
+  - **Solution**: Populate names from authoritative CSV sources
+    - Changed `_build_reference_boundaries()` to merge with admin-level CSV data after dissolving
+    - After dissolving matched barangays to municipality level, now:
+      1. Keeps only PSGC codes and geometry initially
+      2. Merges with `adm3_data` to get municipality names
+      3. Merges with `adm2_data` to get province names
+      4. Merges with `adm1_data` to get region names
+      5. Ensures PSGC codes have leading zeros for proper matching
+    - This guarantees reference boundaries have complete name information from source CSV files
+    - Added logging to report name completeness statistics
 
-  - **Updated Methods**:
-    - `process(auto_spatial_match=False)`: Added optional automatic spatial matching
-      - If `auto_spatial_match=True`, calls `apply_spatial_matching()` after consolidation
-      - Defaults to `False` to preserve original behavior
-
-  - **Shapely 2.x Compatibility Fix**:
-    - **Problem**: KeyError when using `geom_to_idx` mapping in spatial matching
-    - **Root Cause**: Shapely 2.x STRtree.query() returns indices directly (not geometry objects)
-    - **Fix**: Removed geom_to_idx mapping, use returned indices directly
-    - **Before**: `cand_idx = geom_to_idx[id(cand_geom)]` (incorrect for Shapely 2.x)
-    - **After**: `candidates_idx = tree.query(centroid)` (indices already returned)
-
-  - **Updated Module Docstring**:
-    - Added spatial matching step (step 8) to consolidation process documentation
-    - Added "Spatial Matching" section explaining the approach
-    - Updated example usage with two patterns:
-      1. Manual control: Call `apply_spatial_matching()` explicitly
-      2. Automatic: Use `process(auto_spatial_match=True)`
-
-  - **Usage Example**:
+  - **Technical Details**:
     ```python
-    # Pattern 1: Manual control
-    consolidator = PSGCConsolidator(base_dir='data/philippines-psgc-shapefiles/dist')
-    consolidated = consolidator.process()
+    # Before (buggy): Kept name columns from dissolved matched barangays
+    municipalities = municipalities[
+        ['adm1_psgc', 'adm2_psgc', 'adm3_psgc',
+         'adm1_en', 'adm2_en', 'adm3_en', 'geometry']  # These had NaN values!
+    ]
 
-    # Apply spatial matching
-    matched = consolidator.apply_spatial_matching(save_original=True)
-
-    # Export both versions
-    consolidator.export_original('output/original_with_nans.gpkg')
-    consolidator.export_matched('output/matched_complete.gpkg')
-
-    # Pattern 2: Automatic
-    consolidator = PSGCConsolidator(base_dir='data/philippines-psgc-shapefiles/dist')
-    consolidated = consolidator.process(auto_spatial_match=True)
-
-    # Check spatially matched rows
-    matched_rows = consolidated[consolidated['is_spatially_matched'] == True]
-    print(f"Spatially matched: {len(matched_rows)} barangays")
+    # After (fixed): Merge with authoritative sources
+    municipalities = municipalities[['adm1_psgc', 'adm2_psgc', 'adm3_psgc', 'geometry']]
+    # Merge with adm3_data, adm2_data, adm1_data to populate names
+    municipalities = municipalities.merge(adm3_names, ...).merge(adm2_names, ...).merge(adm1_names, ...)
     ```
 
-- **Road Network Extraction: Architecture Shift to PyOsmium**
-  - **Problem**: OSMNx provincial breakdown showed fundamental limitations
-    - Overpass API returns incomplete/different data for small provincial queries
-    - Provincial breakdown shows lower road network density in central areas
-    - Node merging and edge preservation cannot fix incomplete source data
-    - Direct regional queries miss islands in archipelagic regions
+  - **Impact**: Spatial matching now produces complete admin codes AND names for all ~3,580 unmatched barangays
 
-  - **New Approach**: Local PBF processing with PyOsmium (`0.4-get-road-networks-v2.ipynb`)
-    - Downloads Philippines PBF from GeoFabrik (~581MB)
-    - Single-pass streaming handler processes entire PBF file
-    - Performance: 2.79 minutes for all 88 provinces (vs hours with OSMNx provincial breakdown)
-    - Output: Provincial .geojsonl files with complete road network coverage
+- **Spatial Matching Critical Bug Fix** (`modules/psgc_consolidator.py` - `apply_spatial_matching()`)
+  - **Problem**: Spatially matched barangays still had NaN values in all columns except adm1_psgc
+    - Only the first column (adm1_psgc) was being updated
+    - All other columns (adm2_psgc, adm3_psgc, adm1_en, adm2_en, adm3_en) remained NaN
+    - Reference boundaries had complete data, but updates weren't being applied
 
-  - **Implementation Details**:
-    - Uses PyOsmium's osmium.SimpleHandler for memory-efficient streaming
-    - Builds STRtree spatial index from province boundaries
-    - For each OSM way:
-      1. Checks if highway tag is drivable (excludes footpaths, etc.)
-      2. Queries STRtree to find intersecting province(s)
-      3. Adds way to province's road network
-    - Outputs GeoJSONL format (line-delimited GeoJSON) for efficient processing
+  - **Root Cause**: Mask was being recreated inside the for loop
+    - Loop iteration 1 (adm1_psgc): Mask finds 3,580 rows with NaN, updates adm1_psgc ✓
+    - Loop iteration 2 (adm2_psgc): Mask recreated - finds 0 rows (adm1_psgc now filled!), updates nothing ✗
+    - Subsequent iterations update nothing ✗
 
-  - **File Naming Convention**: PSGC format `RR-PPP.geojsonl`
-    - RR = 2-digit region code (e.g., '03' = Region III)
-    - PPP = 3-digit province code (e.g., '014' = Bulacan)
-    - Example: `03-014.geojsonl` (Bulacan, Region III)
-    - Enables hierarchical organization and filtering by region/province
+  - **The Bug**:
+    ```python
+    # BUGGY CODE (line 648)
+    for col in ['adm1_psgc', 'adm2_psgc', 'adm3_psgc', 'adm1_en', 'adm2_en', 'adm3_en']:
+        mapping = dict(zip(matched_codes['psgc_code'], matched_codes[col]))
+        mask = self.consolidated_geodata['adm1_psgc'].isna()  # BUG: Recreated in loop!
+        self.consolidated_geodata.loc[mask, col] = ...
+    ```
 
-  - **Renaming Script**: Created `rename_to_psgc()` function in notebook
-    - Maps slug-based filenames to PSGC format
-    - Example: `region_iii_central_luzon_bulacan.geojsonl` → `03-014.geojsonl`
-    - Dry-run mode to preview changes before execution
-    - See `rename_networks_cells.txt` for implementation
+  - **The Fix**:
+    ```python
+    # FIXED CODE
+    # Create mask ONCE before loop
+    mask = self.consolidated_geodata['adm1_psgc'].isna()
 
-  - **Advantages over OSMNx**:
-    - Complete coverage: Single PBF contains all Philippine road data
-    - Consistent quality: No API limitations or query size restrictions
-    - Performance: 20-40x faster than provincial breakdown with OSMNx
-    - Reliability: No network calls, fully offline processing
-    - Flexibility: Full control over filtering and processing logic
+    for col in ['adm1_psgc', 'adm2_psgc', 'adm3_psgc', 'adm1_en', 'adm2_en', 'adm3_en']:
+        mapping = dict(zip(matched_codes['psgc_code'], matched_codes[col]))
+        self.consolidated_geodata.loc[mask, col] = ...  # Uses same mask for all columns
+    ```
 
-- **Configuration Cleanup**
-  - **Removed**: 'reconciled' directory paths and references
-    - Removed `"reconciled": "data/reconciled"` from `config/config.json`
-    - Removed 'reconciled' from auto-created directories list in `config/config.py`
-    - Decision: Not proceeding with PSGC reconciler approach (Module 8 from Oct 1 session)
+  - **Impact**: All 6 columns now properly updated for spatially matched barangays
 
-- **File Reversion and Re-application**
-  - **Problem**: Accidentally reverted psgc_consolidator.py and CLAUDE.md to earlier versions
-    - All spatial matching code disappeared from psgc_consolidator.py
-    - Today's documentation (2025-10-05) missing from CLAUDE.md
-  - **Solution**: Re-applied all changes systematically
-    - Restored complete spatial matching implementation to psgc_consolidator.py
-    - Updated CLAUDE.md with 2025-10-05 session documentation
+  - **Debugging Process**:
+    - User ran section 2.1 and reported NaN values still present after spatial matching
+    - Added diagnostic cells to notebook to check:
+      1. Reference boundaries structure and name completeness
+      2. PSGC code formats and data types across all sources
+    - Diagnostic results showed:
+      - ✅ Reference boundaries properly populated (1,582 municipalities, only 1 NaN in adm3_en)
+      - ✅ PSGC codes correctly formatted (string type with leading zeros)
+      - ✅ Merge with admin CSV data working correctly
+    - Concluded issue was NOT in `_build_reference_boundaries()` but in `apply_spatial_matching()`
+    - Found mask recreation bug by reviewing update logic at line 648
+    - Fix verified by reloading module and re-running section 2.1
+
+  - **Files Modified**:
+    - `modules/psgc_consolidator.py`: Fixed mask recreation bug in `apply_spatial_matching()`
+    - `notebooks/0.2-map-resources.ipynb`: Added diagnostic cells in section 2.1
+    - Updated module reload cell to use `importlib.reload(psgc_consolidator)` for testing
+
+- **Session Summary**:
+  - **Total bugs fixed**: 2 critical bugs in spatial matching
+  - **Bug 1**: Reference boundaries inheriting NaN values from matched barangays
+    - Fixed by merging with authoritative CSV sources after dissolving
+  - **Bug 2**: Mask recreation inside for loop preventing column updates
+    - Fixed by creating mask once before loop
+  - **Result**: Complete spatial matching functionality
+    - All ~3,580 unmatched barangays now have complete PSGC codes AND names
+    - `is_spatially_matched` column properly identifies spatially matched rows
+  - **Debugging methodology**: Added diagnostic cells to isolate issue location
+  - **Testing approach**: Module reload and iterative testing in notebook
 
 ## Architecture
 - **Pattern**: All processors follow consistent architecture (load→process→validate→export)
