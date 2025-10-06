@@ -444,13 +444,61 @@ class PSGCConsolidator:
             as_index=False
         ).reset_index(drop=True)
 
-        # Keep only needed columns
+        # Keep only PSGC codes and geometry initially
+        municipalities = municipalities[
+            ['adm1_psgc', 'adm2_psgc', 'adm3_psgc', 'geometry']
+        ]
+
+        logger.info(f"Created {len(municipalities)} municipality reference boundaries")
+
+        # Merge with admin-level data to get authoritative names
+        # This ensures we have complete name information even if matched barangays had NaN values
+        logger.info("Populating admin names from authoritative sources...")
+
+        # Merge with Adm3 (Municipality names)
+        adm3_names = self.adm3_data[['adm1_psgc', 'adm2_psgc', 'adm3_psgc', 'adm3_en']].copy()
+        # Ensure PSGC codes have leading zeros
+        for col in ['adm1_psgc', 'adm2_psgc', 'adm3_psgc']:
+            adm3_names[col] = adm3_names[col].apply(self._add_leading_zeros).astype('string')
+        municipalities = municipalities.merge(
+            adm3_names,
+            on=['adm1_psgc', 'adm2_psgc', 'adm3_psgc'],
+            how='left'
+        )
+
+        # Merge with Adm2 (Province names)
+        adm2_names = self.adm2_data[['adm1_psgc', 'adm2_psgc', 'adm2_en']].copy()
+        # Ensure PSGC codes have leading zeros
+        for col in ['adm1_psgc', 'adm2_psgc']:
+            adm2_names[col] = adm2_names[col].apply(self._add_leading_zeros).astype('string')
+        municipalities = municipalities.merge(
+            adm2_names,
+            on=['adm1_psgc', 'adm2_psgc'],
+            how='left'
+        )
+
+        # Merge with Adm1 (Region names)
+        adm1_names = self.adm1_data[['adm1_psgc', 'adm1_en']].copy()
+        # Ensure PSGC codes have leading zeros
+        adm1_names['adm1_psgc'] = adm1_names['adm1_psgc'].apply(self._add_leading_zeros).astype('string')
+        municipalities = municipalities.merge(
+            adm1_names,
+            on=['adm1_psgc'],
+            how='left'
+        )
+
+        # Reorder columns for consistency
         municipalities = municipalities[
             ['adm1_psgc', 'adm2_psgc', 'adm3_psgc',
              'adm1_en', 'adm2_en', 'adm3_en', 'geometry']
         ]
 
-        logger.info(f"Created {len(municipalities)} municipality reference boundaries")
+        # Report on name completeness
+        nan_counts = municipalities[['adm1_en', 'adm2_en', 'adm3_en']].isna().sum()
+        logger.info(f"Reference boundaries name completeness: "
+                   f"adm1_en: {len(municipalities) - nan_counts['adm1_en']}/{len(municipalities)}, "
+                   f"adm2_en: {len(municipalities) - nan_counts['adm2_en']}/{len(municipalities)}, "
+                   f"adm3_en: {len(municipalities) - nan_counts['adm3_en']}/{len(municipalities)}")
 
         self.reference_boundaries = municipalities
         return municipalities
@@ -591,13 +639,17 @@ class PSGCConsolidator:
         # Add is_spatially_matched column (initialize all as False)
         self.consolidated_geodata['is_spatially_matched'] = False
 
+        # Create mask ONCE before updating (critical: don't recreate inside loop!)
+        # This identifies rows that were originally unmatched
+        mask = self.consolidated_geodata['adm1_psgc'].isna()
+        logger.info(f"Updating {mask.sum()} rows with spatially matched admin codes")
+
         # Update admin codes for unmatched rows
         for col in ['adm1_psgc', 'adm2_psgc', 'adm3_psgc', 'adm1_en', 'adm2_en', 'adm3_en']:
             # Create a mapping from psgc_code to matched value
             mapping = dict(zip(matched_codes['psgc_code'], matched_codes[col]))
 
-            # Update only unmatched rows
-            mask = self.consolidated_geodata['adm1_psgc'].isna()
+            # Update only unmatched rows (using the mask created before the loop)
             self.consolidated_geodata.loc[mask, col] = (
                 self.consolidated_geodata.loc[mask, 'psgc_code'].map(mapping)
             )
