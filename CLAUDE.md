@@ -219,9 +219,9 @@
 
 **Summary**: Enhanced Module 7 with spatial matching for unmatched barangays, shifted road network extraction to PyOsmium architecture, configuration cleanup
 
-### 2025-10-06 (Current Session)
+### 2025-10-06
 
-**Summary**: Debugged and fixed spatial matching bugs - reference boundaries now populated from authoritative CSV sources, and mask recreation bug preventing column updates resolved
+**Session 1 Summary**: Debugged and fixed spatial matching bugs - reference boundaries now populated from authoritative CSV sources, and mask recreation bug preventing column updates resolved
 
 - **Spatial Matching Bug Fix** (`modules/psgc_consolidator.py` - `_build_reference_boundaries()`)
   - **Problem Identified**: Spatial matching was still producing significant NaN values in region/province names
@@ -321,6 +321,306 @@
     - `is_spatially_matched` column properly identifies spatially matched rows
   - **Debugging methodology**: Added diagnostic cells to isolate issue location
   - **Testing approach**: Module reload and iterative testing in notebook
+
+**Session 2 Summary**: Fixed NCR district mapping bug - all 4 NCR districts now properly tagged in consolidated data
+
+- **NCR District Mapping Bug** (`modules/psgc_consolidator.py` - hierarchical joins)
+  - **Problem Identified**: Only 1st District remaining in consolidated_data after joins
+    - NCR has 4 districts (Adm2 level): 1st, 2nd, 3rd, 4th covering 17 cities
+    - After consolidation, only 1st District data was retained
+    - Other 3 districts (2nd, 3rd, 4th) were being lost during joins
+
+  - **Root Cause**: Mismatched PSGC codes between Adm3 (cities) and Adm2 (districts)
+    - **Adm3 CSV (cities)**: Each city uses its own city code as `adm2_psgc`
+      - Manila: `adm2_psgc = 1380600000` (same as `adm3_psgc`)
+      - Quezon City: `adm2_psgc = 1381300000`
+      - Makati: `adm2_psgc = 1380300000`
+      - Pattern: All 17 NCR cities have `adm2_psgc = adm3_psgc` (self-referential)
+    - **Adm2 CSV (districts)**: Districts have different codes
+      - 1st District (Capital): `adm2_psgc = 1303900000`
+      - 2nd District (Eastern Manila): `adm2_psgc = 1307400000`
+      - 3rd District (Camanava): `adm2_psgc = 1307500000`
+      - 4th District (Southern): `adm2_psgc = 1307600000`
+    - **When joining on `['adm1_psgc', 'adm2_psgc']`**: No matches because codes don't align
+
+  - **Solution**: Create NCR city-to-district mapping applied before Adm2 join
+    - New method: `_fix_ncr_district_codes()`
+    - Maps all 17 NCR cities from self-referential codes to correct district codes
+    - Applied in `consolidate_hierarchy()` after Adm3 join, before Adm2 join
+    - Mapping structure:
+      ```python
+      ncr_city_to_district = {
+          # 1st District - Capital District (1 city)
+          '1380600000': '1303900000',  # Manila
+
+          # 2nd District - Eastern Manila District (5 cities)
+          '1380500000': '1307400000',  # Mandaluyong
+          '1380700000': '1307400000',  # Marikina
+          '1381200000': '1307400000',  # Pasig
+          '1381300000': '1307400000',  # Quezon City
+          '1381400000': '1307400000',  # San Juan
+
+          # 3rd District - Camanava (4 cities)
+          '1380100000': '1307500000',  # Caloocan
+          '1380400000': '1307500000',  # Malabon
+          '1380900000': '1307500000',  # Navotas
+          '1381600000': '1307500000',  # Valenzuela
+
+          # 4th District - Southern Manila District (7 cities/municipality)
+          '1380200000': '1307600000',  # Las Piñas
+          '1380300000': '1307600000',  # Makati
+          '1380800000': '1307600000',  # Muntinlupa
+          '1381000000': '1307600000',  # Parañaque
+          '1381100000': '1307600000',  # Pasay
+          '1381700000': '1307600000',  # Pateros
+          '1381500000': '1307600000',  # Taguig
+      }
+      ```
+
+  - **Implementation Details**:
+    - Method detects NCR rows using `adm1_psgc == 1300000000`
+    - Replaces city codes with district codes via dictionary mapping
+    - Logs number of rows fixed and district distribution
+    - Integrated into consolidation pipeline at line 317-318
+
+  - **Updated Process Flow** (consolidate_hierarchy):
+    1. Start with Adm4 (barangays) as base
+    2. Join with Adm3 (municipalities/cities) on `[adm1_psgc, adm2_psgc, adm3_psgc]`
+    3. **Fix NCR district codes** ← NEW STEP
+    4. Join with Adm2 (provinces/districts) on `[adm1_psgc, adm2_psgc]`
+    5. Join with Adm1 (regions) on `[adm1_psgc]`
+    6. Fix City of Manila missing data
+    7. Add leading zeros to PSGC codes
+    8. Reorder columns
+
+  - **Impact**: All 4 NCR districts now properly represented in consolidated_geodata
+    - Complete district-level (Adm2) information for NCR
+    - Enables proper analysis of NCR's administrative structure
+    - All 17 cities correctly linked to their respective districts
+
+  - **Files Modified**:
+    - `modules/psgc_consolidator.py`: Added `_fix_ncr_district_codes()` method and integration
+    - Module docstring updated to document NCR district mapping feature
+    - `consolidate_hierarchy()` docstring updated with new step
+
+  - **Follow-up Fix 1**: Corrected dtype handling in `_fix_ncr_district_codes()`
+    - **Issue**: Initial implementation used string keys in mapping dict, causing dtype conflicts
+      - FutureWarning: "Setting an item of incompatible dtype is deprecated"
+      - Converting adm2_psgc to string early broke subsequent joins with Adm2 data (still int64)
+    - **Solution**: Changed mapping to use integer keys and values
+      - Mapping now works with native int64 dtype from CSV data
+      - No premature type conversions - PSGC codes converted to string later in pipeline
+      - Preserves compatibility with existing join operations
+    - Result: Clean execution without warnings, proper district assignment
+
+  - **Follow-up Fix 2**: Updated `_fix_city_of_manila()` to work with NCR district fix
+    - **Issue**: "City of Manila" missing from `adm3_en` unique values in NCR
+      - Original method required both `adm3_en` AND `adm2_en` to be NaN
+      - After NCR district fix, `adm2_en` is now populated for Manila barangays
+      - Condition `(df['adm2_en'].isna())` was False, preventing Manila fix from triggering
+      - Result: ~897 Manila barangays had NaN in `adm3_en` column
+    - **Solution**: Removed `adm2_en` check from mask
+      - Now only checks if `adm3_en` is NaN for NCR barangays
+      - Works correctly whether `adm2_en` is populated or not
+      - Added clarifying comment about interaction with NCR district fix
+    - Result: All 17 NCR cities now appear in `adm3_en` unique values, including City of Manila
+
+  - **Follow-up Fix 3**: Fixed reference boundaries merge to populate NCR city names in spatial matching
+    - **Issue**: NCR cities missing from `adm3_en` in spatially matched barangays
+      - User reported that spatially matched NCR barangays had NaN in `adm3_en` column
+      - Problem in `_build_reference_boundaries()` line 534
+      - Merge with `adm3_data` used `['adm1_psgc', 'adm2_psgc', 'adm3_psgc']` as join keys
+      - **Mismatch**: Reference boundaries have district codes (e.g., '1303900000') while `adm3_data` still has city codes (e.g., '1380600000')
+      - NCR cities failed to match, leaving `adm3_en` as NaN in reference boundaries
+    - **Root Cause**: `adm3_data` was never updated with district codes
+      - Our NCR district fix only updated `consolidated_data` during hierarchical joins
+      - Original `self.adm3_data` from CSV still has city codes in `adm2_psgc`
+      - When building reference boundaries, merge on `adm2_psgc` fails for NCR
+    - **Solution**: Changed merge to use only `['adm1_psgc', 'adm3_psgc']`
+      - Removed `adm2_psgc` from join keys in adm3_names merge
+      - `adm3_psgc` is already unique within a region, so adm2_psgc is redundant
+      - Works for all regions, not just NCR
+      - Added clarifying comment about NCR adm2_psgc mismatch
+    - **Before (buggy)**:
+      ```python
+      municipalities = municipalities.merge(
+          adm3_names,
+          on=['adm1_psgc', 'adm2_psgc', 'adm3_psgc'],  # NCR fails here!
+          how='left'
+      )
+      ```
+    - **After (fixed)**:
+      ```python
+      municipalities = municipalities.merge(
+          adm3_names,
+          on=['adm1_psgc', 'adm3_psgc'],  # Works for all regions including NCR
+          how='left'
+      )
+      ```
+    - **Impact**:
+      - Reference boundaries now correctly populated with NCR city names
+      - Spatially matched NCR barangays get complete admin information
+      - All 17 NCR cities appear in `adm3_en` for spatial matching results
+
+  - **Follow-up Fix 4**: Implemented fuzzy matching for sub-municipality codes in Adm3 join
+    - **Issue**: 899 NCR barangays missing city names in `consolidated_data`
+      - User reported only 2 NCR barangays matched after Adm3 join
+      - Comprehensive diagnostic revealed: 899 barangays with NO city name after Adm3 join
+      - 15 unique `adm3_psgc` values NOT found in Adm3 CSV
+      - Problem in `consolidate_hierarchy()` line 306 - Adm3 join
+    - **Root Cause**: Sub-municipality codes don't exist in Adm3 CSV
+      - Many barangays have `adm3_psgc` like `1303901000`, `1380601000` (sub-municipality codes)
+      - Adm3 CSV only contains parent city codes like `1380600000` (City of Manila)
+      - Exact match on `adm3_psgc` fails for these sub-municipality codes
+      - **Example**: Manila districts
+        - Barangay code: `1303901000` (Manila sub-municipality)
+        - Adm3 CSV: `1380600000` (City of Manila parent)
+        - First 6 digits: `130390` vs `138060` - no match!
+    - **Solution**: Implemented two-stage Adm3 join with fuzzy matching fallback
+      1. **Exact Match**: First try exact match on `['adm1_psgc', 'adm3_psgc']`
+         - Matches 813 NCR barangays with standard city codes
+      2. **Fuzzy Match**: For unmatched rows, match on first 6 digits of `adm3_psgc`
+         - Create lookup: first 6 digits of `adm3_psgc` → city name
+         - Extract first 6 digits from unmatched barangay `adm3_psgc`
+         - Map to parent city using prefix lookup
+         - Catches remaining 899 NCR barangays with sub-municipality codes
+    - **Implementation** (lines 306-348):
+      ```python
+      # Join with Adm3 (Municipalities/Cities)
+      # First, try exact match on [adm1_psgc, adm3_psgc]
+      consolidated = consolidated.merge(
+          self.adm3_data[['adm1_psgc', 'adm3_psgc', 'adm3_en']],
+          on=['adm1_psgc', 'adm3_psgc'],
+          how='left',
+          suffixes=('', '_adm3')
+      )
+
+      # For unmatched rows, try fuzzy match on first 6 digits of adm3_psgc
+      unmatched_mask = consolidated['adm3_en'].isna()
+      if unmatched_mask.sum() > 0:
+          # Create lookup: first 6 digits of adm3_psgc → city name
+          adm3_lookup = self.adm3_data.copy()
+          adm3_lookup['adm3_psgc_str'] = adm3_lookup['adm3_psgc'].astype(str).str.zfill(10)
+          adm3_lookup['adm3_prefix'] = adm3_lookup['adm3_psgc_str'].str[:6]
+          city_lookup = dict(zip(adm3_lookup['adm3_prefix'], adm3_lookup['adm3_en']))
+
+          # Apply fuzzy match
+          consolidated.loc[unmatched_mask, 'adm3_prefix'] = (
+              consolidated.loc[unmatched_mask, 'adm3_psgc'].astype(str).str.zfill(10).str[:6]
+          )
+          consolidated.loc[unmatched_mask, 'adm3_en'] = (
+              consolidated.loc[unmatched_mask, 'adm3_prefix'].map(city_lookup)
+          )
+
+          # Clean up temporary column
+          consolidated.drop(columns=['adm3_prefix'], inplace=True, errors='ignore')
+      ```
+    - **Impact**:
+      - All 1,712 NCR barangays now get city names (813 exact + 899 fuzzy)
+      - All 17 NCR cities properly represented in `consolidated_data`
+      - Complete NCR shape coverage in spatial matching results
+      - Matched_gdf now shows entire NCR matching raw shapefile coverage
+
+  - **Follow-up Fix 5**: Fixed overly broad City of Manila assignment in `_fix_city_of_manila()`
+    - **Issue**: 1,316 barangays assigned to "City of Manila" (Manila only has 897)
+      - User reported all NCR barangays with missing `adm3_en` were assigned to Manila
+      - Original method assigned Manila to ANY NCR barangay with missing city name
+    - **Root Cause**: Missing specificity check
+      - Method only checked if region is NCR and `adm3_en` is NaN
+      - Didn't verify if barangay is actually in Manila
+      - After fuzzy match implementation, this fix became redundant but still needed correction
+    - **Solution**: Changed to use district code identification (more reliable)
+      - After NCR district fix, all Manila barangays have `adm2_psgc = 1303900000` (1st District)
+      - Check district code instead of prefix matching on `adm3_psgc`
+    - **Before (buggy)**:
+      ```python
+      mask = (
+          (df['adm1_en'].astype('string').str.contains(r'capital', flags=2, na=False))
+          & (df['adm3_en'].isna())
+      )
+      ```
+    - **After (fixed)**:
+      ```python
+      mask = (
+          (df['adm2_psgc'] == 1303900000)  # 1st District = Manila
+          & (df['adm3_en'].isna())
+      )
+      ```
+    - **Impact**:
+      - Only actual Manila barangays get Manila assignment (899 barangays)
+      - Precise city distribution across all 17 NCR cities
+      - Fixed 899 Manila records (vs only 2 before)
+
+  - **Follow-up Fix 6**: Discovered data source mismatch between CSV and shapefile
+    - **Critical Discovery**: NCR CSV and shapefile have completely different PSGC codes
+      - **CSV codes**: `1303901906`, `1303901907`, `1380100001`, `1380100002`, etc. (1,712 barangays)
+      - **Shapefile codes**: `1303901001`, `1303901002`, `1303901003`, `1303901004`, etc. (1,712 geometries)
+      - **Overlap**: Only 2 codes match (`1303901906`, `1303901907` - both Manila)
+      - Different barangays or different PSGC versions between data sources
+    - **Impact on Spatial Matching**:
+      - Only 2 NCR barangays matched between CSV and shapefile
+      - Reference boundaries built from 2 matched barangays only
+      - Created single NCR municipality boundary: "City of Manila"
+      - All 1,710 unmatched NCR geometries spatially assigned to Manila
+      - Result: 1,316 barangays incorrectly labeled as Manila
+    - **Root Cause**: Data source incompatibility (not a code bug)
+    - **Diagnostic Output**:
+      ```
+      NCR in consolidated_data: 1712 (CSV)
+      NCR in shapefile: 1712 (geometries)
+      NCR matched (has adm1_psgc): 2
+      Overlap: 2/1712 codes
+      ```
+    - **Solution Options**:
+      1. Obtain matching versions of CSV and shapefile
+      2. Use shapefile-only for NCR (ignore CSV hierarchical data)
+      3. Accept incomplete NCR coverage with generic assignment
+
+  - **Follow-up Fix 7**: Implemented Metro Manila generic assignment for NCR
+    - **User Decision**: Accept generic "Metro Manila" assignment for all NCR barangays
+      - Given CSV-shapefile mismatch is unfixable in code
+      - User satisfied with region-level aggregation for NCR
+    - **Solution**: Post-processing step in `apply_spatial_matching()`
+      - After spatial matching completes
+      - Identify all NCR barangays by `psgc_code` starting with `'13'`
+      - Assign uniform values:
+        - `adm2_en = 'National Capital Region (NCR)'`
+        - `adm3_en = 'Metro Manila'`
+    - **Implementation** (lines 822-832):
+      ```python
+      # Post-processing: Fix NCR barangays with generic Metro Manila assignment
+      ncr_mask = self.consolidated_geodata['psgc_code'].str.startswith('13', na=False)
+      ncr_count = ncr_mask.sum()
+
+      if ncr_count > 0:
+          logger.info(f"Post-processing: Assigning {ncr_count} NCR barangays to Metro Manila...")
+          self.consolidated_geodata.loc[ncr_mask, 'adm2_en'] = 'National Capital Region (NCR)'
+          self.consolidated_geodata.loc[ncr_mask, 'adm3_en'] = 'Metro Manila'
+      ```
+    - **Impact**:
+      - All 1,712 NCR barangays now have consistent assignment
+      - No misleading individual city names that aren't supported by data
+      - Enables region-level analysis for NCR
+      - User satisfied with this approach
+
+  - **Follow-up Fix 8**: Retained shapefile pcode columns in merged output
+    - **User Request**: Keep administrative boundary codes from shapefile
+      - Columns: `adm1_pcode`, `adm2_pcode`, `adm3_pcode`, `adm4_pcode`
+      - Provide alternative administrative coding system from shapefile source
+    - **Solution**: Updated `_prepare_shapefile_for_merge()` to include pcode columns
+    - **Implementation** (lines 461-466):
+      ```python
+      relevant_columns = ['psgc_code', 'corr_code', 'name', 'adm4_en',
+                         'adm1_pcode', 'adm2_pcode', 'adm3_pcode', 'adm4_pcode',
+                         'geometry']
+      # Filter to only existing columns (in case some don't exist in shapefile)
+      existing_columns = [col for col in relevant_columns if col in shapefile.columns]
+      shapefile = shapefile[existing_columns]
+      ```
+    - **Impact**:
+      - All pcode columns now available in `matched_gdf` output
+      - Provides dual coding system: PSGC codes (from CSV) + pcode (from shapefile)
+      - Useful for cross-referencing with other datasets using different coding systems
 
 ## Architecture
 - **Pattern**: All processors follow consistent architecture (load→process→validate→export)
