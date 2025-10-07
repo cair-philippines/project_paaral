@@ -9,14 +9,16 @@ The consolidation process:
 1. Loads administrative data at 4 levels: Regions (Adm1), Provinces/Districts (Adm2),
    Municipalities/Cities (Adm3), and Barangays/Sub-Municipalities (Adm4)
 2. Performs hierarchical joins using PSGC codes
-3. Fixes City of Manila missing data (897 NCR barangays)
-4. Adds leading zeros to PSGC codes (ensures 10-digit format)
-5. Reorders columns for better organization (PSGC codes, names, other data)
-6. Prepares shapefile: standardizes codes, filters null geometries, selects relevant columns
-7. Merges: shapefile (left) → consolidated CSV (right) for complete geographic coverage
-8. OPTIONAL: Spatial matching to fill ~3,580 unmatched barangays using point-in-polygon
+3. Fixes NCR district codes (maps 17 NCR cities to 4 correct districts)
+4. Fixes City of Manila missing data (897 NCR barangays)
+5. Adds leading zeros to PSGC codes (ensures 10-digit format)
+6. Reorders columns for better organization (PSGC codes, names, other data)
+7. Prepares shapefile: standardizes codes, filters null geometries, selects relevant columns
+8. Merges: shapefile (left) → consolidated CSV (right) for complete geographic coverage
+9. OPTIONAL: Spatial matching to fill ~3,580 unmatched barangays using point-in-polygon
 
 Key features:
+- NCR district mapping: Correctly assigns 17 NCR cities to 4 districts (Adm2 level)
 - Automatic City of Manila detection and filling for NCR barangays
 - PSGC code standardization with leading zeros (string type)
 - Cleaner column organization (codes → names → data)
@@ -186,9 +188,74 @@ class PSGCConsolidator:
         else:
             return code_str
 
+    def _fix_ncr_district_codes(self, df: pd.DataFrame) -> pd.DataFrame:
+        """
+        Fix NCR city-to-district mapping by replacing city codes with correct district codes.
+
+        NCR cities in Adm3 use their own city codes as adm2_psgc, but Adm2 has separate
+        district codes. This method maps each city to its correct district.
+
+        Args:
+            df: DataFrame with Adm3 data (before Adm2 join)
+
+        Returns:
+            DataFrame with corrected NCR adm2_psgc values
+        """
+        # Mapping from city adm2_psgc to correct district adm2_psgc (using integers)
+        ncr_city_to_district = {
+            # 1st District (Capital District) - adm2_psgc: 1303900000
+            1380600000: 1303900000,  # City of Manila
+
+            # 2nd District (Eastern Manila District) - adm2_psgc: 1307400000
+            1380500000: 1307400000,  # City of Mandaluyong
+            1380700000: 1307400000,  # City of Marikina
+            1381200000: 1307400000,  # City of Pasig
+            1381300000: 1307400000,  # Quezon City
+            1381400000: 1307400000,  # City of San Juan
+
+            # 3rd District (Northern Manila District/Camanava) - adm2_psgc: 1307500000
+            1380100000: 1307500000,  # City of Caloocan
+            1380400000: 1307500000,  # City of Malabon
+            1380900000: 1307500000,  # City of Navotas
+            1381600000: 1307500000,  # City of Valenzuela
+
+            # 4th District (Southern Manila District) - adm2_psgc: 1307600000
+            1380200000: 1307600000,  # City of Las Piñas
+            1380300000: 1307600000,  # City of Makati
+            1380800000: 1307600000,  # City of Muntinlupa
+            1381000000: 1307600000,  # City of Parañaque
+            1381100000: 1307600000,  # Pasay City
+            1381700000: 1307600000,  # Pateros
+            1381500000: 1307600000,  # City of Taguig
+        }
+
+        # Apply mapping to NCR cities (adm1_psgc = 1300000000)
+        ncr_mask = df['adm1_psgc'] == 1300000000
+
+        # Count how many rows will be affected
+        rows_to_fix = ncr_mask.sum()
+
+        if rows_to_fix > 0:
+            # Apply the mapping to NCR rows only (keeping as integers)
+            df.loc[ncr_mask, 'adm2_psgc'] = df.loc[ncr_mask, 'adm2_psgc'].map(
+                lambda x: ncr_city_to_district.get(x, x)
+            )
+
+            logger.info(f"Fixed NCR district codes for {rows_to_fix} NCR city/municipality records")
+
+            # Log district distribution
+            district_counts = df.loc[ncr_mask, 'adm2_psgc'].value_counts()
+            for district_code, count in district_counts.items():
+                logger.info(f"  District {district_code}: {count} cities/municipalities")
+
+        return df
+
     def _fix_city_of_manila(self, df: pd.DataFrame) -> pd.DataFrame:
         """
         Fill missing City of Manila data for NCR barangays.
+
+        This runs after NCR district fix, so we can identify Manila barangays
+        by their district code (1303900000 = 1st District = Manila).
 
         Args:
             df: DataFrame with hierarchical data
@@ -196,11 +263,11 @@ class PSGCConsolidator:
         Returns:
             DataFrame with City of Manila filled in
         """
-        # Identify NCR barangays without city/municipality name
+        # Identify Manila barangays by district code
+        # After NCR district fix, all Manila barangays have adm2_psgc = 1303900000 (1st District)
         mask = (
-            (df['adm1_en'].astype('string').str.contains(r'capital', flags=2, na=False))
-            & (df['adm3_en'].isna())
-            & (df['adm2_en'].isna())
+            (df['adm2_psgc'] == 1303900000)  # 1st District = Manila
+            & (df['adm3_en'].isna())  # Missing city name
         )
 
         rows_fixed = mask.sum()
@@ -217,11 +284,12 @@ class PSGCConsolidator:
         The join strategy:
         1. Start with Adm4 (Barangays) as base
         2. Join with Adm3 (Municipalities) on [adm1_psgc, adm2_psgc, adm3_psgc]
-        3. Join with Adm2 (Provinces) on [adm1_psgc, adm2_psgc]
-        4. Join with Adm1 (Regions) on [adm1_psgc]
-        5. Fix City of Manila missing data
-        6. Add leading zeros to PSGC codes
-        7. Reorder columns for better organization
+        3. Fix NCR district codes (map city codes to correct district codes)
+        4. Join with Adm2 (Provinces/Districts) on [adm1_psgc, adm2_psgc]
+        5. Join with Adm1 (Regions) on [adm1_psgc]
+        6. Fix City of Manila missing data
+        7. Add leading zeros to PSGC codes
+        8. Reorder columns for better organization
 
         Returns:
             Consolidated DataFrame with all hierarchical information
@@ -237,16 +305,63 @@ class PSGCConsolidator:
         logger.info(f"Base data (Adm4): {initial_rows} rows")
 
         # Join with Adm3 (Municipalities/Cities)
+        # Note: Some barangays have adm3_psgc that are sub-municipality codes (e.g., 1303901000)
+        # which don't exist in Adm3 CSV. We need to match these to their parent city.
         logger.info("Joining with Adm3 (Municipalities/Cities)...")
-        merge_keys_adm3 = ['adm1_psgc', 'adm2_psgc', 'adm3_psgc']
+
+        # First, try exact match on [adm1_psgc, adm3_psgc]
         consolidated = consolidated.merge(
-            self.adm3_data,
-            on=merge_keys_adm3,
+            self.adm3_data[['adm1_psgc', 'adm3_psgc', 'adm3_en']],
+            on=['adm1_psgc', 'adm3_psgc'],
             how='left',
             suffixes=('', '_adm3')
         )
+
+        # For unmatched rows, try fuzzy match on first 6 digits of adm3_psgc
+        # Skip NCR (1300000000) because sub-municipality codes have different prefixes
+        unmatched_mask = consolidated['adm3_en'].isna()
+        unmatched_count = unmatched_mask.sum()
+
+        if unmatched_count > 0:
+            logger.info(f"  {unmatched_count} barangays unmatched, trying fuzzy match on parent city...")
+
+            # Exclude NCR from fuzzy match (will be fixed by _fix_city_of_manila() later)
+            fuzzy_mask = unmatched_mask & (consolidated['adm1_psgc'] != 1300000000)
+            fuzzy_count = fuzzy_mask.sum()
+
+            if fuzzy_count > 0:
+                # Create lookup: first 6 digits of adm3_psgc → city name
+                adm3_lookup = self.adm3_data.copy()
+                adm3_lookup['adm3_psgc_str'] = adm3_lookup['adm3_psgc'].astype(str).str.zfill(10)
+                adm3_lookup['adm3_prefix'] = adm3_lookup['adm3_psgc_str'].str[:6]
+                city_lookup = dict(zip(adm3_lookup['adm3_prefix'], adm3_lookup['adm3_en']))
+
+                # Apply fuzzy match (non-NCR only)
+                consolidated.loc[fuzzy_mask, 'adm3_prefix'] = (
+                    consolidated.loc[fuzzy_mask, 'adm3_psgc'].astype(str).str.zfill(10).str[:6]
+                )
+                consolidated.loc[fuzzy_mask, 'adm3_en'] = (
+                    consolidated.loc[fuzzy_mask, 'adm3_prefix'].map(city_lookup)
+                )
+
+                # Clean up temporary column
+                if 'adm3_prefix' in consolidated.columns:
+                    consolidated = consolidated.drop(columns=['adm3_prefix'])
+
+                fuzzy_matched = fuzzy_count - (consolidated['adm3_en'].isna() & (consolidated['adm1_psgc'] != 1300000000)).sum()
+                logger.info(f"  Fuzzy matched {fuzzy_matched} non-NCR barangays to parent cities")
+
+            # Report NCR unmatched (will be fixed later)
+            ncr_unmatched = (consolidated['adm3_en'].isna() & (consolidated['adm1_psgc'] == 1300000000)).sum()
+            if ncr_unmatched > 0:
+                logger.info(f"  {ncr_unmatched} NCR barangays still unmatched (will be fixed after district mapping)")
+
         logger.info(f"After Adm3 join: {len(consolidated)} rows")
         self._validate_merge(consolidated, initial_rows, "Adm3")
+
+        # Fix NCR district codes before Adm2 join
+        logger.info("Fixing NCR district codes...")
+        consolidated = self._fix_ncr_district_codes(consolidated)
 
         # Join with Adm2 (Provinces/Districts)
         logger.info("Joining with Adm2 (Provinces/Districts)...")
@@ -331,6 +446,14 @@ class PSGCConsolidator:
         """
         Prepare shapefile data for merging by filtering and selecting relevant columns.
 
+        Retained columns from shapefile:
+            - psgc_code: Standardized 10-digit PSGC code
+            - corr_code: Correspondence code
+            - name: Barangay name from shapefile
+            - adm4_en: English barangay name
+            - adm1_pcode, adm2_pcode, adm3_pcode, adm4_pcode: Administrative boundary codes
+            - geometry: Polygon geometry
+
         Returns:
             Prepared GeoDataFrame with only valid geometries and relevant columns
         """
@@ -342,8 +465,13 @@ class PSGCConsolidator:
         shapefile['psgc_code'] = shapefile['psgc_code'].astype('string')
 
         # Select only relevant columns
-        relevant_columns = ['psgc_code', 'corr_code', 'name', 'adm4_en', 'geometry']
-        shapefile = shapefile[relevant_columns]
+        # Include pcode columns for administrative boundary codes from shapefile
+        relevant_columns = ['psgc_code', 'corr_code', 'name', 'adm4_en',
+                           'adm1_pcode', 'adm2_pcode', 'adm3_pcode', 'adm4_pcode',
+                           'geometry']
+        # Filter to only existing columns (in case some don't exist in shapefile)
+        existing_columns = [col for col in relevant_columns if col in shapefile.columns]
+        shapefile = shapefile[existing_columns]
 
         # Filter out rows without geometry
         initial_count = len(shapefile)
@@ -438,6 +566,15 @@ class PSGCConsolidator:
 
         logger.info(f"Using {len(matched)} matched barangays to build reference boundaries")
 
+        # Check NCR in matched barangays
+        ncr_matched = matched[matched['adm1_psgc'] == '1300000000']
+        logger.info(f"  NCR matched barangays: {len(ncr_matched)}")
+        if len(ncr_matched) > 0:
+            ncr_cities = ncr_matched['adm3_en'].value_counts()
+            logger.info(f"  NCR cities in matched barangays:")
+            for city, count in ncr_cities.items():
+                logger.info(f"    - {city}: {count} barangays")
+
         # Dissolve to municipality level
         municipalities = matched.dissolve(
             by=['adm1_psgc', 'adm2_psgc', 'adm3_psgc'],
@@ -456,15 +593,49 @@ class PSGCConsolidator:
         logger.info("Populating admin names from authoritative sources...")
 
         # Merge with Adm3 (Municipality names)
-        adm3_names = self.adm3_data[['adm1_psgc', 'adm2_psgc', 'adm3_psgc', 'adm3_en']].copy()
+        # Note: For NCR, adm2_psgc in adm3_data is still city codes (not district codes)
+        # So we merge on [adm1_psgc, adm3_psgc] only, since adm3_psgc is unique within region
+        adm3_names = self.adm3_data[['adm1_psgc', 'adm3_psgc', 'adm3_en']].copy()
         # Ensure PSGC codes have leading zeros
-        for col in ['adm1_psgc', 'adm2_psgc', 'adm3_psgc']:
+        for col in ['adm1_psgc', 'adm3_psgc']:
             adm3_names[col] = adm3_names[col].apply(self._add_leading_zeros).astype('string')
+
+        # Add City of Manila manually (it's missing from Adm3 CSV)
+        manila_entry = pd.DataFrame({
+            'adm1_psgc': ['1300000000'],
+            'adm3_psgc': ['1303901000'],
+            'adm3_en': ['City of Manila']
+        })
+        adm3_names = pd.concat([adm3_names, manila_entry], ignore_index=True)
+        logger.info("  Added City of Manila to adm3_names")
+
+        # Diagnostic: Check NCR entries before merge
+        ncr_municipalities = municipalities[municipalities['adm1_psgc'] == '1300000000']
+        ncr_adm3_names = adm3_names[adm3_names['adm1_psgc'] == '1300000000']
+        logger.info(f"  NCR municipalities before merge: {len(ncr_municipalities)}")
+        logger.info(f"  NCR entries in adm3_data: {len(ncr_adm3_names)}")
+        if len(ncr_municipalities) > 0:
+            logger.info(f"  Sample NCR municipality adm3_psgc: {ncr_municipalities['adm3_psgc'].iloc[0]}")
+        if len(ncr_adm3_names) > 0:
+            logger.info(f"  Sample NCR adm3_data adm3_psgc: {ncr_adm3_names['adm3_psgc'].iloc[0]}")
+
         municipalities = municipalities.merge(
             adm3_names,
-            on=['adm1_psgc', 'adm2_psgc', 'adm3_psgc'],
+            on=['adm1_psgc', 'adm3_psgc'],
             how='left'
         )
+
+        # Diagnostic: Check NCR entries after merge
+        ncr_after = municipalities[municipalities['adm1_psgc'] == '1300000000']
+        ncr_with_names = ncr_after[ncr_after['adm3_en'].notna()]
+        logger.info(f"  NCR municipalities after merge: {len(ncr_after)}")
+        logger.info(f"  NCR municipalities with adm3_en: {len(ncr_with_names)}")
+        if len(ncr_with_names) > 0:
+            logger.info(f"  NCR cities in reference boundaries: {sorted(ncr_with_names['adm3_en'].unique().tolist())}")
+        if len(ncr_after) > 0 and ncr_after['adm3_en'].isna().any():
+            missing = ncr_after[ncr_after['adm3_en'].isna()]
+            logger.warning(f"  ⚠️  {len(missing)} NCR municipalities missing adm3_en after merge!")
+            logger.warning(f"  Missing adm3_psgc values: {missing['adm3_psgc'].tolist()[:5]}")
 
         # Merge with Adm2 (Province names)
         adm2_names = self.adm2_data[['adm1_psgc', 'adm2_psgc', 'adm2_en']].copy()
@@ -660,6 +831,18 @@ class PSGCConsolidator:
             self.consolidated_geodata['psgc_code'].isin(matched_psgc_codes),
             'is_spatially_matched'
         ] = True
+
+        # Post-processing: Fix NCR barangays with generic Metro Manila assignment
+        # Due to CSV-shapefile mismatch, most NCR barangays don't match
+        # Assign all NCR barangays to "National Capital Region (NCR)" / "Metro Manila"
+        ncr_mask = self.consolidated_geodata['psgc_code'].str.startswith('13', na=False)
+        ncr_count = ncr_mask.sum()
+
+        if ncr_count > 0:
+            logger.info(f"Post-processing: Assigning {ncr_count} NCR barangays to Metro Manila...")
+            self.consolidated_geodata.loc[ncr_mask, 'adm2_en'] = 'National Capital Region (NCR)'
+            self.consolidated_geodata.loc[ncr_mask, 'adm3_en'] = 'Metro Manila'
+            logger.info(f"  All NCR barangays now have adm2_en='National Capital Region (NCR)' and adm3_en='Metro Manila'")
 
         # Log final statistics
         still_unmatched = self.consolidated_geodata['adm1_psgc'].isna().sum()
