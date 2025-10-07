@@ -62,7 +62,8 @@
   - Filter methods by region/province
   - Export to GeoJSON, Shapefile, GeoPackage, CSV
 
-### 8. Regional Road Network Extractor (`modules/regional_road_network_extractor.py`)
+### 8. Regional Road Network Extractor (`modules/regional_road_network_extractor.py`) [DEPRECATED]
+- **Status**: Superseded by Module 9 (Provincial Road Extractor) for better performance
 - **Purpose**: Extract OSM drive networks for Philippine regions using OSMNx with province-level querying for archipelagic reliability
 - **Input**: GeoDataFrame from psgc_consolidator (module 7)
 - **PSGC Code Structure**: First 2 digits = region, first 4 digits = province, digits 5-7 = municipality, digits 8-10 = barangay
@@ -80,7 +81,31 @@
   - Customizable styling: colors, linewidths, transparency, DPI
 - **Output**: NetworkX MultiDiGraph + metadata (nodes, edges, query method, statistics)
 - **Export Options**: GeoDataFrame (shapefile/GeoJSON), GraphML
-- **Use Case**: Extract complete road networks for spatial analysis, network metrics, accessibility studies
+- **Limitations**: Slow (hours for all provinces), memory-intensive, API-dependent
+
+### 9. Provincial Road Network Extractor (`modules/provincial_road_extractor.py`)
+- **Purpose**: Extract provincial road networks from OSM PBF files using memory-efficient PyOsmium streaming
+- **Source**: `data/networks/philippines-251002.osm.pbf` (581MB from GeoFabrik)
+- **Input**: Consolidated geodata from Module 7 (uses `adm2_pcode` for reliable province identification)
+- **Output**: One `.geojsonl` file per province (88 files total)
+  - Filename format: `{adm2_pcode}_{province_name}.geojsonl`
+  - Example: `PH03014_bulacan.geojsonl`, `PH04021_cavite.geojsonl`
+- **Key Features**:
+  - **Streaming architecture**: Processes PBF file once, writes to all provinces simultaneously
+  - **LRU file handle cache**: Manages 88 output files with max 16 open at once
+  - **Spatial indexing**: STRtree for fast province intersection queries
+  - **Highway filtering**: Extracts driveable roads only (motorway, trunk, primary, etc.)
+  - **Metadata**: Includes `osm_id`, `highway`, `name`, `oneway`, `maxspeed`
+- **Performance**:
+  - Processes entire Philippines in **~2.8 minutes** (vs hours with OSMNx)
+  - Constant low memory usage via streaming
+  - Offline operation (no API dependencies)
+- **Methods**:
+  - `extract_all_provinces()`: Extract all 88 provinces
+  - `extract_provinces(whitelist)`: Extract specific provinces by adm2_pcode
+  - `get_province_list()`: List provinces with pcodes, names, filenames
+- **Parameters**: `verbose`, `do_clip`, `max_open_files`
+- **Advantages**: 20-30x faster than Module 8, memory-efficient, reliable, consistent data
 
 ## Common Features (All Modules)
 - **Verbose Logging**: `verbose` parameter (default: True) controls INFO vs WARNING level logging
@@ -621,6 +646,99 @@
       - All pcode columns now available in `matched_gdf` output
       - Provides dual coding system: PSGC codes (from CSV) + pcode (from shapefile)
       - Useful for cross-referencing with other datasets using different coding systems
+
+### 2025-10-07
+
+**Session Summary**: Created Module 9 (Provincial Road Extractor) - lightweight PyOsmium-based solution for extracting provincial road networks from OSM PBF files
+
+- **Module 9: Provincial Road Network Extractor** (`modules/provincial_road_extractor.py`)
+  - **Purpose**: Extract provincial road networks from OpenStreetMap PBF files using memory-efficient streaming
+  - **Problem Context**: Previous OSMnx approach was slow and memory-intensive for province-level extraction
+  - **Key Innovation**: Uses `adm2_pcode` from consolidated geodata instead of unreliable PSGC codes
+  - **Input**:
+    - Consolidated geodata (.gpkg) from Module 7
+    - OSM PBF file (581MB Philippines extract from GeoFabrik)
+  - **Output**: One `.geojsonl` file per province
+    - Filename format: `{adm2_pcode}_{province_name}.geojsonl`
+    - Example: `PH03014_bulacan.geojsonl`, `PH04021_cavite.geojsonl`
+
+  - **Architecture Components**:
+    1. **ProvincialRoadExtractor (Main Class)**:
+       - `extract_all_provinces()` - extracts all 88 provinces
+       - `extract_provinces(whitelist)` - extracts specific provinces by adm2_pcode
+       - `get_province_list()` - returns province metadata (pcode, name, filename)
+
+    2. **LRUWriters (File Handle Cache)**:
+       - Solves "too many open files" error when writing to 88 provinces simultaneously
+       - Keeps max 16 files open, auto-closes least recently used
+       - Prevents OS resource exhaustion
+
+    3. **DriveHandler (PyOsmium Streaming Handler)**:
+       - Processes OSM ways one at a time without loading entire file into memory
+       - Spatial indexing with Shapely STRtree for fast intersection queries
+       - Handles Shapely 1.x vs 2.x API differences (`query_items`, `query_bulk`, `query`)
+       - Filters to driveable roads only (motorway, trunk, primary, secondary, etc.)
+
+    4. **load_provinces() Function**:
+       - Aggregates 42,048 barangays to 88 provinces using `adm2_pcode`
+       - Extracts most common `adm2_en` for each province
+       - Builds spatial index (STRtree) for fast intersection queries
+       - Generates consistent filenames
+
+  - **Performance**:
+    - Processes entire Philippines (581MB PBF) in **~2.8 minutes**
+    - Memory-efficient streaming (uses `sparse_mmap_array` index)
+    - Outputs 88 separate `.geojsonl` files in one pass
+
+  - **Features**:
+    - `verbose` parameter: Controls logging (INFO vs WARNING only)
+    - `do_clip` option: Clip roads at province boundaries (slower) vs intersect-only (faster)
+    - `whitelist` parameter: Extract specific provinces for testing
+    - Road metadata: Includes `osm_id`, `highway`, `name`, `oneway`, `maxspeed`
+
+  - **Why adm2_pcode instead of PSGC?**
+    - **Problem**: PSGC codes showed inconsistencies between CSV and shapefile (e.g., NCR had only 2 matching codes out of 1,712)
+    - **Solution**: Use `adm2_pcode` from shapefile which exists consistently across all geometries
+    - **Benefit**: Reliable province identification without post-processing rename steps
+
+  - **Usage Example**:
+    ```python
+    from modules.provincial_road_extractor import ProvincialRoadExtractor
+
+    # Initialize
+    extractor = ProvincialRoadExtractor(
+        consolidated_geodata_path="output/consolidated_geodata_matched.gpkg",
+        pbf_path="data/networks/philippines-251002.osm.pbf",
+        output_dir="output/province_road_networks",
+        verbose=True
+    )
+
+    # Extract all provinces (~2.8 minutes)
+    counts = extractor.extract_all_provinces()
+
+    # Or extract specific provinces for testing
+    counts = extractor.extract_provinces(whitelist={"PH03014", "PH04021"})
+
+    # View available provinces
+    provinces = extractor.get_province_list()
+    ```
+
+  - **Advantages over OSMnx approach**:
+    - **Speed**: 20-30x faster (minutes vs hours for all provinces)
+    - **Memory**: Constant low memory usage vs loading entire graphs
+    - **Reliability**: No API timeouts or rate limits (works offline with PBF file)
+    - **Consistency**: Same data source for all provinces (not dependent on OSM API state)
+    - **Flexibility**: Easy to re-run with different filters or parameters
+
+  - **Integration with Project**:
+    - Uses consolidated geodata from Module 7 (PSGC Consolidator)
+    - Complements Module 8 (Regional Road Network Extractor - deprecated in favor of this approach)
+    - Province-level granularity matches school location analysis needs
+    - GeoJSONL format easy to read into geopandas for further analysis
+
+  - **Files Created**:
+    - `modules/provincial_road_extractor.py`: Main extraction module (540 lines)
+    - Notebook `0.4-get-road-networks-v2.ipynb`: Documents development and testing
 
 ## Architecture
 - **Pattern**: All processors follow consistent architecture (load→process→validate→export)
