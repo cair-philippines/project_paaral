@@ -1,39 +1,42 @@
 """
 Private Schools Processor Module
 
-A fast, combined module that integrates reading and processing capabilities
-for private school data Excel files. Optimized for speed while maintaining
-the user's proven preprocessing logic, now enhanced with advanced Excel reading engines
-and coordinate cleaning capabilities.
+A streamlined, high-performance module for processing private school data from Excel files.
+Optimized for speed with automatic coordinate cleaning, validation, and data standardization.
 
-Features:
-- Reads all Excel files from directory using optimized engines
-- Auto-selects fastest available Excel reading engine (calamine > fastexcel > openpyxl)
-- Supports 16 regional Excel files with coordinate data
-- Processes data using user's efficient approach from notebook section 1.3.1
-- Automatic coordinate cleaning to improve data quality
+Core Features:
+- Fast Excel reading with auto-selected optimal engine (calamine > fastexcel > openpyxl)
+- Automatic coordinate cleaning (improves validity by 80-90%)
 - Coordinate validation with detailed error reasons
-- Minimal overhead and logging when verbose=False
-- Vectorized operations for maximum performance
-- Memory-efficient processing with read_only mode optimization
-- Performance improvements: 6-10x faster with calamine, 30% faster with read_only mode
+- Region name standardization
+- Curricular offering mapping and standardization
+- Memory-efficient processing with read_only mode
+- Minimal overhead when verbose=False
 
-Optimization Engines:
-1. calamine (Rust-based, fastest - 6-10x improvement)
-2. fastexcel (Rust-based with Apache Arrow)
-3. openpyxl (read_only mode for 30% improvement)
-4. openpyxl (standard fallback)
+Performance:
+- 6-10x faster with calamine engine
+- 30% faster with read_only mode
+- Vectorized operations throughout
+
+Main Methods:
+- process_and_clean_all() - **ONE-CALL PIPELINE**: Complete workflow from Excel to clean CSV
+- process() - Process raw Excel files
+- clean_coordinates() - Clean lat/lon values
+- validate_coordinates_with_reasons() - Validate coordinates with detailed feedback
+- replace_unclean_region_values() - Standardize region names
+- map_curricular_offerings() - Standardize curricular offerings
+- export_processed() - Export to CSV
+- get_summary() - Get processing statistics
 
 Coordinate Cleaning:
 - Strips trailing commas (", " and ",")
 - Removes cardinal direction suffixes (N, S, E, W with/without degree symbols)
 - Extracts first value before " or " text
 - Reconstructs split coordinates across columns
-- Improves coordinate validity by 80-90%
 
 Author: Data Preprocessing Specialist
 Created: 2025-09-26
-Updated: 2025-10-02 (Coordinate cleaning and validation enhancements)
+Updated: 2025-10-29 (Added curricular mapping, streamlined methods)
 """
 
 import pandas as pd
@@ -355,10 +358,6 @@ class PrivateSchoolsProcessor:
                 header=None
             )
 
-    def get_raw_data(self) -> Dict:
-        """Return raw data dictionary."""
-        return self.raw_data
-
     def process(self, engine: Optional[str] = None, use_read_only: bool = True) -> pd.DataFrame:
         """
         Main processing pipeline using user's proven efficient approach with optimized Excel reading.
@@ -619,6 +618,12 @@ class PrivateSchoolsProcessor:
         return reconstructed
 
     def replace_unclean_region_values(self) -> pd.DataFrame:
+        """
+        Clean and standardize region values in the processed data.
+
+        Returns:
+            pd.DataFrame: Processed data with cleaned region values
+        """
         tmp_df = self.processed_data.copy()
         tmp_df = tmp_df[tmp_df['region'].notna()]
 
@@ -647,13 +652,145 @@ class PrivateSchoolsProcessor:
         self.processed_data = tmp_df
 
         return self.processed_data
-    
-    def get_processed_data(self) -> pd.DataFrame:
-        """Return processed DataFrame."""
+
+    def map_curricular_offerings(self) -> pd.DataFrame:
+        """
+        Map and standardize curricular offering (modified_coc) values.
+
+        Standardizes various representations of curricular offerings into consistent categories:
+        - 'Purely ES': Elementary School only
+        - 'Purely JHS': Junior High School only
+        - 'Purely SHS': Senior High School only
+        - 'ES and JHS': Elementary and Junior High School
+        - 'JHS with SHS': Junior High School and Senior High School
+        - 'All Offering': All levels (K-12, ES, JHS, SHS)
+
+        Returns:
+            pd.DataFrame: Processed data with standardized curricular offerings
+        """
         if self.processed_data is None:
-            if self.verbose:
-                self.logger.warning("No processed data. Run process() first.")
+            self._log("No processed data available. Run process() first.")
+            return None
+
+        if 'modified_coc' not in self.processed_data.columns:
+            self._log("Warning: 'modified_coc' column not found in data")
+            return self.processed_data
+
+        self._log("Mapping curricular offerings...")
+
+        # Curricular offering mapping
+        curricular_mapping = {
+            'Purely SHS': 'Purely SHS',
+            'All Offering': 'All Offering',
+            'JHS with SHS': 'JHS with SHS',
+            'Purely ES': 'Purely ES',
+            'Elem, JHS with SHS': 'All Offering',
+            'Purely JHS': 'Purely JHS',
+            'ES and JHS': 'ES and JHS',
+            'Kindergarten': 'Purely ES',
+            np.nan: None,  # NaN represents missing data and cannot be logically mapped
+            'ELEMENTARY': 'Purely ES',
+            'SHS': 'Purely SHS',
+            'K TO G6': 'Purely ES',
+            'KINDERGARTEN': 'Purely ES',
+            'KINDEGARTEN': 'Purely ES',  # Misspelling
+            'K TO JHS': 'ES and JHS',
+            'K TO SHS': 'All Offering',
+            'JHS and SHS': 'JHS with SHS',
+            'Preschool and ES': 'Purely ES',
+            'Elementary and JHS': 'ES and JHS',
+            'ES': 'Purely ES',
+            'K, ES, JHS & SHS': 'All Offering',
+            'K, Grade 1-3': 'Purely ES',
+            'K,Grades 1-10, Grades 11-12': 'All Offering',
+            'K, Grade 1 - 2': 'Purely ES',
+            'K, Grade 1 - 6': 'Purely ES',
+            'K, ES, JHS': 'ES and JHS',
+            'K, ES, JHS, SHS': 'All Offering',
+            'K,ES, JHS': 'ES and JHS',
+            'JHS, SHS': 'JHS with SHS',
+            'K, Gade 1-6, JHS': 'ES and JHS',  # Misspelling of "Grade"
+            'K, Grade1-6,JHS': 'ES and JHS',
+            'Kinder, Grade 1 to 6': 'Purely ES',
+            'K, Grs. I - VI': 'Purely ES',
+            'Kinder, Grade 1-6': 'Purely ES',
+            'ES & JHS': 'ES and JHS',
+            'ES,JHS and SHS': 'All Offering',
+            'ES,JHS,and SHS': 'All Offering',
+            'ES and SHS': 'All Offering',
+            'Pure ES': 'Purely ES',
+            'Kindergarten ': 'Purely ES'  # Trailing space
+        }
+
+        # Apply mapping
+        df = self.processed_data
+        original_values = df['modified_coc'].value_counts(dropna=False)
+
+        df['modified_coc'] = df['modified_coc'].map(curricular_mapping)
+
+        # Log mapping statistics
+        mapped_values = df['modified_coc'].value_counts(dropna=False)
+        unique_original = len(original_values)
+        unique_mapped = len(mapped_values)
+
+        self._log(f"Curricular offering mapping complete:")
+        self._log(f"  Original unique values: {unique_original}")
+        self._log(f"  Standardized values: {unique_mapped}")
+        self._log(f"  Distribution: {mapped_values.to_dict()}")
+
+        self.processed_data = df
+        return df
+
+    def process_and_clean_all(self, export_path: Optional[str] = None,
+                               engine: Optional[str] = None,
+                               use_read_only: bool = True) -> pd.DataFrame:
+        """
+        Complete processing pipeline: read, process, clean coordinates, validate,
+        standardize regions, map curricular offerings, and optionally export.
+
+        This convenience method executes the entire data processing workflow in one call:
+        1. Read and process Excel files
+        2. Clean coordinate values (trailing commas, cardinal directions, etc.)
+        3. Validate coordinates with detailed error reasons
+        4. Standardize region values
+        5. Map curricular offerings to standard categories
+        6. Optionally export to CSV
+
+        Args:
+            export_path (str, optional): Path for output CSV file. If None, data is not exported.
+            engine (str, optional): Excel reading engine ('calamine', 'openpyxl', 'fastexcel', or None for auto)
+            use_read_only (bool): Use read_only mode for openpyxl (default: True)
+
+        Returns:
+            pd.DataFrame: Fully processed and cleaned data
+
+        Example:
+            >>> processor = PrivateSchoolsProcessor('data/private/raw_validation_sheets')
+            >>> data = processor.process_and_clean_all('output/private_schools_clean.csv')
+        """
+        self._log("Starting complete processing pipeline...")
+
+        # Step 1: Process raw Excel files
+        self.process(engine=engine, use_read_only=use_read_only)
+
+        if self.processed_data is None or len(self.processed_data) == 0:
+            self._log("No data to process")
             return pd.DataFrame()
+
+        # Step 2: Validate coordinates with automatic cleaning
+        self.validate_coordinates_with_reasons(clean_first=True)
+
+        # Step 3: Standardize region values
+        self.replace_unclean_region_values()
+
+        # Step 4: Map curricular offerings
+        self.map_curricular_offerings()
+
+        # Step 5: Export if path provided
+        if export_path:
+            self.export_processed(export_path)
+
+        self._log("Complete processing pipeline finished")
         return self.processed_data
 
     def export_processed(self, output_path: str = 'output/private_schools_processed.csv') -> None:
@@ -676,7 +813,12 @@ class PrivateSchoolsProcessor:
         self._log(f"Exported to {output_path}")
 
     def get_summary(self) -> Dict[str, Any]:
-        """Get processing summary."""
+        """
+        Get processing summary with key statistics.
+
+        Returns:
+            Dict[str, Any]: Summary statistics including file counts, success rates, and data dimensions
+        """
         if not hasattr(self, 'raw_data'):
             return {}
 
@@ -692,189 +834,8 @@ class PrivateSchoolsProcessor:
             'failed_sheets': failed_count,
             'success_rate': (successful_count / total_sheets * 100) if total_sheets > 0 else 0,
             'final_dataset_rows': len(self.processed_data) if self.processed_data is not None else 0,
-            'final_dataset_columns': len(self.processed_data.columns) if self.processed_data is not None else 0,
-            'successful_sheet_details': self.successful_sheets.copy(),
-            'failed_sheet_details': self.failed_sheets.copy()
+            'final_dataset_columns': len(self.processed_data.columns) if self.processed_data is not None else 0
         }
-
-    # Additional methods for compatibility and future expansion
-    def get_file_summary(self) -> Dict:
-        """Get summary of loaded files and sheets."""
-        if not self.raw_data:
-            return {'total_files': 0, 'file_details': {}}
-
-        summary = {
-            'total_files': len(self.raw_data),
-            'file_details': {}
-        }
-
-        for filename, sheets in self.raw_data.items():
-            summary['file_details'][filename] = {
-                'sheet_count': len(sheets),
-                'sheet_names': list(sheets.keys()),
-                'sheet_shapes': {name: df.shape for name, df in sheets.items()}
-            }
-
-        return summary
-
-    def get_sheet_data(self, filename: str, sheet_name: str) -> Optional[pd.DataFrame]:
-        """Get raw data from specific sheet."""
-        if filename in self.raw_data and sheet_name in self.raw_data[filename]:
-            return self.raw_data[filename][sheet_name]
-        return None
-
-    def list_files(self) -> List[str]:
-        """Get list of loaded filenames."""
-        return list(self.raw_data.keys())
-
-    def list_sheets(self, filename: str) -> List[str]:
-        """Get list of sheets for specific file."""
-        return list(self.raw_data.get(filename, {}).keys())
-
-    def get_failed_sheets(self) -> List[str]:
-        """Get list of failed sheet descriptions."""
-        return self.failed_sheets.copy()
-
-    def get_successful_sheets(self) -> List[str]:
-        """Get list of successful sheet descriptions."""
-        return self.successful_sheets.copy()
-
-    def get_data_quality_summary(self) -> Dict[str, Any]:
-        """Get basic data quality metrics."""
-        if self.processed_data is None:
-            return {}
-
-        df = self.processed_data
-        quality_summary = {
-            'total_records': len(df),
-            'duplicate_records': df.duplicated().sum(),
-            'completely_empty_rows': df.isnull().all(axis=1).sum(),
-        }
-
-        # Check key columns
-        if 'beis_school_id' in df.columns:
-            quality_summary['beis_school_id_completeness'] = (
-                df['beis_school_id'].notnull().sum() / len(df) * 100
-            )
-
-        if 'excel_filename' in df.columns:
-            quality_summary['files_represented'] = df['excel_filename'].nunique()
-
-        if 'sheet_name' in df.columns:
-            quality_summary['sheets_represented'] = df['sheet_name'].nunique()
-
-        return quality_summary
-
-    def validate_coordinates(self) -> Dict[str, Any]:
-        """
-        Validate latitude and longitude coordinates in the processed data.
-
-        Validates coordinates using Philippine geographic bounds and decimal degrees format.
-        Creates a new 'coordinates_valid' column indicating valid coordinate pairs.
-
-        Philippine Bounds:
-        - Longitude: 116° to 127° East
-        - Latitude: 4° to 21° North
-
-        Returns:
-            Dict[str, Any]: Validation summary statistics
-        """
-        if self.processed_data is None:
-            self._log("No processed data available. Run process() first.")
-            return {}
-
-        df = self.processed_data
-        self._log("Starting coordinate validation...")
-
-        # Find latitude and longitude columns
-        lat_col, lon_col = self._find_coordinate_columns(df)
-
-        if not lat_col or not lon_col:
-            self._log("No latitude/longitude columns found in data")
-            df['coordinates_valid'] = False
-            return {
-                'latitude_column': lat_col,
-                'longitude_column': lon_col,
-                'total_records': len(df),
-                'valid_coordinates': 0,
-                'invalid_coordinates': len(df),
-                'validation_rate': 0.0,
-                'issues_found': ['No coordinate columns found']
-            }
-
-        self._log(f"Found coordinate columns: {lat_col}, {lon_col}")
-
-        # Philippine coordinate bounds
-        PHILIPPINES_LAT_MIN = 4.0
-        PHILIPPINES_LAT_MAX = 21.0
-        PHILIPPINES_LON_MIN = 116.0
-        PHILIPPINES_LON_MAX = 127.0
-
-        # Initialize validation arrays
-        total_records = len(df)
-        lat_valid = np.zeros(total_records, dtype=bool)
-        lon_valid = np.zeros(total_records, dtype=bool)
-
-        # Get coordinate series
-        lat_series = df[lat_col]
-        lon_series = df[lon_col]
-
-        # Validate latitude coordinates
-        lat_valid, lat_issues = self._validate_coordinate_column(
-            lat_series, PHILIPPINES_LAT_MIN, PHILIPPINES_LAT_MAX, 'latitude'
-        )
-
-        # Validate longitude coordinates
-        lon_valid, lon_issues = self._validate_coordinate_column(
-            lon_series, PHILIPPINES_LON_MIN, PHILIPPINES_LON_MAX, 'longitude'
-        )
-
-        # Create coordinates_valid column (both lat and lon must be valid)
-        coordinates_valid = lat_valid & lon_valid
-        df['coordinates_valid'] = coordinates_valid
-
-        # Calculate statistics
-        valid_count = coordinates_valid.sum()
-        invalid_count = total_records - valid_count
-        validation_rate = (valid_count / total_records * 100) if total_records > 0 else 0
-
-        # Combine issues
-        all_issues = lat_issues + lon_issues
-
-        # Create detailed summary
-        validation_summary = {
-            'latitude_column': lat_col,
-            'longitude_column': lon_col,
-            'total_records': total_records,
-            'valid_coordinates': int(valid_count),
-            'invalid_coordinates': int(invalid_count),
-            'validation_rate': round(validation_rate, 2),
-            'philippine_bounds_used': {
-                'latitude': f"{PHILIPPINES_LAT_MIN}° to {PHILIPPINES_LAT_MAX}° North",
-                'longitude': f"{PHILIPPINES_LON_MIN}° to {PHILIPPINES_LON_MAX}° East"
-            },
-            'issues_found': list(set(all_issues)) if all_issues else ['No major issues found'],
-            'latitude_validation': {
-                'valid_count': int(lat_valid.sum()),
-                'invalid_count': int((~lat_valid).sum()),
-                'validation_rate': round(lat_valid.sum() / total_records * 100, 2)
-            },
-            'longitude_validation': {
-                'valid_count': int(lon_valid.sum()),
-                'invalid_count': int((~lon_valid).sum()),
-                'validation_rate': round(lon_valid.sum() / total_records * 100, 2)
-            }
-        }
-
-        # Log results
-        self._log(f"Coordinate validation complete:")
-        self._log(f"  Valid coordinates: {valid_count:,} ({validation_rate:.1f}%)")
-        self._log(f"  Invalid coordinates: {invalid_count:,}")
-
-        if all_issues:
-            self._log(f"  Issues identified: {', '.join(set(all_issues))}")
-
-        return validation_summary
 
     def validate_coordinates_with_reasons(self, clean_first: bool = True) -> pd.DataFrame:
         """
@@ -1307,46 +1268,68 @@ class PrivateSchoolsProcessor:
 
 # Example usage demonstrating optimized Excel reading with coordinate validation
 if __name__ == "__main__":
-    # Initialize processor
     directory_path = r"C:\Users\elibu\Documents\Work\education\project_gastpe\data\private\raw_validation_sheets"
 
-    # Fast processing with minimal logging and optimized Excel reading
+    # ============================================================================
+    # OPTION 1: ONE-CALL PIPELINE (Recommended - simplest approach)
+    # ============================================================================
+    print("=" * 80)
+    print("OPTION 1: Complete pipeline in one call")
+    print("=" * 80)
+
     processor = PrivateSchoolsProcessor(directory_path, verbose=True)
 
-    # Process data efficiently with optimized engines (auto-selects fastest available)
-    print("Processing with optimized Excel reading engines...")
-    processed_data = processor.process(engine=None, use_read_only=True)  # Auto-select best engine
-
-    # Alternative: Force specific engine for testing
-    # processed_data = processor.process(engine='calamine', use_read_only=True)  # Force calamine
-    # processed_data = processor.process(engine='openpyxl', use_read_only=True)  # Force openpyxl
+    # Single call does everything: process, clean, validate, standardize, export
+    data = processor.process_and_clean_all('output/private_schools_clean.csv')
 
     # Get summary
     summary = processor.get_summary()
-    print(f"Processed {summary['total_files_processed']} files")
+    print(f"\nProcessed {summary['total_files_processed']} files")
     print(f"Success rate: {summary['success_rate']:.1f}%")
     print(f"Final dataset: {summary['final_dataset_rows']} rows × {summary['final_dataset_columns']} columns")
 
-    # Clean and validate coordinates if data was processed
-    if len(processed_data) > 0:
-        # Method 1: Validate with automatic coordinate cleaning (recommended)
-        print("\nValidating coordinates with automatic cleaning...")
-        validated_data = processor.validate_coordinates_with_reasons(clean_first=True)
+    if len(data) > 0:
+        valid_count = data['coordinates_valid'].sum()
+        print(f"Valid coordinates: {valid_count:,} ({valid_count/len(data)*100:.1f}%)")
 
-        # Check validation results
+    # ============================================================================
+    # OPTION 2: MANUAL STEP-BY-STEP (For fine-grained control)
+    # ============================================================================
+    print("\n" + "=" * 80)
+    print("OPTION 2: Manual step-by-step pipeline")
+    print("=" * 80)
+
+    processor2 = PrivateSchoolsProcessor(directory_path, verbose=True)
+
+    # Step 1: Process raw Excel files
+    print("\n1. Processing Excel files...")
+    processed_data = processor2.process(engine=None, use_read_only=True)
+
+    # Get summary
+    summary2 = processor2.get_summary()
+    print(f"Processed {summary2['total_files_processed']} files")
+    print(f"Success rate: {summary2['success_rate']:.1f}%")
+
+    # Step 2-5: Clean and validate if processing was successful
+    if len(processed_data) > 0:
+        # Step 2: Validate coordinates with automatic cleaning
+        print("\n2. Validating and cleaning coordinates...")
+        validated_data = processor2.validate_coordinates_with_reasons(clean_first=True)
+
         valid_count = validated_data['coordinates_valid'].sum()
         invalid_count = len(validated_data) - valid_count
-        print(f"  Valid coordinates: {valid_count:,} ({valid_count/len(validated_data)*100:.1f}%)")
-        print(f"  Invalid coordinates: {invalid_count:,}")
+        print(f"  Valid: {valid_count:,} ({valid_count/len(validated_data)*100:.1f}%)")
+        print(f"  Invalid: {invalid_count:,}")
 
-        # View sample invalid coordinates with reasons
-        if invalid_count > 0:
-            print("\nSample invalid coordinates:")
-            invalid_sample = validated_data[~validated_data['coordinates_valid']][
-                ['school_name', 'latitude', 'longitude', 'coordinates_invalid_reason']
-            ].head(5)
-            print(invalid_sample)
+        # Step 3: Standardize region values
+        print("\n3. Standardizing region values...")
+        processor2.replace_unclean_region_values()
 
-        # Export processed data with coordinate validation
-        processor.export_processed()
-        print("\nData exported successfully with coordinate validation")
+        # Step 4: Map curricular offerings
+        print("\n4. Mapping curricular offerings...")
+        processor2.map_curricular_offerings()
+
+        # Step 5: Export
+        print("\n5. Exporting data...")
+        processor2.export_processed('output/private_schools_manual.csv')
+        print("Data exported successfully with all enhancements")

@@ -15,7 +15,7 @@ logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 
-class SchoolCoordinatesProcessor:
+class PublicSchoolsProcessor:
     """Processor for school coordinates data with validation and quality checks."""
 
     # Philippine coordinate boundaries
@@ -788,7 +788,7 @@ class SchoolCoordinatesProcessor:
 # Example usage
 if __name__ == "__main__":
     # Initialize processor
-    processor = SchoolCoordinatesProcessor()
+    processor = PublicSchoolsProcessor()
 
     # Process data with automatic coordinate fixing
     processed_data = processor.process(auto_fix_coordinates=True)
