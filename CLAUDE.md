@@ -23,7 +23,14 @@
     - Extracts first value before " or " text
     - Reconstructs split coordinates across columns
   - **Coordinate Validation**: Creates `coordinates_valid` (bool) and `coordinates_invalid_reason` (string) columns
+  - **Region Standardization**: Cleans and standardizes region names
+  - **Curricular Offering Mapping** (2025-10-29): Maps modified_coc values to standard categories
+    - 'Purely ES', 'Purely JHS', 'Purely SHS'
+    - 'ES and JHS', 'JHS with SHS'
+    - 'All Offering' (K-12 complete)
+    - Handles 40+ variations including misspellings
   - Expected valid coordinates: ~95%+ (up from ~86%)
+- **Streamlined Structure** (2025-10-29): Removed 11 redundant methods, kept only essential functionality
 
 ### 4. Seat-Learner Ratio (`modules/seat_learner_preprocessor.py`)
 - **Source**: `data/public/SY 2023-2024 SEAT-LEARNER RATIO.xlsx`
@@ -106,6 +113,218 @@
   - `get_province_list()`: List provinces with pcodes, names, filenames
 - **Parameters**: `verbose`, `do_clip`, `max_open_files`
 - **Advantages**: 20-30x faster than Module 8, memory-efficient, reliable, consistent data
+
+### 10. Facilities Data Preprocessor (`modules/facilities_preprocessor.py`)
+- **Source**: `data/public/facilities_2023-24.csv`
+- **Output**: Columns 1-12 only (school metadata + classroom counts)
+  - `school_id`, `sector`, `school_management` (string dtype)
+  - `offers_es`, `offers_jhs`, `offers_shs` (boolean)
+  - Classroom counts by level and type (float, nullable): `es/jhs/shs_classrooms_instructional`, `es/jhs/shs_classrooms_non_instructional`
+- **Data Coverage**: 60,167 schools (Public and Private sectors)
+- **Key Features**:
+  - **Blank value handling**: All blank/empty classroom values explicitly converted to NaN
+  - **String dtype conversion**: Uses pandas `'string'` dtype (not `object`) for proper string representation
+  - **Validation**: Checks for duplicate school IDs, negative classroom counts, consistency between offered levels and classroom data
+  - **Whitespace trimming**: Strips whitespace from string columns
+- **Data Characteristics**:
+  - Private schools: All classroom columns are NaN (no data reported)
+  - Public schools: NaN in classroom columns when school doesn't offer that education level
+- **Usage**:
+  ```python
+  from modules.facilities_preprocessor import FacilitiesPreprocessor
+
+  processor = FacilitiesPreprocessor(file_path='data/public/facilities_2023-24.csv')
+  facilities_data = processor.process()
+
+  # Get summary statistics
+  summary = processor.get_summary()
+
+  # Export
+  processor.export_csv('output/facilities_classrooms.csv')
+  ```
+
+### 11. Node Table Builder (`modules/node_table_builder.py`)
+- **Purpose**: Consolidate school data from multiple sources into comprehensive GeoDataFrame node tables ready for graph network analysis
+- **Created**: 2025-11-12 (Refactored from notebook 0.6)
+- **Output**: GeoDataFrames with Point geometries, admin boundaries, and validation
+  - `public_node_table` - Public schools (~47K)
+  - `private_node_table` - Private schools (~11.8K)
+  - `combined_node_table` - All schools with sector column
+- **Key Features**:
+  - **Spatial Integration**:
+    - Point geometries from lat/lon (EPSG:4326)
+    - Spatial join with PSGC consolidated geodata (Module 7)
+    - Administrative boundary assignment: region, province, municipality
+    - `adm2_pcode` column for direct matching with provincial road networks (Module 9)
+  - **Data Consolidation**:
+    - Public workflow: Coordinates → Enrollment → Facilities → Seats
+    - Private workflow: Coordinates → GASTPE → Furniture → Enrollment
+    - Sequential merging with validation flag creation (`has_*_data`)
+  - **Tiered Validation**:
+    - Level 1 (required): `school_id`, `coordinates_valid`, `geometry`, `admin_assignment_valid`
+    - Level 2 (core): Level 1 + (enrollment OR facilities OR GASTPE data)
+    - Level 3 (complete): Level 2 + all data sources present
+    - Configurable validation level via `validation_level` parameter
+  - **Computed Metrics** (for graph node weights):
+    - `total_enrollment` - Sum of ES + JHS + SHS enrollment
+    - `total_seats` - Sum of ES + JHS + SHS seats
+    - `capacity_utilization` - Enrollment/seats ratio
+  - **Quality Reporting**:
+    - `get_summary()` - Comprehensive statistics for both sectors
+    - `get_validation_report()` - Detailed list of validation failures
+    - Completeness percentages by data source
+    - Spatial coverage metrics
+  - **Multiple Export Formats**:
+    - GeoPackage (`.gpkg`) - Primary format, preserves geometry + attributes
+    - CSV (`.csv`) - Non-spatial format
+    - Parquet (`.parquet`) - Memory-efficient format
+    - Quality report (`.csv`) - Validation and completeness metrics
+  - **Graph-Ready Output**:
+    - All required attributes for network analysis in single file
+    - Provincial filtering via `adm2_pcode` for subgraph generation
+    - Sector column enables public/private/mixed network analysis
+- **Integration Points**:
+  - **Input**: Uses all preprocessor modules (1-6, 10) + PSGC geodata (Module 7)
+  - **Output for Notebook 1.0**: Node tables with geometry, attributes, and validation
+  - **Provincial Road Networks**: `adm2_pcode` matches filenames from Module 9 (e.g., `PH03014_bulacan.geojsonl`)
+- **Usage**:
+  ```python
+  from modules.node_table_builder import NodeTableBuilder
+
+  builder = NodeTableBuilder(
+      verbose=True,
+      psgc_geodata_path='output/consolidated_geodata_matched.gpkg',
+      validation_level='complete'  # 'required', 'core', or 'complete'
+  )
+
+  # Build node tables (returns GeoDataFrame)
+  public_gdf = builder.build_public_node_table()
+  private_gdf = builder.build_private_node_table()
+  all_schools_gdf = builder.build_combined_node_table()
+
+  # Get summaries
+  summary = builder.get_summary()
+  validation_report = builder.get_validation_report()
+
+  # Export for graph generation
+  builder.export_geopackage('output/all_nodes.gpkg', sector='both')
+  builder.export_geopackage('output/all_nodes_valid.gpkg', sector='both', valid_only=True)
+  builder.export_quality_report('output/data_quality_report.csv')
+  ```
+- **Key Methods**:
+  - `build_public_node_table()` - Build public school nodes
+  - `build_private_node_table()` - Build private school nodes
+  - `build_combined_node_table()` - Build combined public + private
+  - `get_summary()` / `get_public_summary()` / `get_private_summary()` - Statistics
+  - `get_validation_report()` - Detailed validation issues
+  - `export_geopackage()` / `export_csv()` / `export_parquet()` - Export methods
+  - `export_quality_report()` - Export quality metrics
+- **Performance**: ~800-1000 lines, comprehensive logging, caching of intermediate results
+
+### 12. Provincial Network Builder (`modules/provincial_network_builder.py`)
+- **Purpose**: Build road network graphs and distance matrices for a single province using ARM-compatible libraries
+- **Created**: 2025-11-13
+- **ARM Compatibility**: Uses NetworkX (pure Python) instead of igraph for ARM Windows support
+- **Output**: Distance graph + Beneficiary graph + Distance matrix + Summary statistics
+- **Key Features**:
+  - **NetworkX-Only Architecture**:
+    - Uses NetworkX for graph operations (no igraph dependency)
+    - scipy.spatial.cKDTree for spatial indexing (not rtree)
+    - Pure Python libraries compatible with ARM architecture
+    - Parallel processing with multiprocessing (standard library)
+  - **Dual Graph Output**:
+    - Distance Graph: Nodes = schools, Edges = road distances (meters)
+    - Beneficiary Graph: Nodes = schools, Edges = student flow counts
+    - Both graphs share same vertices for interchangeable analysis
+  - **Dual CRS Strategy**:
+    - EPSG:3123 (PRS92 Philippines) for distance calculations
+    - EPSG:4326 (WGS84) for visualization and storage
+  - **Provincial Scope**:
+    - Single province at a time for manageable computation
+    - Filters schools and beneficiary flows to province
+    - Includes cross-provincial flows (external origins/destinations)
+  - **Regional Merging Design**:
+    - Node coordinates stored with 5 decimal precision (~1 meter)
+    - Province code tagged on all nodes/edges
+    - Boundary nodes identified for cross-provincial connections
+    - GraphML export preserves all attributes for merging
+  - **Parallel Distance Computation**:
+    - Multiprocessing for school-to-school distance calculations
+    - Buffer-based spatial search (default: 5km radius)
+    - Maximum distance cutoff (default: 15km)
+    - NetworkX single-source Dijkstra for shortest paths
+- **Workflow**:
+  1. Load provincial road network from GeoJSONL (Module 9 output)
+  2. Snap schools to nearest road nodes using KDTree
+  3. Build spatial index for fast proximity queries
+  4. Compute distance matrix (parallel processing)
+  5. Build distance and beneficiary NetworkX graphs
+  6. Identify boundary nodes for regional merging
+- **Input Requirements**:
+  - Province-filtered public/private node tables (from Module 11)
+  - Beneficiary edges (from BeneficiaryProcessor)
+  - Provincial road network GeoJSONL (from Module 9)
+  - Consolidated geodata (optional, for boundary identification)
+- **Outputs**:
+  - Distance matrix CSV: Origin × Destination road distances (meters)
+  - Distance graph GraphML: NetworkX graph with road distance edges
+  - Beneficiary graph GraphML: NetworkX graph with student flow edges
+  - Summary JSON: Comprehensive statistics
+- **Performance**:
+  - Provincial scale (500-1000 schools): ~30 seconds - 2 minutes for distance computation
+  - NetworkX 2-5x slower than igraph but acceptable for provincial scope
+  - Memory efficient with streaming spatial queries
+- **Usage**:
+  ```python
+  from modules.provincial_network_builder import ProvincialNetworkBuilder
+
+  # Filter data to province
+  province_code = 'PH03014'  # Bulacan
+  public_province = public_nodes[public_nodes['adm2_pcode'] == province_code]
+  private_province = private_nodes[private_nodes['adm2_pcode'] == province_code]
+
+  # Initialize builder
+  builder = ProvincialNetworkBuilder(
+      province_code='PH03014',
+      province_name='bulacan',
+      public_nodes_gdf=public_province,
+      private_nodes_gdf=private_province,
+      beneficiary_edges_df=beneficiary_edges,
+      road_network_path='output/province_road_networks/PH03014_bulacan.geojsonl',
+      consolidated_geodata_path='output/consolidated_geodata_matched.gpkg'
+  )
+
+  # Build complete network
+  results = builder.build_complete_network(
+      buffer_distance_m=5000,
+      max_distance_km=15,
+      n_processes=4
+  )
+
+  # Access results
+  distance_matrix = results['distance_matrix']
+  distance_graph = results['distance_graph']
+  beneficiary_graph = results['beneficiary_graph']
+
+  # Export all
+  builder.export_all('output/provincial_networks')
+  ```
+- **Key Methods**:
+  - `build_complete_network()` - Execute complete workflow
+  - `_load_road_network()` - GeoJSONL → NetworkX conversion
+  - `_snap_schools_to_network()` - KDTree-based school snapping
+  - `_build_spatial_index()` - KDTree for proximity queries
+  - `_compute_distance_matrix()` - Parallel distance computation
+  - `_build_distance_graph()` - Create distance NetworkX graph
+  - `_build_beneficiary_graph()` - Create beneficiary NetworkX graph
+  - `_identify_boundary_nodes()` - Find nodes near province boundary
+  - `export_all()` - Export all results to directory
+- **Integration**:
+  - Input: Uses Module 11 (node tables) + BeneficiaryProcessor outputs
+  - Input: Uses Module 9 (provincial road networks)
+  - Output: GraphML graphs ready for regional merging (Module 13, future)
+  - Output: Distance matrices ready for discrete choice modeling
+- **Next Steps**: Module 13 will merge provincial networks into regional graphs
 
 ## Common Features (All Modules)
 - **Verbose Logging**: `verbose` parameter (default: True) controls INFO vs WARNING level logging
@@ -651,6 +870,55 @@
 
 **Session Summary**: Created Module 9 (Provincial Road Extractor) - lightweight PyOsmium-based solution for extracting provincial road networks from OSM PBF files
 
+### 2025-10-14
+
+**Session Summary**: Created Module 10 (Facilities Data Preprocessor) - extracts classroom counts and school metadata from comprehensive facilities dataset
+
+- **Module 10: Facilities Data Preprocessor** (`modules/facilities_preprocessor.py`)
+  - **Data Source**: `data/public/facilities_2023-24.csv` (60,167 schools)
+  - **Scope**: Columns 1-12 only (school metadata + classroom infrastructure)
+  - **Objective**: Extract classroom capacity data for integration with enrollment and coordinate datasets
+
+  - **Data Structure**:
+    - **Metadata columns** (3): `school_id`, `sector`, `school_management`
+    - **Education level flags** (3): `offers_es`, `offers_jhs`, `offers_shs` (boolean)
+    - **Classroom counts** (6): Instructional and non-instructional classrooms by education level (ES/JHS/SHS)
+
+  - **Key Features**:
+    1. **String dtype handling**: Explicitly converts string columns to pandas `'string'` dtype (not `object`)
+       - Ensures `.dtypes` displays `string` instead of generic `object`
+       - Uses `astype('string')` for proper pandas nullable string representation
+    2. **NaN value handling**: All blank classroom values explicitly converted to NaN
+       - Private schools: All classroom columns are NaN (no data reported)
+       - Public schools: NaN when school doesn't offer that education level
+    3. **Data validation**:
+       - Checks for duplicate school IDs
+       - Validates non-negative classroom counts
+       - Checks consistency (schools not offering a level shouldn't have classroom data)
+    4. **Whitespace trimming**: Strips whitespace from string columns for clean data
+    5. **Removed sector validation**: Accepts all sector values without warnings (not just "Public"/"Private")
+
+  - **Default file path behavior**: Constructor accepts optional `file_path` parameter
+    - If None: defaults to `'data/public/facilities_2023-24.csv'`
+    - Enables flexible usage across notebooks and scripts
+
+  - **Processing pipeline**:
+    1. Load CSV with `low_memory=False` for proper dtype handling
+    2. Select columns 1-12
+    3. Convert data types (string → `'string'`, boolean, numeric)
+    4. Handle blank values as NaN
+    5. Validate data quality
+    6. Trim whitespaces
+
+  - **Integration potential**:
+    - Combines with Module 1 (Enrollment) for capacity vs demand analysis
+    - Links with Module 2 (Public Coordinates) via `school_id`
+    - Enables classroom shortage/surplus calculations by education level
+
+  - **Files created**:
+    - `modules/facilities_preprocessor.py`: Main processor (~380 lines)
+    - Follows established module patterns (load→process→validate→export)
+
 - **Module 9: Provincial Road Network Extractor** (`modules/provincial_road_extractor.py`)
   - **Purpose**: Extract provincial road networks from OpenStreetMap PBF files using memory-efficient streaming
   - **Problem Context**: Previous OSMnx approach was slow and memory-intensive for province-level extraction
@@ -739,6 +1007,483 @@
   - **Files Created**:
     - `modules/provincial_road_extractor.py`: Main extraction module (540 lines)
     - Notebook `0.4-get-road-networks-v2.ipynb`: Documents development and testing
+
+### 2025-10-29
+
+**Session Summary**: Enhanced Module 3 (Private School Coordinates) with curricular offering mapping and module streamlining
+
+- **Module 3 Enhancement: Curricular Offering Mapping** (`modules/private_coordinates_processor.py`)
+  - **Requirement**: User provided comprehensive mapping for `modified_coc` column
+    - Maps 40+ variations to 6 standardized categories
+    - Handles misspellings (e.g., "KINDEGARTEN" → "Purely ES")
+    - Handles formatting variations (trailing spaces, commas, etc.)
+
+  - **New Method**: `map_curricular_offerings()`
+    - **Standard Categories**:
+      - `'Purely ES'` - Elementary School only (includes Kindergarten/Preschool)
+      - `'Purely JHS'` - Junior High School only
+      - `'Purely SHS'` - Senior High School only
+      - `'ES and JHS'` - Elementary and Junior High School
+      - `'JHS with SHS'` - Junior High School and Senior High School
+      - `'All Offering'` - Complete K-12 (ES, JHS, and SHS)
+    - **Mapping Examples**:
+      - "Kindergarten", "K TO G6", "KINDERGARTEN", "KINDEGARTEN" → "Purely ES"
+      - "K TO JHS", "Elementary and JHS", "ES & JHS" → "ES and JHS"
+      - "K TO SHS", "ES,JHS and SHS", "K, ES, JHS, SHS" → "All Offering"
+      - "JHS and SHS", "JHS, SHS" → "JHS with SHS"
+    - **Logging**: Reports original vs standardized unique values and distribution
+    - **NaN handling**: NaN values explicitly mapped to None (missing data)
+
+  - **Integration**: Method added to standard processing pipeline
+    - Typically called after coordinate validation and region standardization
+    - Column check: Verifies `modified_coc` exists before mapping
+
+- **Module 3 Streamlining: Code Cleanup**
+  - **Problem**: Module had 25+ methods, many redundant or rarely used
+    - Too many simple getter methods (just attribute access)
+    - Overly detailed summary methods
+    - Redundant validation method (`validate_coordinates()` when `validate_coordinates_with_reasons()` was superior)
+
+  - **Methods Removed** (11 total):
+    1. `get_raw_data()` - Redundant (direct attribute access: `processor.raw_data`)
+    2. `get_processed_data()` - Redundant (direct attribute access: `processor.processed_data`)
+    3. `get_file_summary()` - Overly detailed, rarely used
+    4. `get_sheet_data()` - Too granular, rarely used
+    5. `list_files()` - Simple attribute access
+    6. `list_sheets()` - Simple attribute access
+    7. `get_failed_sheets()` - Simple attribute access (`processor.failed_sheets`)
+    8. `get_successful_sheets()` - Simple attribute access (`processor.successful_sheets`)
+    9. `get_data_quality_summary()` - Overly detailed, rarely used
+    10. `validate_coordinates()` - Redundant (superseded by `validate_coordinates_with_reasons()`)
+    11. Duplicate `validate_coordinates()` definition - Bug fix
+
+  - **Methods Kept** (14 essential):
+    - **Core**: `process()`, `export_processed()`, `get_summary()`
+    - **Data Cleaning**: `clean_coordinates()`, `replace_unclean_region_values()`, `map_curricular_offerings()`
+    - **Validation**: `validate_coordinates_with_reasons()`
+    - **Excel Reading**: `read_all_files()`, `_select_optimal_engine()`, `_is_engine_available()`
+    - **Engine-Specific**: `_get_sheet_names_optimized()`, `_read_excel_optimized()`, `_read_with_calamine()`, `_read_with_fastexcel()`, `_read_with_openpyxl()`
+    - **Validation Helpers** (private): `_find_coordinate_columns()`, `_clean_single_coordinate()`, `_reconstruct_split_coordinates()`, `_validate_single_coordinate()`, `_validate_coordinate_column()`, `_validate_column_as_coordinate()`
+
+  - **get_summary() Simplified**:
+    - Removed detailed lists (`successful_sheet_details`, `failed_sheet_details`)
+    - Kept only essential statistics: file counts, success rate, dataset dimensions
+    - Users can access raw lists via attributes if needed: `processor.successful_sheets`, `processor.failed_sheets`
+
+  - **Result**: Module reduced from ~1,350 lines to ~1,260 lines (~90 lines removed)
+    - More focused and maintainable
+    - Clearer API with only essential methods
+    - Better performance (fewer method calls)
+
+- **Documentation Updates**:
+  - **Module Docstring**: Updated to reflect streamlined structure
+    - Clear list of main methods
+    - Removed mention of deprecated methods
+    - Updated "Updated" date to 2025-10-29
+  - **Example Usage**: Enhanced to demonstrate all key methods
+    - Added region standardization step
+    - Added curricular offering mapping step
+    - Shows complete processing pipeline
+  - **CLAUDE.md**: Updated Module 3 description with new features
+
+- **Convenience Method Added**: `process_and_clean_all()`
+  - **Purpose**: One-call complete pipeline from raw Excel to clean CSV
+  - **Steps executed**:
+    1. Read and process Excel files
+    2. Clean coordinate values
+    3. Validate coordinates with detailed error reasons
+    4. Standardize region values
+    5. Map curricular offerings
+    6. Optionally export to CSV
+  - **Parameters**:
+    - `export_path` (optional): Output CSV path
+    - `engine` (optional): Excel reading engine
+    - `use_read_only` (optional): Use read_only mode (default: True)
+
+- **Usage Pattern** (Updated):
+  ```python
+  from modules.private_coordinates_processor import PrivateSchoolsProcessor
+
+  # OPTION 1: One-call pipeline (Recommended)
+  processor = PrivateSchoolsProcessor('data/private/raw_validation_sheets')
+  data = processor.process_and_clean_all('output/private_schools_clean.csv')
+
+  # Get summary
+  summary = processor.get_summary()
+  print(f"Processed {summary['total_files_processed']} files")
+  print(f"Success rate: {summary['success_rate']:.1f}%")
+
+  # OPTION 2: Manual step-by-step (for fine-grained control)
+  processor = PrivateSchoolsProcessor('data/private/raw_validation_sheets')
+  data = processor.process()
+  validated_data = processor.validate_coordinates_with_reasons(clean_first=True)
+  processor.replace_unclean_region_values()
+  processor.map_curricular_offerings()
+  processor.export_processed('output/private_schools_clean.csv')
+  ```
+
+- **Files Modified**:
+  - `modules/private_coordinates_processor.py`: Added `map_curricular_offerings()`, `process_and_clean_all()`, removed 11 methods, updated docs
+  - `CLAUDE.md`: Updated Module 3 description and session history
+
+- **Summary of Changes**:
+  - ✅ Added curricular offering mapping with 40+ variations handled
+  - ✅ Removed 11 redundant methods (90 lines of code)
+  - ✅ Added convenience method `process_and_clean_all()` for one-call pipeline
+  - ✅ Updated all documentation and examples
+  - 📉 Module size: ~1,350 lines → ~1,310 lines (more focused and maintainable)
+
+### 2025-11-12
+
+**Session Summary**: Refactored notebook 0.6 node table creation code into Module 11 (NodeTableBuilder) with enhanced spatial integration for graph generation
+
+- **Module 11: Node Table Builder** (`modules/node_table_builder.py`)
+  - **Objective**: Consolidate school data from multiple sources into graph-ready GeoDataFrames
+  - **Refactoring from**: Notebook 0.6 (scattered cell-based logic → cohesive module)
+
+  - **Key Enhancements Over Original Notebook**:
+    1. **Spatial Integration** (NEW):
+       - GeoDataFrame output with Point geometries (EPSG:4326)
+       - Spatial join with PSGC consolidated geodata (Module 7)
+       - Administrative boundary assignment: `region`, `province`, `municipality`
+       - `adm2_pcode` column for direct matching with provincial road networks (Module 9)
+       - Enables provincial filtering for subgraph generation
+
+    2. **Tiered Validation System** (ENHANCED):
+       - Level 1 (required): `school_id`, `coordinates_valid`, `geometry`, `admin_assignment_valid`
+       - Level 2 (core): Level 1 + (enrollment OR facilities OR GASTPE)
+       - Level 3 (complete): Level 2 + all data sources present
+       - Configurable via `validation_level` parameter
+       - Replaces simple `all_valid` boolean with detailed validation breakdown
+
+    3. **Computed Metrics for Graph Weights** (NEW):
+       - `total_enrollment` - Sum of ES + JHS + SHS
+       - `total_seats` - Sum of ES + JHS + SHS
+       - `capacity_utilization` - Enrollment/seats ratio
+       - Ready for use as node attributes in NetworkX graphs
+
+    4. **Enhanced Reporting** (NEW):
+       - `get_summary()` - Comprehensive statistics (validation breakdown, completeness by source, spatial coverage)
+       - `get_validation_report()` - Detailed list of validation failures with reasons
+       - `export_quality_report()` - CSV export of quality metrics
+
+    5. **Multiple Export Formats** (NEW):
+       - GeoPackage (`.gpkg`) - Primary format, preserves geometry + CRS
+       - CSV (`.csv`) - Non-spatial format
+       - Parquet (`.parquet`) - Memory-efficient format
+       - Quality report - Validation and completeness metrics
+
+    6. **Code Organization** (IMPROVED):
+       - Reusable methods: `_merge_with_validation()`, `_pivot_by_education_level()`, `_create_geometry_column()`
+       - Lazy loading with caching (preprocessor results cached to avoid redundant reads)
+       - Clear separation: public workflow, private workflow, combined workflow, spatial utilities
+       - Comprehensive docstrings with usage examples
+
+  - **Architecture**:
+    ```
+    NodeTableBuilder
+    ├── Public Workflow
+    │   └── build_public_node_table()
+    │       ├── Load coordinates (Module 2)
+    │       ├── Load enrollment (Module 1)
+    │       ├── Load facilities (Module 10)
+    │       ├── Load seats (Module 4)
+    │       ├── Create geometry
+    │       ├── Assign admin boundaries (Module 7)
+    │       └── Validate
+    ├── Private Workflow
+    │   └── build_private_node_table()
+    │       ├── Load coordinates (Module 3)
+    │       ├── Load GASTPE (Module 6)
+    │       ├── Load furniture (Module 5)
+    │       ├── Load enrollment (Module 1)
+    │       ├── Create geometry
+    │       ├── Assign admin boundaries (Module 7)
+    │       └── Validate
+    ├── Combined Workflow
+    │   └── build_combined_node_table()
+    │       └── Merge public + private with 'sector' column
+    └── Export Methods
+        ├── export_geopackage()
+        ├── export_csv()
+        ├── export_parquet()
+        └── export_quality_report()
+    ```
+
+  - **Integration for Graph Generation (Notebook 1.0)**:
+    - **Problem Solved**: Original notebook 0.6 created DataFrames without geometry or admin boundaries
+    - **Solution**: Module 11 creates graph-ready GeoDataFrames with all spatial attributes in place
+    - **Benefits**:
+      - No spatial joins needed in notebook 1.0 (already done)
+      - Direct provincial filtering via `adm2_pcode` (matches Module 9 road network filenames)
+      - Node attributes ready for graph algorithms (enrollment, capacity, utilization)
+      - Clean separation: data preparation (Module 11) vs graph analysis (Notebook 1.0)
+
+  - **Usage Example** (from Notebook 0.7):
+    ```python
+    from modules.node_table_builder import NodeTableBuilder
+
+    builder = NodeTableBuilder(
+        verbose=True,
+        psgc_geodata_path='output/consolidated_geodata_matched.gpkg',
+        validation_level='complete'
+    )
+
+    # Build all node tables
+    public_gdf = builder.build_public_node_table()
+    private_gdf = builder.build_private_node_table()
+    all_schools_gdf = builder.build_combined_node_table()
+
+    # Export for graph generation
+    builder.export_geopackage('output/all_nodes_valid.gpkg', sector='both', valid_only=True)
+
+    # Example: Filter to Bulacan province for provincial graph
+    bulacan_schools = all_schools_gdf[all_schools_gdf['adm2_pcode'] == 'PH03014']
+    # Load corresponding road network: PH03014_bulacan.geojsonl
+    ```
+
+- **Notebook 0.7: Node Tables - Refined Module Approach** (`notebooks/0.7-node-tables-refined.ipynb`)
+  - **Purpose**: Demonstrate comprehensive usage of NodeTableBuilder module
+  - **Structure**:
+    - Section 1: Build node tables (public, private, combined)
+    - Section 2: Data quality review (summaries, validation reports, visualizations)
+    - Section 3: Export to multiple formats
+    - Section 4: Provincial filtering example (Bulacan)
+  - **Visualizations**:
+    - Validation levels breakdown (bar charts)
+    - Data completeness by source (horizontal bar charts)
+    - Spatial coverage maps (coordinate distribution)
+    - Capacity utilization histograms
+  - **Outputs Generated**:
+    - `output/public_nodes.gpkg` - Public school nodes
+    - `output/private_nodes.gpkg` - Private school nodes
+    - `output/all_nodes.gpkg` - Combined nodes (all schools)
+    - `output/all_nodes_valid.gpkg` - Valid schools only (for graph generation)
+    - `output/data_quality_report.csv` - Quality metrics
+  - **Replaces**: Notebook 0.6 (old cell-based approach)
+  - **Next Step**: Notebook 1.0 will import `all_nodes_valid.gpkg` for graph generation
+
+- **Key Design Decisions**:
+  1. **GeoDataFrame over DataFrame**: Enables spatial operations in downstream notebooks
+  2. **PSGC Integration**: Spatial join adds admin boundaries for provincial graph filtering
+  3. **adm2_pcode Column**: Direct matching with Module 9 road network filenames
+  4. **Tiered Validation**: Flexible quality standards (required/core/complete)
+  5. **Computed Totals**: Enrollment and capacity aggregates ready for graph node weights
+  6. **Multiple Export Formats**: GeoPackage (primary), CSV, Parquet for different use cases
+  7. **Notebook 0.7 over 0.6.1**: Clearer sequence (0.7 follows 0.6 naturally)
+
+- **Benefits of Refactoring**:
+  - ✅ **Reusability**: Single module usable across multiple notebooks/scripts
+  - ✅ **Maintainability**: Centralized node table logic (1 file vs 100+ cells)
+  - ✅ **Testability**: Methods can be unit tested
+  - ✅ **Reproducibility**: Consistent results across runs
+  - ✅ **Graph-Ready**: All spatial attributes computed upfront
+  - ✅ **Provincial Analysis**: Direct filtering via `adm2_pcode`
+  - ✅ **Quality Assurance**: Enhanced validation and reporting
+  - ✅ **Performance**: Caching reduces redundant preprocessing
+
+- **Files Created**:
+  - `modules/node_table_builder.py` (~950 lines)
+  - `notebooks/0.7-node-tables-refined.ipynb` (comprehensive usage examples)
+  - Updated `CLAUDE.md` (Module 11 documentation + session history)
+
+- **Module Size**: ~950 lines
+  - 350 lines: Public workflow
+  - 250 lines: Private workflow
+  - 100 lines: Combined workflow + spatial utilities
+  - 150 lines: Validation logic
+  - 100 lines: Reporting methods
+  - 100 lines: Export methods
+
+### 2025-11-13
+
+**Session Summary**: Created Module 12 (ProvincialNetworkBuilder) - ARM-compatible NetworkX-based provincial graph network builder with regional merging design
+
+- **Module 12: Provincial Network Builder** (`modules/provincial_network_builder.py`)
+  - **Objective**: Build road network graphs and distance matrices for single province using ARM-compatible libraries
+  - **Context**: User has Microsoft Surface Pro 11 with ARM architecture - igraph not reliably available
+
+  - **Architecture Redesign for ARM Compatibility**:
+    - **Replaced igraph → NetworkX**: Pure Python graph library (no C dependencies)
+    - **Replaced rtree → scipy.spatial.cKDTree**: NumPy/SciPy spatial indexing (ARM-compatible)
+    - **Kept multiprocessing**: Standard library, works on all architectures
+    - **Performance tradeoff**: NetworkX 2-5x slower than igraph, but acceptable for provincial scope
+
+  - **Key Features**:
+    1. **Dual Graph Architecture**:
+       - Distance Graph: Nodes = schools, Edges = road distances (meters)
+       - Beneficiary Graph: Nodes = schools, Edges = student flow counts (from ESC data)
+       - Both graphs share same vertices for interchangeable analysis
+
+    2. **Dual CRS Strategy** (from reference implementation):
+       - EPSG:3123 (PRS92 Philippines projected) for accurate distance calculations
+       - EPSG:4326 (WGS84) for visualization and storage
+
+    3. **Provincial Scope**:
+       - Single province at a time (manageable computation)
+       - Filters schools by `adm2_pcode` (e.g., 'PH03014' = Bulacan)
+       - Includes cross-provincial flows (external origins/destinations)
+
+    4. **Regional Merging Design** (built-in from start):
+       - Node coordinates stored with 5 decimal precision (~1 meter accuracy)
+       - Province code tagged on all nodes/edges for tracking origin
+       - Boundary nodes identified (within 100m of province boundary)
+       - GraphML export preserves all attributes for merging
+       - Coordinate-based node deduplication strategy for Module 13
+
+  - **Workflow Steps**:
+    1. Load provincial road network from GeoJSONL (Module 9 output)
+    2. Convert GeoJSONL → NetworkX graph (custom function)
+    3. Project to EPSG:3123 for distance calculations
+    4. Snap schools to nearest road nodes using KDTree
+    5. Build KDTree spatial index for fast proximity queries
+    6. Compute distance matrix (parallel processing with multiprocessing)
+    7. Build distance and beneficiary NetworkX graphs
+    8. Identify boundary nodes for regional merging
+
+  - **Road Network Conversion** (`_geojsonl_to_networkx()`):
+    - Reads GeoJSONL LineString features
+    - Creates nodes for each coordinate (rounded to 5 decimals)
+    - Creates edges between consecutive coordinates
+    - Stores highway type, name, OSM ID as edge attributes
+    - Tags all nodes/edges with province code
+
+  - **School Snapping** (`_snap_schools_to_network()`):
+    - Uses scipy.spatial.cKDTree for fast nearest neighbor search
+    - Projects schools to EPSG:3123 for accurate distance measurement
+    - Maps school_id → network_node (coordinate tuple)
+    - Attaches school metadata to network nodes
+    - Warns if snap distance >500m
+
+  - **Distance Computation** (`_compute_distance_matrix()`):
+    - Worker function for multiprocessing: `_compute_distances_for_school()`
+    - For each origin school:
+      - Find nearby schools within buffer radius (KDTree query_ball_point)
+      - Run NetworkX single_source_dijkstra_path_length()
+      - Map network nodes back to school IDs
+    - Consolidates results into pandas DataFrame (sparse matrix)
+    - Parameters: buffer_distance_m=5000, max_distance_km=15, n_processes=4
+
+  - **Graph Building**:
+    - Distance graph: Edges from distance matrix with distance_m attribute
+    - Beneficiary graph: Edges from validated beneficiary flows with beneficiary_count attribute
+    - Both graphs include node attributes: school_id, sector, coordinates, enrollment, seats, province
+    - External schools (outside province) tagged with sector='external'
+
+  - **Boundary Node Identification** (`_identify_boundary_nodes()`):
+    - Loads province boundary from consolidated geodata
+    - Creates 100m buffer around boundary
+    - Tags nodes within buffer as boundary nodes
+    - Critical for regional merging (cross-provincial road connections)
+
+  - **Export Formats**:
+    - Distance matrix: CSV (sparse, origin × destination)
+    - Distance graph: GraphML (NetworkX native, preserves all attributes)
+    - Beneficiary graph: GraphML
+    - Summary statistics: JSON
+    - `export_all()` method exports everything to directory
+
+  - **Design Decisions for Regional Merging**:
+    - **Coordinate precision**: 5 decimal places (~1m) for node deduplication
+    - **Node ID strategy**: Use (x_round, y_round) tuples as node IDs
+    - **Province tagging**: All nodes/edges tagged with province code
+    - **Boundary identification**: Enables cross-provincial edge detection
+    - **GraphML format**: Preserves all node/edge attributes for merging
+
+  - **Regional Merging Strategy (documented for Module 13)**:
+    ```python
+    # Pseudocode for Module 13: RegionalNetworkBuilder
+
+    # 1. Node deduplication
+    merged_G = nx.MultiDiGraph()
+    node_mapping = {}  # Maps (x, y) → canonical_node_id
+
+    for province_code, G_province in provincial_graphs.items():
+        for node, data in G_province.nodes(data=True):
+            coord_key = (round(data['x'], 5), round(data['y'], 5))
+            if coord_key not in node_mapping:
+                merged_G.add_node(node, **data)  # New node
+                node_mapping[coord_key] = node
+            else:
+                canonical_node = node_mapping[coord_key]  # Duplicate at boundary
+                # Merge school metadata if needed
+
+    # 2. Edge addition with canonical nodes
+    for u, v, data in G_province.edges(data=True):
+        u_canonical = node_mapping[(round(u[0], 5), round(u[1], 5))]
+        v_canonical = node_mapping[(round(v[0], 5), round(v[1], 5))]
+        merged_G.add_edge(u_canonical, v_canonical, **data)
+
+    # 3. Cross-provincial distance computation
+    # Fill NaN values in merged distance matrix using merged road network
+    ```
+
+  - **Performance Expectations**:
+    - Provincial scale (500-1000 schools): ~30 seconds - 2 minutes for distance computation
+    - NetworkX slower than igraph (2-5x) but acceptable for provincial scope
+    - Memory efficient with streaming spatial queries
+    - Parallelization speeds up computation (4-8 processes recommended)
+
+- **Notebook 0.9: Provincial Network Builder** (`notebooks/0.9-provincial-network-builder.ipynb`)
+  - **Purpose**: Demonstrate comprehensive usage of ProvincialNetworkBuilder module
+  - **Example Province**: Bulacan (PH03014)
+
+  - **Structure**:
+    - Section 0: Setup and imports
+    - Section 1: Load data (public nodes, private nodes, beneficiary edges)
+    - Section 2: Select province and filter data
+    - Section 3: Initialize network builder
+    - Section 4: Build complete network (6-step workflow)
+    - Section 5: Analyze results (distance matrix, graph statistics)
+    - Section 6: Visualizations (distance distribution, school locations, beneficiary flows)
+    - Section 7: Export results (GraphML, CSV, JSON)
+    - Section 8: Graph analysis examples (shortest paths, centrality, top flows)
+
+  - **Visualizations**:
+    - Distance distribution histogram + box plot
+    - School locations map (public vs private)
+    - Beneficiary flow distribution (linear + log scale)
+    - Network statistics summary
+
+  - **Analysis Examples**:
+    - Shortest path between schools with distance
+    - Degree centrality in beneficiary graph (in-degree/out-degree)
+    - Top 5 destination schools (by incoming beneficiary count)
+    - Top 5 origin schools (by outgoing beneficiary count)
+    - Total beneficiaries by school (sent vs received)
+
+  - **Outputs Generated**:
+    - `output/provincial_networks/PH03014_bulacan_distance_matrix.csv`
+    - `output/provincial_networks/PH03014_bulacan_distance_graph.graphml`
+    - `output/provincial_networks/PH03014_bulacan_beneficiary_graph.graphml`
+    - `output/provincial_networks/PH03014_bulacan_summary.json`
+
+- **Key Design Patterns**:
+  1. **ARM Compatibility First**: Chose libraries based on ARM support (NetworkX, scipy)
+  2. **Regional Merging Built-In**: Coordinate precision, province tagging, boundary nodes from start
+  3. **Separation of Concerns**: Provincial builder (Module 12) vs Regional merger (Module 13, future)
+  4. **Reusable Components**: KDTree spatial indexing, NetworkX conversion, parallel workers
+  5. **Export Flexibility**: Multiple formats (GraphML for graphs, CSV for matrices, JSON for metadata)
+
+- **Integration Points**:
+  - **Input**: Module 11 (node tables), BeneficiaryProcessor (validated edges), Module 9 (road networks)
+  - **Output**: GraphML graphs ready for regional merging (Module 13)
+  - **Output**: Distance matrices ready for discrete choice modeling
+  - **Next Module**: Module 13 (RegionalNetworkBuilder) will merge provincial networks
+
+- **Files Created**:
+  - `modules/provincial_network_builder.py` (~800 lines)
+  - `notebooks/0.9-provincial-network-builder.ipynb` (comprehensive usage demonstration)
+  - Updated `CLAUDE.md` (Module 12 documentation + session history)
+
+- **Module Size**: ~800 lines
+  - 150 lines: Initialization and setup
+  - 200 lines: Road network loading and conversion
+  - 100 lines: School snapping and spatial indexing
+  - 150 lines: Distance computation (parallel)
+  - 100 lines: Graph building
+  - 50 lines: Boundary node identification
+  - 50 lines: Export methods
 
 ## Architecture
 - **Pattern**: All processors follow consistent architecture (load→process→validate→export)
