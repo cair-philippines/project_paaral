@@ -1819,6 +1819,128 @@
   2. **Chunked Processing**: Process provinces in batches for regional scale
   3. **GPU Acceleration**: cuGraph (NVIDIA RAPIDS) for 100x+ speedup on massive graphs
 
+### 2025-11-17
+
+**Session Summary**: Planned aggregation approach for unified Grade 7 dataset to prepare for graph creation
+
+- **Unified Grade 7 Dataset Aggregation Requirement**
+  - **Context**: Module `unified_gr7_flow_builder.py` creates student-level (one row per LRN) flow data
+  - **Need**: Aggregate by origin-destination school pairs for graph network creation
+  - **Comparison**: Original beneficiary-exclusive dataset aggregates by school year (creates columns `beneficiaries_sy_2021`, `beneficiaries_sy_2022`, etc.)
+  - **Key Difference**: Unified dataset uses single school year but has TWO student types (beneficiaries + non-beneficiaries)
+
+- **Aggregation Approach Design**
+  - **Grouping dimension**: `(school_id_origin, school_id_destination)` pairs
+  - **Parsing dimension**: Flow type (beneficiary vs non-beneficiary) instead of school year
+  - **Method**: Similar to BeneficiaryProcessor's `_pivot_by_school_year()` but pivoting on `is_beneficiary` status
+  - **Rationale**: Single school year means no need for multiple year columns; instead parse by student beneficiary status
+
+- **Proposed Aggregated Column Structure** (13 columns total):
+
+  1. **School Pair Identifiers** (2 columns):
+     - `school_id_origin` (string) - Origin school
+     - `school_id_destination` (string) - Destination school
+
+  2. **Student Counts by Flow Type** (2 columns):
+     - `beneficiary_count` (int) - Count of ESC beneficiary students in this flow
+     - `non_beneficiary_count` (int) - Count of non-beneficiary students in this flow
+
+  3. **Total Count** (1 column):
+     - `total_student_count` (int) - Sum of beneficiary + non-beneficiary
+
+  4. **School Year** (1 column):
+     - `sy_grade6` (string) - Year value (e.g., "2023") - single year since unified dataset uses one year
+
+  5. **School Attributes - Origin** (3 columns):
+     - `sector_origin` (string) - "Public" or "Private"
+     - `latitude_origin` (float)
+     - `longitude_origin` (float)
+
+  6. **School Attributes - Destination** (3 columns):
+     - `sector_destination` (string) - "Public" or "Private"
+     - `latitude_destination` (float)
+     - `longitude_destination` (float)
+
+  7. **Distance Metrics** (1 column):
+     - `distance_straightline_km` (float) - Average or most common distance for this pair
+
+- **Sample Aggregated Data Structure**:
+  ```
+  school_id_origin | school_id_destination | beneficiary_count | non_beneficiary_count | total_student_count | sy_grade6 | sector_origin | sector_destination | distance_straightline_km
+  -----------------|----------------------|-------------------|----------------------|---------------------|-----------|---------------|--------------------|-----------------------
+  100001           | 200001               | 15                | 0                    | 15                  | 2023      | Public        | Private            | 3.2
+  100001           | 200002               | 0                 | 45                   | 45                  | 2023      | Public        | Public             | 1.5
+  100002           | 200001               | 8                 | 0                    | 8                   | 2023      | Public        | Private            | 5.7
+  100002           | 200003               | 3                 | 12                   | 15                  | 2023      | Public        | Public             | 2.1
+  ```
+
+- **Key Differences: Unified vs Original Beneficiary Dataset**:
+
+  | Aspect | Original Beneficiary Dataset | Unified Grade 7 Dataset |
+  |--------|------------------------------|------------------------|
+  | **Parsing dimension** | School year (2021, 2022, 2023, ...) | Flow type (beneficiary vs non-beneficiary) |
+  | **Count columns** | `beneficiaries_sy_2021`, `beneficiaries_sy_2022`, `beneficiaries_sy_2023`, ... | `beneficiary_count`, `non_beneficiary_count` |
+  | **Total column** | `total_beneficiaries` | `total_student_count` |
+  | **Year representation** | Multiple year columns (wide format) | Single `sy_grade6` column (dataset uses one year) |
+  | **Student types** | Beneficiaries only | Both beneficiaries AND non-beneficiaries |
+  | **Use case** | Multi-year trend analysis | Comprehensive single-year flow analysis (all Grade 7 students) |
+
+- **Implementation Plan** (3 steps):
+
+  1. **Aggregation by school pair + beneficiary status**:
+     ```python
+     grouped = unified_data.groupby([
+         'school_id_origin',
+         'school_id_destination',
+         'is_beneficiary'
+     ]).agg({
+         'lrn': 'count',  # Count students
+         'sector_origin': 'first',
+         'sector_destination': 'first',
+         'latitude_origin': 'first',
+         'longitude_origin': 'first',
+         'latitude_destination': 'first',
+         'longitude_destination': 'first',
+         'distance_straightline_km': 'mean',
+         'sy_grade6': 'first'
+     }).reset_index()
+     ```
+
+  2. **Pivot on is_beneficiary to create separate count columns**:
+     ```python
+     pivoted = grouped.pivot_table(
+         index=['school_id_origin', 'school_id_destination'],
+         columns='is_beneficiary',
+         values='lrn',  # Student counts
+         fill_value=0,
+         aggfunc='sum'
+     )
+     # Result: beneficiary_count (True), non_beneficiary_count (False)
+     ```
+
+  3. **Calculate totals and merge attributes**:
+     ```python
+     pivoted['total_student_count'] = (
+         pivoted['beneficiary_count'] +
+         pivoted['non_beneficiary_count']
+     )
+     # Merge back school attributes and distance
+     ```
+
+- **Integration with Graph Generation**:
+  - Output format compatible with ProvincialNetworkBuilder (Module 12.1)
+  - Each row becomes an edge in beneficiary graph
+  - `beneficiary_count` becomes edge weight for beneficiary flows
+  - `non_beneficiary_count` provides context for total flow analysis
+  - `total_student_count` enables comprehensive network analysis (all Grade 7 transitions)
+
+- **Next Steps**:
+  - [ ] Implement aggregation method in `unified_gr7_flow_builder.py`
+  - [ ] Add export method for aggregated dataset
+  - [ ] Test with sample province data
+  - [ ] Update test scripts to verify aggregated structure
+  - [ ] Document usage in module docstring
+
 ## Architecture
 - **Pattern**: All processors follow consistent architecture (load→process→validate→export)
 - **Logging**: `verbose=True` (INFO level) or `verbose=False` (WARNING only)
