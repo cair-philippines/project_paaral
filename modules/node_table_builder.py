@@ -85,7 +85,7 @@ class NodeTableBuilder:
     """
 
     def __init__(self, verbose=True, config_path=None, validation_level='complete',
-                 psgc_geodata_path=None):
+                 psgc_geodata_path=None, beneficiary_edges_path=None):
         """
         Initialize NodeTableBuilder.
 
@@ -94,6 +94,7 @@ class NodeTableBuilder:
             config_path (str): Path to config file (optional, uses default if None)
             validation_level (str): Validation tier - 'required', 'core', or 'complete'
             psgc_geodata_path (str): Path to PSGC geodata GeoPackage
+            beneficiary_edges_path (str): Path to beneficiary edges CSV (optional)
         """
         # Configure logging
         self.verbose = verbose
@@ -112,9 +113,13 @@ class NodeTableBuilder:
         # Paths
         self.config_path = config_path
         self.psgc_geodata_path = psgc_geodata_path or 'output/consolidated_geodata_matched.gpkg'
+        self.beneficiary_edges_path = beneficiary_edges_path
         # Make psgc_geodata_path absolute relative to project root
         if not Path(self.psgc_geodata_path).is_absolute():
             self.psgc_geodata_path = str(self.project_root / self.psgc_geodata_path)
+        # Make beneficiary_edges_path absolute if provided
+        if self.beneficiary_edges_path and not Path(self.beneficiary_edges_path).is_absolute():
+            self.beneficiary_edges_path = str(self.project_root / self.beneficiary_edges_path)
 
         # Data storage
         self.psgc_geodata = None
@@ -132,6 +137,7 @@ class NodeTableBuilder:
         self._private_furniture = None
         self._gastpe_data = None
         self._private_enrollment = None
+        self._beneficiary_edges = None
 
         logger.info(f"NodeTableBuilder initialized (validation_level={validation_level})")
 
@@ -185,8 +191,9 @@ class NodeTableBuilder:
             4. Load and merge seats data
             5. Create geometry column (if requested)
             6. Assign administrative boundaries (if requested)
-            7. Compute total metrics (if requested)
-            8. Validate with tiered validation
+            7. Add beneficiary aggregates (if beneficiary_edges_path provided)
+            8. Compute total metrics (if requested)
+            9. Validate with tiered validation
 
         Args:
             include_geometry (bool): Convert to GeoDataFrame with Point geometry
@@ -249,20 +256,24 @@ class NodeTableBuilder:
 
         # 6. Assign administrative boundaries
         if assign_boundaries and include_geometry:
-            logger.info("Step 6/7: Assigning administrative boundaries...")
+            logger.info("Step 6/8: Assigning administrative boundaries...")
             base_df = self._assign_admin_boundaries(base_df)
         else:
             if not include_geometry:
-                logger.info("Step 6/7: Skipping boundary assignment (requires geometry)")
+                logger.info("Step 6/8: Skipping boundary assignment (requires geometry)")
             else:
-                logger.info("Step 6/7: Skipping boundary assignment (assign_boundaries=False)")
+                logger.info("Step 6/8: Skipping boundary assignment (assign_boundaries=False)")
+
+        # 6.5. Add beneficiary aggregates
+        logger.info("Step 7/8: Adding beneficiary aggregates...")
+        base_df = self._add_beneficiary_aggregates(base_df)
 
         # 7. Compute totals
         if compute_totals:
-            logger.info("Step 7/7: Computing total metrics...")
+            logger.info("Step 8/8: Computing total metrics...")
             base_df = self._compute_totals(base_df, sector='public')
         else:
-            logger.info("Step 7/7: Skipping total computation (compute_totals=False)")
+            logger.info("Step 8/8: Skipping total computation (compute_totals=False)")
 
         # 8. Validate
         logger.info("Validating public node table...")
@@ -288,7 +299,7 @@ class NodeTableBuilder:
         coords_df = processor.process()
 
         # Keep only necessary columns
-        keep_cols = ['school_id_processed', 'latitude', 'longitude', 'coord_valid']
+        keep_cols = ['school_id_processed', 'school_name', 'latitude', 'longitude', 'coord_valid']
         coords_df = (
             coords_df[keep_cols]
             .rename(
@@ -438,6 +449,71 @@ class NodeTableBuilder:
 
         return df
 
+    def _parse_curricular_offerings(self, df):
+        """
+        Parse modified_coc column into boolean offering flags.
+
+        Transforms string categories (from Module 3) into three boolean columns:
+        - offers_es: Offers Elementary School (includes Kindergarten)
+        - offers_jhs: Offers Junior High School
+        - offers_shs: Offers Senior High School
+
+        Args:
+            df (DataFrame): DataFrame with 'modified_coc' column
+
+        Returns:
+            DataFrame: DataFrame with added offers_es, offers_jhs, offers_shs columns
+        """
+        df = df.copy()
+
+        logger.info(f"  Parsing curricular offerings from modified_coc...")
+
+        # Initialize all to False
+        df['offers_es'] = False
+        df['offers_jhs'] = False
+        df['offers_shs'] = False
+
+        # Handle missing values
+        if 'modified_coc' not in df.columns:
+            logger.warning("    modified_coc column not found - all offering flags set to False")
+            return df
+
+        valid_coc = df['modified_coc'].notna()
+
+        # Mapping based on Module 3 standardized categories
+        # 'Purely ES' - Elementary only
+        es_only = df['modified_coc'] == 'Purely ES'
+        df.loc[es_only, 'offers_es'] = True
+
+        # 'Purely JHS' - Junior High only
+        jhs_only = df['modified_coc'] == 'Purely JHS'
+        df.loc[jhs_only, 'offers_jhs'] = True
+
+        # 'Purely SHS' - Senior High only
+        shs_only = df['modified_coc'] == 'Purely SHS'
+        df.loc[shs_only, 'offers_shs'] = True
+
+        # 'ES and JHS' - Elementary and Junior High
+        es_jhs = df['modified_coc'] == 'ES and JHS'
+        df.loc[es_jhs, ['offers_es', 'offers_jhs']] = True
+
+        # 'JHS with SHS' - Junior High and Senior High
+        jhs_shs = df['modified_coc'] == 'JHS with SHS'
+        df.loc[jhs_shs, ['offers_jhs', 'offers_shs']] = True
+
+        # 'All Offering' - Complete K-12
+        all_offering = df['modified_coc'] == 'All Offering'
+        df.loc[all_offering, ['offers_es', 'offers_jhs', 'offers_shs']] = True
+
+        # Log statistics
+        total_parsed = es_only.sum() + jhs_only.sum() + shs_only.sum() + es_jhs.sum() + jhs_shs.sum() + all_offering.sum()
+        logger.info(f"    Parsed {total_parsed:,}/{valid_coc.sum():,} schools with curricular offering data")
+        logger.info(f"    Offers ES: {df['offers_es'].sum():,}")
+        logger.info(f"    Offers JHS: {df['offers_jhs'].sum():,}")
+        logger.info(f"    Offers SHS: {df['offers_shs'].sum():,}")
+
+        return df
+
     # ==================== PRIVATE WORKFLOW ====================
 
     def build_private_node_table(self, include_geometry=True, assign_boundaries=True,
@@ -452,8 +528,9 @@ class NodeTableBuilder:
             4. Load and merge enrollment data
             5. Create geometry column (if requested)
             6. Assign administrative boundaries (if requested)
-            7. Compute total metrics (if requested)
-            8. Validate with tiered validation
+            7. Add beneficiary aggregates (if beneficiary_edges_path provided)
+            8. Compute total metrics (if requested)
+            9. Validate with tiered validation
 
         Args:
             include_geometry (bool): Convert to GeoDataFrame with Point geometry
@@ -472,6 +549,10 @@ class NodeTableBuilder:
         coords_df = self._load_private_coordinates()
         base_df = coords_df.copy()
         logger.info(f"  Loaded {len(base_df):,} private schools")
+
+        # 1.1. Parse curricular offerings into offers_es/jhs/shs flags
+        logger.info("  Parsing curricular offerings...")
+        base_df = self._parse_curricular_offerings(base_df)
 
         # 2. Load and merge GASTPE data
         logger.info("Step 2/7: Loading and merging GASTPE data...")
@@ -512,20 +593,24 @@ class NodeTableBuilder:
 
         # 6. Assign administrative boundaries
         if assign_boundaries and include_geometry:
-            logger.info("Step 6/7: Assigning administrative boundaries...")
+            logger.info("Step 6/8: Assigning administrative boundaries...")
             base_df = self._assign_admin_boundaries(base_df)
         else:
             if not include_geometry:
-                logger.info("Step 6/7: Skipping boundary assignment (requires geometry)")
+                logger.info("Step 6/8: Skipping boundary assignment (requires geometry)")
             else:
-                logger.info("Step 6/7: Skipping boundary assignment (assign_boundaries=False)")
+                logger.info("Step 6/8: Skipping boundary assignment (assign_boundaries=False)")
+
+        # 6.5. Add beneficiary aggregates
+        logger.info("Step 7/8: Adding beneficiary aggregates...")
+        base_df = self._add_beneficiary_aggregates(base_df)
 
         # 7. Compute totals
         if compute_totals:
-            logger.info("Step 7/7: Computing total metrics...")
+            logger.info("Step 8/8: Computing total metrics...")
             base_df = self._compute_totals(base_df, sector='private')
         else:
-            logger.info("Step 7/7: Skipping total computation (compute_totals=False)")
+            logger.info("Step 8/8: Skipping total computation (compute_totals=False)")
 
         # 8. Validate
         logger.info("Validating private node table...")
@@ -930,6 +1015,80 @@ class NodeTableBuilder:
             logger.info(f"  Skipped {invalid_coords:,} schools with invalid coordinates")
 
         return gdf
+
+    def _add_beneficiary_aggregates(self, gdf):
+        """
+        Add beneficiary flow aggregates to node table.
+
+        Creates columns for beneficiaries sent (origin) and received (destination)
+        by school year, plus totals.
+
+        Args:
+            gdf (GeoDataFrame): Schools with school_id column
+
+        Returns:
+            GeoDataFrame: Schools with beneficiary aggregate columns
+        """
+        if self.beneficiary_edges_path is None:
+            logger.info("  No beneficiary edges path provided - skipping beneficiary aggregates")
+            return gdf
+
+        # Load beneficiary edges if not cached
+        if self._beneficiary_edges is None:
+            logger.info(f"  Loading beneficiary edges from {Path(self.beneficiary_edges_path).name}...")
+            if not Path(self.beneficiary_edges_path).exists():
+                logger.warning(f"  Beneficiary edges file not found: {self.beneficiary_edges_path}")
+                logger.warning("  Skipping beneficiary aggregates")
+                return gdf
+
+            self._beneficiary_edges = pd.read_csv(self.beneficiary_edges_path)
+            logger.info(f"    Loaded {len(self._beneficiary_edges):,} edges")
+
+        edges = self._beneficiary_edges
+        schools = gdf.copy()
+
+        # Ensure school_id is string for matching
+        schools['school_id'] = schools['school_id'].astype(str)
+        edges['school_id_origin'] = edges['school_id_origin'].astype(str)
+        edges['school_id_destination'] = edges['school_id_destination'].astype(str)
+
+        # Identify year columns
+        year_cols = [c for c in edges.columns if c.startswith('beneficiaries_sy_')]
+        logger.info(f"  Processing beneficiary aggregates ({len(year_cols)} school years)")
+
+        # Aggregate beneficiaries SENT (origin)
+        sent_agg = edges.groupby('school_id_origin')[year_cols + ['total_beneficiaries']].sum().reset_index()
+        sent_agg = sent_agg.rename(columns={
+            'school_id_origin': 'school_id',
+            **{col: col.replace('beneficiaries_', 'beneficiaries_sent_') for col in year_cols},
+            'total_beneficiaries': 'total_beneficiaries_sent'
+        })
+
+        # Aggregate beneficiaries RECEIVED (destination)
+        recv_agg = edges.groupby('school_id_destination')[year_cols + ['total_beneficiaries']].sum().reset_index()
+        recv_agg = recv_agg.rename(columns={
+            'school_id_destination': 'school_id',
+            **{col: col.replace('beneficiaries_', 'beneficiaries_received_') for col in year_cols},
+            'total_beneficiaries': 'total_beneficiaries_received'
+        })
+
+        # Merge sent aggregates
+        schools = schools.merge(sent_agg, on='school_id', how='left')
+        sent_matches = schools['total_beneficiaries_sent'].notna().sum()
+        logger.info(f"    Matched {sent_matches:,} schools with beneficiaries SENT")
+
+        # Merge received aggregates
+        schools = schools.merge(recv_agg, on='school_id', how='left')
+        recv_matches = schools['total_beneficiaries_received'].notna().sum()
+        logger.info(f"    Matched {recv_matches:,} schools with beneficiaries RECEIVED")
+
+        # Fill NaN with 0 for schools with no beneficiary flows
+        sent_cols = [c for c in schools.columns if 'beneficiaries_sent_' in c]
+        recv_cols = [c for c in schools.columns if 'beneficiaries_received_' in c]
+        schools[sent_cols] = schools[sent_cols].fillna(0)
+        schools[recv_cols] = schools[recv_cols].fillna(0)
+
+        return schools
 
     def _assign_admin_boundaries(self, gdf):
         """

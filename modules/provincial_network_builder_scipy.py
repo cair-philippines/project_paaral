@@ -15,6 +15,16 @@ Performance:
 - Handles 1000+ schools efficiently (seconds vs minutes)
 - Lower memory footprint with sparse matrix representation
 
+Node Attributes (Added 2025-11-17):
+- Graphs use standardized node attributes defined in module-level constants
+- PUBLIC_NODE_ATTRIBUTES: 25 attributes (ID, location, offerings, enrollment,
+  classrooms, seats)
+- PRIVATE_NODE_ATTRIBUTES: 28 attributes (ID, location, offerings, enrollment,
+  ESC/SHSVP fees, seats)
+- Strict validation: Raises error if required columns missing from node tables
+- Attributes organized in logical order: Identification → Location → Offerings →
+  Enrollment → Infrastructure/Financial → Capacity
+
 Usage:
     from modules.provincial_network_builder_scipy import ProvincialNetworkBuilderSciPy
 
@@ -39,8 +49,12 @@ Usage:
     distance_graph = results['distance_graph']
     beneficiary_graph = results['beneficiary_graph']
 
+    # Node attributes in graphs match specified lists
+    node_data = distance_graph.nodes['100001']  # All 25/28 attributes present
+
 Author: Claude Code
 Date: 2025-11-13 (scipy optimization)
+Updated: 2025-11-17 (node attribute specification)
 """
 
 import os
@@ -59,6 +73,84 @@ from scipy.sparse.csgraph import dijkstra
 # Set up logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
+
+
+# ==================== NODE ATTRIBUTE SPECIFICATIONS ====================
+
+# Public school node attributes in logical order:
+# 1. Identification, 2. Location, 3. Offerings, 4. Enrollment, 5. Infrastructure, 6. Capacity
+PUBLIC_NODE_ATTRIBUTES = [
+    # Identification
+    'school_id',
+    'school_name',
+    # Location
+    'latitude',
+    'longitude',
+    'region',
+    'province',
+    'municipality',
+    'adm1_pcode',
+    'adm2_pcode',
+    'adm3_psgc',
+    # Offerings
+    'offers_es',
+    'offers_jhs',
+    'offers_shs',
+    # Enrollment
+    'enrollment_es',
+    'enrollment_jhs',
+    'enrollment_shs',
+    # Infrastructure (classrooms)
+    'es_classrooms_instructional',
+    'es_classrooms_non_instructional',
+    'jhs_classrooms_instructional',
+    'jhs_classrooms_non_instructional',
+    'shs_classrooms_instructional',
+    'shs_classrooms_non_instructional',
+    # Capacity (seats)
+    'seats_es',
+    'seats_jhs',
+    'seats_shs'
+]
+
+# Private school node attributes in logical order:
+# 1. Identification, 2. Location, 3. Offerings, 4. Enrollment, 5. Financial, 6. Capacity
+PRIVATE_NODE_ATTRIBUTES = [
+    # Identification
+    'school_id',
+    'school_name',
+    # Location
+    'latitude',
+    'longitude',
+    'region',
+    'province',
+    'municipality',
+    'adm1_pcode',
+    'adm2_pcode',
+    'adm3_psgc',
+    # Offerings
+    'offers_es',
+    'offers_jhs',
+    'offers_shs',
+    # Enrollment
+    'enrollment_es',
+    'enrollment_jhs',
+    'enrollment_shs',
+    # Financial - ESC Program
+    'esc_delivering',
+    'esc_average_tuition_fees',
+    'esc_average_misc_fees',
+    'esc_average_other_fees',
+    # Financial - SHSVP Program
+    'shsvp_delivering',
+    'shsvp_average_tuition_fees',
+    'shsvp_average_misc_fees',
+    'shsvp_average_other_fees',
+    # Capacity (seats)
+    'seats_es',
+    'seats_jhs',
+    'seats_shs'
+]
 
 
 class ProvincialNetworkBuilderSciPy:
@@ -453,6 +545,56 @@ class ProvincialNetworkBuilderSciPy:
         logger.info(f"  ✓ Distance matrix: {self.distance_matrix.shape[0]:,} × {self.distance_matrix.shape[1]:,}")
         logger.info(f"  ✓ Valid distances: {valid_pairs:,} / {total_pairs:,} ({valid_pairs/total_pairs*100:.1f}%)")
 
+    def _filter_node_attributes(self, school: pd.Series, sector: str) -> Dict[str, Any]:
+        """
+        Filter and validate node attributes according to specified attribute lists.
+
+        Args:
+            school: School row from GeoDataFrame
+            sector: 'public' or 'private'
+
+        Returns:
+            Dictionary of filtered attributes in specified order
+
+        Raises:
+            ValueError: If required columns are missing from node tables
+        """
+        # Select attribute list based on sector
+        if sector == 'public':
+            required_attrs = PUBLIC_NODE_ATTRIBUTES
+        elif sector == 'private':
+            required_attrs = PRIVATE_NODE_ATTRIBUTES
+        else:
+            raise ValueError(f"Unknown sector: {sector}. Expected 'public' or 'private'.")
+
+        # Check for missing columns
+        available_columns = set(school.index)
+        missing_columns = [attr for attr in required_attrs if attr not in available_columns]
+
+        if missing_columns:
+            raise ValueError(
+                f"Missing required node attributes for {sector} schools: {missing_columns}\n"
+                f"Required attributes ({len(required_attrs)}): {required_attrs}\n"
+                f"Available columns ({len(available_columns)}): {sorted(available_columns)}\n"
+                f"Please ensure node tables from Module 11 include all required attributes."
+            )
+
+        # Extract attributes in specified order
+        node_attrs = {}
+        for attr in required_attrs:
+            value = school.get(attr)
+            # Convert to native Python types for NetworkX compatibility
+            if pd.isna(value):
+                node_attrs[attr] = None
+            elif isinstance(value, (np.integer, np.floating)):
+                node_attrs[attr] = value.item()
+            elif isinstance(value, (np.bool_,)):
+                node_attrs[attr] = bool(value)
+            else:
+                node_attrs[attr] = value
+
+        return node_attrs
+
     def _build_graphs(self):
         """Build separate NetworkX graphs for distances and beneficiary flows."""
 
@@ -469,21 +611,24 @@ class ProvincialNetworkBuilderSciPy:
                    f"{self.beneficiary_graph.number_of_edges():,} edges")
 
     def _build_distance_graph(self) -> nx.DiGraph:
-        """Build NetworkX graph from distance matrix."""
+        """
+        Build NetworkX graph from distance matrix.
+
+        Uses filtered node attributes from PUBLIC_NODE_ATTRIBUTES and
+        PRIVATE_NODE_ATTRIBUTES constants defined at module level.
+        """
         G = nx.DiGraph()
 
-        # Add all schools as nodes
+        # Add all schools as nodes with filtered attributes
         for idx, school in self.all_schools.iterrows():
             school_id = school['school_id']
-            G.add_node(school_id,
-                      school_id=school_id,
-                      sector=school.get('sector', 'unknown'),
-                      school_name=school.get('school_name', ''),
-                      x=school.geometry.x,
-                      y=school.geometry.y,
-                      province=self.province_code,
-                      total_enrollment=school.get('total_enrollment', None),
-                      total_seats=school.get('total_seats', None))
+            sector = school.get('sector', 'unknown')
+
+            # Get filtered attributes for this sector
+            node_attrs = self._filter_node_attributes(school, sector)
+
+            # Add node with filtered attributes
+            G.add_node(school_id, **node_attrs)
 
         # Add edges from distance matrix
         if self.distance_matrix is not None:
@@ -498,21 +643,24 @@ class ProvincialNetworkBuilderSciPy:
         return G
 
     def _build_beneficiary_graph(self) -> nx.DiGraph:
-        """Build NetworkX graph from beneficiary flows."""
+        """
+        Build NetworkX graph from beneficiary flows.
+
+        Uses filtered node attributes from PUBLIC_NODE_ATTRIBUTES and
+        PRIVATE_NODE_ATTRIBUTES constants defined at module level.
+        """
         G = nx.DiGraph()
 
-        # Add all schools as nodes (same as distance graph)
+        # Add all schools as nodes with filtered attributes (same as distance graph)
         for idx, school in self.all_schools.iterrows():
             school_id = school['school_id']
-            G.add_node(school_id,
-                      school_id=school_id,
-                      sector=school.get('sector', 'unknown'),
-                      school_name=school.get('school_name', ''),
-                      x=school.geometry.x,
-                      y=school.geometry.y,
-                      province=self.province_code,
-                      total_enrollment=school.get('total_enrollment', None),
-                      total_seats=school.get('total_seats', None))
+            sector = school.get('sector', 'unknown')
+
+            # Get filtered attributes for this sector
+            node_attrs = self._filter_node_attributes(school, sector)
+
+            # Add node with filtered attributes
+            G.add_node(school_id, **node_attrs)
 
         # Filter beneficiary edges to province schools
         province_school_ids = set(self.all_schools['school_id'])
@@ -540,7 +688,7 @@ class ProvincialNetworkBuilderSciPy:
         for idx, edge in province_edges.iterrows():
             origin = edge['school_id_origin']
             dest = edge['school_id_destination']
-            count = edge.get('beneficiary_count', 1)
+            count = edge.get('total_beneficiaries', 1)
 
             if G.has_edge(origin, dest):
                 G[origin][dest]['beneficiary_count'] += count

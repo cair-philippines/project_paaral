@@ -127,6 +127,7 @@ class BeneficiaryProcessor:
         origin_col: str = 'lrn_school_id',
         destination_col: str = 'deped_school_id',
         count_col: str = 'lrn',
+        school_year_col: str = 'school_year',
         additional_cols: Optional[list] = None
     ):
         """
@@ -136,28 +137,40 @@ class BeneficiaryProcessor:
         - Origin schools (lrn_school_id): Where students came FROM (public or private)
         - Destination schools (deped_school_id/school_id_esc): Where students GO TO (ESC recipient private schools)
 
+        Creates separate columns for each school year's beneficiary counts.
+
         Args:
             beneficiary_path (str): Path to beneficiary parquet file
             origin_col (str): Column name for origin school ID (default: 'lrn_school_id')
             destination_col (str): Column name for destination school ID (default: 'deped_school_id')
             count_col (str): Column to count (e.g., 'lrn' for unique learners)
+            school_year_col (str): Column name for school year (default: 'school_year')
             additional_cols (list): Additional columns to include in groupby
         """
         logger.info(f"Loading beneficiary data from {beneficiary_path}...")
 
-        # Load data
-        df = pd.read_parquet(beneficiary_path)
+        # Load data with selected columns only (reduce memory)
+        logger.info("  Loading beneficiary data...")
+        needed_cols = [destination_col, origin_col, count_col, school_year_col]
+        if additional_cols:
+            needed_cols.extend(additional_cols)
+
+        df = pd.read_parquet(beneficiary_path, columns=needed_cols)
         logger.info(f"  Loaded {len(df):,} raw beneficiary records")
 
-        # Define columns for aggregation
-        groupby_cols = [destination_col, origin_col]
+        # Convert IDs to strings early (reduces memory in groupby)
+        df[destination_col] = df[destination_col].astype(str)
+        df[origin_col] = df[origin_col].astype(str)
+
+        # Define columns for aggregation (include school_year)
+        groupby_cols = [destination_col, origin_col, school_year_col]
         if additional_cols:
             groupby_cols.extend(additional_cols)
 
-        # Aggregate by origin-destination pairs
-        logger.info("  Aggregating beneficiary flows...")
+        # Aggregate by origin-destination-year triplets
+        logger.info("  Aggregating beneficiary flows by origin-destination-year...")
         agg = (
-            df.groupby(groupby_cols)
+            df.groupby(groupby_cols, observed=True)  # observed=True for categorical efficiency
             .agg({count_col: 'nunique'})
             .reset_index()
             .rename(columns={
@@ -167,14 +180,71 @@ class BeneficiaryProcessor:
             })
         )
 
-        # Ensure IDs are strings
-        agg['school_id_destination'] = agg['school_id_destination'].astype(str)
-        agg['school_id_origin'] = agg['school_id_origin'].astype(str)
-
-        self.beneficiary_data = agg
-        logger.info(f"  Aggregated to {len(agg):,} unique origin-destination pairs")
+        logger.info(f"  Aggregated to {len(agg):,} unique origin-destination-year triplets")
         logger.info(f"  Unique origins: {agg['school_id_origin'].nunique():,}")
         logger.info(f"  Unique destinations: {agg['school_id_destination'].nunique():,}")
+        logger.info(f"  School years found: {agg[school_year_col].nunique()}")
+
+        # Free memory from original DataFrame before pivot
+        del df
+        import gc
+        gc.collect()
+
+        # Pivot by school year to create separate columns
+        self.beneficiary_data = self._pivot_by_school_year(agg, school_year_col)
+
+        logger.info(f"  Pivoted to {len(self.beneficiary_data):,} unique origin-destination pairs")
+        year_cols = [c for c in self.beneficiary_data.columns if c.startswith('beneficiaries_sy_')]
+        logger.info(f"  Created {len(year_cols)} school year columns: {', '.join(year_cols)}")
+
+    def _pivot_by_school_year(self, df: pd.DataFrame, school_year_col: str) -> pd.DataFrame:
+        """
+        Pivot beneficiary data to create separate columns for each school year.
+
+        Memory-optimized approach using groupby + unstack instead of pivot_table.
+
+        Args:
+            df (DataFrame): Aggregated data with origin-destination-year triplets
+            school_year_col (str): Column name containing school year values
+
+        Returns:
+            DataFrame: Pivoted data with columns for each school year plus total
+        """
+        logger.info("  Pivoting by school year (memory-optimized)...")
+
+        # Create column name mapping for school years
+        # Convert "SY 2022-2023" → "beneficiaries_sy_2022_2023"
+        school_years = df[school_year_col].unique()
+        col_mapping = {}
+        for sy in school_years:
+            clean = str(sy).replace('SY ', '').replace('-', '_').replace(' ', '_')
+            col_mapping[sy] = f'beneficiaries_sy_{clean}'
+
+        logger.info(f"    Found {len(school_years)} school years: {list(school_years)}")
+
+        # Rename school_year values to clean column names in-place
+        df[school_year_col] = df[school_year_col].map(col_mapping)
+
+        # Set multi-index and unstack (more memory efficient than pivot_table)
+        # This approach avoids creating large intermediate DataFrames
+        pivoted = (
+            df
+            .set_index(['school_id_destination', 'school_id_origin', school_year_col])['beneficiary_count']
+            .unstack(fill_value=pd.NA)  # Use pd.NA which becomes NaN for numeric
+            .reset_index()
+        )
+
+        # Get year column names
+        year_cols = [c for c in pivoted.columns if c.startswith('beneficiaries_sy_')]
+
+        # Calculate total_beneficiaries (sum across all year columns, ignoring NaN)
+        pivoted['total_beneficiaries'] = pivoted[year_cols].sum(axis=1)
+
+        logger.info(f"    Created {len(year_cols)} year columns: {', '.join(year_cols)}")
+        logger.info(f"    Pivoted to {len(pivoted):,} origin-destination pairs")
+        logger.info(f"    Total beneficiaries range: {pivoted['total_beneficiaries'].min():.0f} - {pivoted['total_beneficiaries'].max():.0f}")
+
+        return pivoted
 
     def validate_edges(self):
         """
@@ -371,10 +441,10 @@ class BeneficiaryProcessor:
                 'destinations_matched': df[df['destination_in_private_nodes']]['school_id_destination'].nunique()
             },
             'beneficiary_stats': {
-                'total_beneficiaries': df['beneficiary_count'].sum(),
-                'valid_beneficiaries': df[df['both_schools_valid']]['beneficiary_count'].sum(),
-                'mean_per_edge': df['beneficiary_count'].mean(),
-                'median_per_edge': df['beneficiary_count'].median()
+                'total_beneficiaries': df['total_beneficiaries'].sum(),
+                'valid_beneficiaries': df[df['both_schools_valid']]['total_beneficiaries'].sum(),
+                'mean_per_edge': df['total_beneficiaries'].mean(),
+                'median_per_edge': df['total_beneficiaries'].median()
             }
         }
 
@@ -407,11 +477,21 @@ class BeneficiaryProcessor:
             # Keep only essential columns
             export_cols = [
                 'school_id_origin',
-                'school_id_destination',
-                'beneficiary_count'
+                'school_id_destination'
             ]
-            # Add any additional columns from original data
-            other_cols = [c for c in df.columns if c not in export_cols and not c.endswith('_nodes') and c != 'origin_valid' and c != 'both_schools_valid']
+            # Add all year-specific beneficiary columns
+            year_cols = [c for c in df.columns if c.startswith('beneficiaries_sy_')]
+            export_cols.extend(sorted(year_cols))  # Sort for consistent ordering
+
+            # Add total_beneficiaries
+            if 'total_beneficiaries' in df.columns:
+                export_cols.append('total_beneficiaries')
+
+            # Add any additional columns from original data (excluding validation flags)
+            other_cols = [c for c in df.columns
+                         if c not in export_cols
+                         and not c.endswith('_nodes')
+                         and c not in ['origin_valid', 'both_schools_valid']]
             export_cols.extend(other_cols)
             export_df = df[export_cols]
 
