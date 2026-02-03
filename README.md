@@ -1,4 +1,4 @@
-# Project Paaral
+# Project PAARAL
 
 School congestion — where enrollment exceeds physical capacity — is a persistent challenge in low- and middle-income countries that deepens educational inequity. This project introduces a data-driven framework for modeling student flow patterns and simulating policy scenarios under the Philippine Educational Service Contracting (ESC) program, one of the world's largest education subsidy programs. By synthesizing heterogeneous government data across nearly 3,000 institutions, we demonstrate how adjustments in inter-school distances, subsidy amounts, and slot availability can serve as actionable levers for relieving system-wide congestion in Philippine basic education.
 
