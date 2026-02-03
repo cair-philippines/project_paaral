@@ -50,7 +50,7 @@ Each notebook reads from `output/` (files produced by Stage 1 or earlier Stage 2
 | Notebook | Purpose | Depends On | Key Output |
 |----------|---------|------------|------------|
 | **2.1** Build Student Flow Table | Build origin→destination flow matrix from G7 data | 1.1, 1.3, 1.4 | `grade_7_student_flow_table_sy2324.parquet` |
-| **2.2** Build Distance Matrix | Compute road-network distances via OSRM | 1.5 | `school_distance_matrix_osrm.npy`, `school_distance_matrix_index.json` |
+| **2.2** Build Distance Matrix | Compute road-network distances via OSRM ([setup guide](references/osrm_setup_guide.md)) | 1.5 | `school_distance_matrix_osrm.npy`, `school_distance_matrix_index.json` |
 | **2.4** Congestion Analysis | Optimize student redistribution (Greedy + LP) | 1.1, 1.5, 1.6, 1.7, 1.8, 2.1, 2.2 | `output/analysis_payload/` (10 files) |
 | **2.4b** Congestion Explainer | Same analysis as 2.4 with enhanced documentation | *(same as 2.4)* | *(same as 2.4)* |
 | **2.5** Stakeholder Reports | Generate CSV reports from analysis payload | 2.4 | `output/reports/` |
