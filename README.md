@@ -25,6 +25,57 @@ project_paaral/
 └── results/                 # Final results for publication
 ```
 
+## Notebook Pipeline
+
+Notebooks are numbered to reflect their execution order. **Stage 1** processes raw data into clean parquet/CSV outputs. **Stage 2** consumes those outputs for analysis and reporting.
+
+### Stage 1: Data Processing
+
+Each notebook reads from `data/` and writes processed files to `output/`.
+
+| Notebook | Purpose | Key Output |
+|----------|---------|------------|
+| **1.1** Process Enrollment | Consolidate multi-year enrollment records | `processed_project_bukas_school_enrollment.parquet`, `processed_project_bukas_school_information.parquet` |
+| **1.3** Process G7 Enrollment | Parse Grade 7 origin-destination enrollment | `processed_grade_7_enrollment.parquet` |
+| **1.4** Process ESC Beneficiaries | Parse ESC beneficiary lists by region/year | `processed_esc_beneficiaries.parquet` |
+| **1.5** Process Coordinates | Geocode public and private schools | `all_schools_coordinates_ncr_region4a.parquet` |
+| **1.6** Process Seats | Extract seat counts for public and private schools | `processed_public_seats.parquet` |
+| **1.7** Process GASTPE | Extract tuition fee data for ESC schools | `processed_gastpe_data.parquet` |
+| **1.8** Process ESC Slots | Consolidate ESC slot allocations | `processed_esc_slots.parquet` |
+
+### Stage 2: Analysis and Reporting
+
+Each notebook reads from `output/` (files produced by Stage 1 or earlier Stage 2 notebooks).
+
+| Notebook | Purpose | Depends On | Key Output |
+|----------|---------|------------|------------|
+| **2.1** Build Student Flow Table | Build origin→destination flow matrix from G7 data | 1.1, 1.3, 1.4 | `grade_7_student_flow_table_sy2324.parquet` |
+| **2.2** Build Distance Matrix | Compute road-network distances via OSRM | 1.5 | `school_distance_matrix_osrm.npy`, `school_distance_matrix_index.json` |
+| **2.4** Congestion Analysis | Optimize student redistribution (Greedy + LP) | 1.1, 1.5, 1.6, 1.7, 1.8, 2.1, 2.2 | `output/analysis_payload/` (10 files) |
+| **2.4b** Congestion Explainer | Same analysis as 2.4 with enhanced documentation | *(same as 2.4)* | *(same as 2.4)* |
+| **2.5** Stakeholder Reports | Generate CSV reports from analysis payload | 2.4 | `output/reports/` |
+
+### Dependency Graph
+
+```
+data/
+ │
+ ├─ 1.1 ──┬──────────────────────────── 2.1 ──┐
+ ├─ 1.3 ──┘                                    │
+ ├─ 1.4 ──┘                                    │
+ ├─ 1.5 ──────────────────────────── 2.2 ──┐   │
+ ├─ 1.6 ──────────────────────────────────┐ │   │
+ ├─ 1.7 ────────────────────────────────┐ │ │   │
+ └─ 1.8 ──────────────────────────────┐ │ │ │   │
+                                       ▼ ▼ ▼ ▼   ▼
+                                      2.4 / 2.4b
+                                           │
+                                           ▼
+                                          2.5
+```
+
+---
+
 ## Required Data Files
 
 The `data/` directory is not tracked in version control. To run the notebooks, populate the following files:
