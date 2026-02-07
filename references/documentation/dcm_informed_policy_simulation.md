@@ -435,7 +435,108 @@ Some congested public schools have decongestion potential that depends almost en
 
 ---
 
-## 11. Next Steps
+## 11. Key Findings (Notebook 2.4f — Constrained Simulation)
+
+### 11.1 Simulation Design
+
+Notebook 2.4e revealed that unconstrained mu values produce unrealistic totals. Notebook 2.4f addresses this with a **constrained Monte Carlo simulation**:
+
+- **Coupled depletion**: A diversion only occurs when both the origin has candidates AND the destination has slots
+- **Raw mu values**: No flooring — fractional predictions preserved and accumulated
+- **Candidate pool scoped**: Only non-beneficiaries flowing to congested schools (400,936 students)
+- **ESC slot constraint**: 26,491 available slots across 1,088 schools
+- **Monte Carlo**: 50-100 iterations per scenario, shuffling path order each time
+
+### 11.2 System Constraint Discovery
+
+| Resource | Total | Consumed | Remaining | % Consumed |
+|----------|-------|----------|-----------|------------|
+| Candidate pool | 400,936 | ~25,936 | ~375,000 | **6.5%** |
+| ESC slots | 26,491 | ~25,936 | ~555 | **97.9%** |
+
+> **ESC slots are the binding constraint.** Demand overwhelms supply — slots are nearly fully depleted while the candidate pool is barely touched.
+
+### 11.3 Constrained Existing vs Hypothetical Split
+
+Monte Carlo results (100 iterations, minus_1k scenario):
+
+| Metric | Mean | 95% CI |
+|--------|------|--------|
+| Total diverted | 25,936 | ~stable |
+| Existing paths | 11,737 (45.3%) | |
+| Hypothetical paths | 14,198 (**54.7%**) | [54.1%, 55.3%] |
+
+Compared to the unconstrained estimate (61.3% hypothetical in 2.4e), the constrained simulation yields a lower but still majority hypothetical contribution at **54.7%**.
+
+### 11.4 Subsidy Increases Have Negligible Impact
+
+| Scenario | Total Diverted | Existing | Hypothetical | % Hypothetical | Remaining Slots |
+|----------|---------------|----------|--------------|----------------|-----------------|
+| Current subsidy | 25,931 | 11,730 | 14,202 | 54.8% | 560 |
+| -1k net cost | 25,936 | 11,733 | 14,203 | 54.8% | 555 |
+| -3k net cost | 25,945 | 11,741 | 14,204 | 54.7% | 546 |
+| -5k net cost | 25,951 | 11,748 | 14,203 | 54.7% | 540 |
+| -10k net cost | 25,962 | 11,756 | 14,206 | 54.7% | 529 |
+| -15k net cost | 25,972 | 11,760 | 14,212 | 54.7% | 519 |
+
+**A 15,000-peso subsidy increase produces only ~41 additional students diverted** (0.16% marginal gain). The system is slot-constrained: demand already exceeds supply at current subsidy levels.
+
+### 11.5 Policy Implications (Revised)
+
+1. **The bottleneck is slot capacity, not subsidy amount.** Increasing ESC subsidies yields negligible additional decongestion because slots fill up regardless.
+
+2. **The most impactful policy lever is expanding ESC slot capacity** — through new school partnerships, expanding existing school capacity, or reallocating underutilized slots across regions.
+
+3. **Hypothetical paths remain the majority contributor (54.7%)** even under constraints, confirming that enabling new paths is essential for maximizing decongestion.
+
+4. **The existing/hypothetical split is robust** — the 95% CI of [54.1%, 55.3%] across 100 Monte Carlo iterations shows this is not an artifact of processing order.
+
+### 11.6 ESC School-Level Unmet Demand Analysis (Section 10 of 2.4f)
+
+Since the system is slot-constrained, we identified which ESC schools would contribute most to decongestion if given additional slots.
+
+**Methodology:**
+- Filtered CBP to origins feeding congested schools (via `cand_pool`)
+- Summed predicted demand (mu) per ESC destination school
+- Compared against aggregated available slots per school
+- Computed `unmet_demand = max(0, total_demand - available_slots)`
+
+**Enriched metrics per ESC school:**
+
+| Metric | Description |
+|--------|-------------|
+| `total_predicted_demand` | Sum of mu across all congested-feeding origins |
+| `available_slots` | Aggregated ESC slots at this school |
+| `unmet_demand` | Demand exceeding available slots |
+| `demand_to_slot_ratio` | How many times over slots are demanded |
+| `n_congested_origins` | Distinct feeder origin schools |
+| `n_congested_destinations` | Distinct congested public JHS this ESC school could help decongest |
+| `demand_existing` / `demand_hypothetical` | Demand split by path type |
+
+**Key distinction:**
+- `n_congested_origins` = feeder schools whose non-beneficiaries flow to congested JHS and could divert to this ESC school
+- `n_congested_destinations` = congested public JHS that this ESC school could help decongest (traced via shared origins)
+
+### 11.7 Distance-Based Unmet Demand (Section 10.1 of 2.4f)
+
+**Question:** Which ESC schools have high unmet demand from *nearby* origin schools feeding students to congested JHS?
+
+**Methodology:**
+- Binned origin-ESC distances into **≤3 km**, **3–5 km**, and **>5 km**
+- Summed predicted demand per ESC school per distance band
+- Defined "nearby demand" as ≤5 km (sum of ≤3 km and 3–5 km bands)
+- Computed `nearby_unmet_demand = max(0, nearby_demand - available_slots)`
+- Split nearby demand into existing vs hypothetical paths
+
+**Policy relevance:** ESC schools with high nearby unmet demand are the most actionable expansion targets — their potential beneficiaries are geographically proximate, making diversion realistic and practical. The existing/hypothetical split within the nearby band indicates whether expansion would reinforce known flows or require activating new paths.
+
+**Exports:**
+- `esc_unmet_demand_ranking.csv` — full ranking with enriched metrics
+- `esc_nearby_unmet_demand_ranking.csv` — distance-based ranking with nearby demand breakdown
+
+---
+
+## 12. Next Steps
 
 1. ~~Finalize distance threshold based on data exploration~~ (Removed — not needed)
 2. ~~Implement Layer 1 (feasibility filter)~~ (Removed — no longer filtering)
@@ -443,23 +544,30 @@ Some congested public schools have decongestion potential that depends almost en
 4. ~~Compute proportional weights for origins feeding multiple congested schools~~ ✅
 5. ~~Implement path-level marginal analysis for all subsidy scenarios~~ ✅
 6. ~~Generate aggregated summaries for policy insights~~ ✅
-7. Validate results against observed patterns
-8. Identify specific interventions for high-hypothetical-dependency schools
-9. Develop recommendations for enabling hypothetical paths
+7. ~~Constrained simulation with Monte Carlo~~ ✅
+8. ~~Cross-scenario comparison~~ ✅
+9. ~~Simulate impact of expanding ESC slot capacity (the binding constraint)~~ ✅ (Addressed via unmet demand analysis)
+10. ~~Identify which ESC schools/regions would benefit most from additional slots~~ ✅ (Section 10 & 10.1 of 2.4f)
+11. Validate constrained simulation results against observed ESC uptake patterns
+12. Aggregate unmet demand findings by region/division for policy-level recommendations
+13. Develop narrative connecting slot-constrained finding → unmet demand ranking → distance-based prioritization for paper
 
 ---
 
-## 12. Related Files
+## 13. Related Files
 
 - **Choice Model Notebook:** `references/2.2-pjm-dcm-v3`
-- **Candidate Pool:** `output/full_candidate_beneficiary_pool.parquet`
+- **Candidate Pool (updated):** `output/full_candidate_beneficiary_pool_without_probdist_0207_model4.parquet`
 - **Observed Flow Data:** `output/grade_7_student_flow_table_sy2324.parquet`
 - **Flow to Congested:** `output/analysis_payload/flow_to_congested.parquet`
+- **ESC Slot Availability:** `output/analysis_payload/esc_available.parquet`
 - **Inspection Notebook:** `notebooks/1.11.-inspect-dcm-results.ipynb`
 - **Original Redistribution:** `notebooks/2.4c.-relieve-congestion-probability-distribution.ipynb`
 - **Policy Simulation Notebook (deprecated):** `notebooks/2.4d.-dcm-policy-simulation.ipynb`
 - **Path-Level Marginal Analysis:** `notebooks/2.4e.-path-level-marginal-analysis.ipynb`
+- **Constrained Simulation:** `notebooks/2.4f.-constrained-path-simulation.ipynb`
 - **Analysis Output:** `output/path_marginal_analysis/`
+- **Simulation Output:** `output/constrained_simulation/`
 
 ---
 
@@ -478,3 +586,12 @@ Some congested public schools have decongestion potential that depends almost en
 | 2026-02-06 | Added proportional weight logic for origins feeding multiple congested schools |
 | 2026-02-06 | Implemented notebook 2.4e; documented key findings: 76% hypothetical paths, 61% decongestion from hypothetical |
 | 2026-02-06 | Identified congested schools with high hypothetical dependency (up to 90%) requiring targeted intervention |
+| 2026-02-07 | Updated candidate pool to model 4 (325,395 pairs, 22 scenarios, no prob distributions) |
+| 2026-02-07 | Implemented constrained Monte Carlo simulation (notebook 2.4f) with coupled depletion |
+| 2026-02-07 | Key finding: System is slot-constrained (97.9% slots consumed vs 6.5% candidates consumed) |
+| 2026-02-07 | Key finding: Subsidy increases yield negligible marginal gain (~41 students / 0.16% from 15k increase) |
+| 2026-02-07 | Key finding: Hypothetical contribution stable at 54.7% under constraints (down from 61.3% unconstrained) |
+| 2026-02-07 | Added Section 10 to 2.4f: ESC school-level unmet demand analysis with enriched metrics |
+| 2026-02-07 | Fixed duplicate school IDs from esc_available multi-row join; aggregated slots per school before merge |
+| 2026-02-07 | Added `n_congested_destinations` metric (congested JHS an ESC school could help decongest, traced via shared origins) |
+| 2026-02-07 | Added Section 10.1 to 2.4f: Distance-based unmet demand analysis (≤3km, 3-5km, >5km bands) with nearby unmet demand ranking |
