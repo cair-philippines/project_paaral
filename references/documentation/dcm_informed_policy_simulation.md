@@ -35,21 +35,38 @@ This assumption is **false**. DepEd does not have the mandate to exercise author
 
 ### Model: Negative Binomial Regression (NBR)
 
-Developed in notebook `2.2-pjm-dcm-v3`, the model predicts expected enrollment for origin-destination pairs based on:
+Developed in notebook `2.2-pjm-dcm-v3`, the model predicts expected enrollment (`count_of_students`) for origin-destination pairs. Estimated on 29,224 observations with cluster-robust standard errors. Pseudo R² = 0.085. All coefficients significant (p < 0.02).
 
-**Features:**
-- `log_distance`: Road network distance (negative coefficient — students prefer nearer schools)
-- `log_net_cost`: Tuition minus subsidy (negative coefficient — students prefer lower out-of-pocket cost)
-- `esc_amount_k`: Subsidy amount (interaction with tuition)
-- `origin_region`: Regional fixed effects
+**Coefficients (Model 4, 08 Feb 2026):**
+
+| Variable | Coef | Std Err | z | p | Interpretation |
+|---|---|---|---|---|---|
+| Intercept | +3.036 | 0.115 | 26.4 | 0.000 | Baseline expected log-count |
+| `log_distance` | **-0.4496** | 0.010 | -46.3 | 0.000 | Strongest predictor. 1% ↑ distance → ~0.45% ↓ enrollment |
+| `log_net_cost_k` | **-0.1104** | 0.013 | -8.4 | 0.000 | 1% ↑ net cost → ~0.11% ↓ enrollment. Cost matters, but distance matters ~4x more |
+| `esc_rating` | -0.0191 | 0.008 | -2.3 | 0.019 | Higher ESC rating → slightly fewer students (counterintuitive; possibly confounded with selectivity or price) |
+| `log_origin_lgu_income` | **-0.0524** | 0.005 | -10.9 | 0.000 | Wealthier LGUs → fewer ESC enrollees. ESC most effective in lower-income areas |
+| `origin_region` (Central Luzon) | -0.0783 | 0.028 | -2.8 | 0.005 | Fewer students flow from Central Luzon origins (vs reference region) |
+| `origin_region` (CALABARZON) | -0.0908 | 0.021 | -4.2 | 0.000 | Fewer from CALABARZON origins |
+| `destination_region` (Central Luzon) | +0.0781 | 0.025 | 3.1 | 0.002 | ESC schools in Central Luzon attract more students |
+| `destination_region` (CALABARZON) | +0.0969 | 0.018 | 5.3 | 0.000 | ESC schools in CALABARZON attract even more |
+| alpha (overdispersion) | 0.3948 | 0.011 | 35.8 | 0.000 | Confirms negative binomial is appropriate |
 
 **Output:**
 - `mu`: Expected number of students for each origin-destination pair under a given subsidy scenario
-- Probability mass function (PMF) from negative binomial distribution: P(X = k) for k = 0, 1, 2, ...
+- 22 subsidy scenarios: baseline (0 subsidy), current, minus 1k through minus 20k net cost
 
-### Key Insight
+### Key Insights from NBR
 
-The model captures **behavioral tendencies** observed in actual ESC beneficiary flows. The negative coefficients on distance and net cost confirm that students *tend* to prefer nearer, cheaper options — but outliers exist in the data.
+1. **Distance dominates.** At -0.45, it is ~4x the magnitude of net cost (-0.11). If ESC schools aren't near congested origins, students won't enroll regardless of subsidy amount.
+
+2. **Net cost is significant but secondary.** Subsidy increases do matter, but the effect is modest. Combined with the declining uptake reality, even modest cost sensitivity can drive students out of the system when net cost rises over time.
+
+3. **LGU income reveals targeting opportunity.** The -0.0524 coefficient on `log_origin_lgu_income` means ESC is most effective in lower-income areas. Targeted subsidies should focus there.
+
+4. **ESC rating is counterintuitively negative.** Higher-rated schools attract slightly fewer students — possibly because they charge more, are more selective, or families don't use ratings in decisions. Effect is small (-0.019).
+
+5. **Regional asymmetry.** CALABARZON ESC schools attract more students (+0.097) while CALABARZON origins send fewer (-0.091). Suggests strong ESC supply in CALABARZON but lower demand from its own public schools.
 
 ---
 
@@ -491,7 +508,30 @@ Compared to the unconstrained estimate (61.3% hypothetical in 2.4e), the constra
 
 4. **The existing/hypothetical split is robust** — the 95% CI of [54.1%, 55.3%] across 100 Monte Carlo iterations shows this is not an artifact of processing order.
 
-### 11.6 ESC School-Level Unmet Demand Analysis (Section 10 of 2.4f)
+### 11.6 School-Level Disaggregation (Sections 8.1, 8.2, 8.3 of 2.4f)
+
+While system-level totals are stable (~25,936 ± 10.5), disaggregating to individual schools reveals the heterogeneity hidden by the aggregate.
+
+**Section 8.1 — Per ESC School CI:**
+- For each ESC school, the mean and 95% CI of accepted student flow across 100 Monte Carlo iterations, split by existing, hypothetical, and both
+- Reveals which ESC schools show high variance (sensitive to shuffle order / competition for slots) vs stable absorption
+
+**Section 8.2 — Per Congested Public JHS CI:**
+- Diversions attributed back to congested public JHS using **proportional weights**: when origin X diverts students, the reduction is distributed across congested schools that X feeds, proportional to observed non-beneficiary flow volume
+- For each congested school, the mean and 95% CI of decongestion across 100 iterations, split by existing, hypothetical, and both
+- Identifies which congested schools benefit most from the ESC program and how dependent their relief is on hypothetical paths
+
+**Section 8.3 — Multi-Scenario Comparison (Detailed):**
+- Runs 100 iterations per scenario (current through -15k), retaining per-iteration results
+- Reports mean, std for existing, hypothetical, and both per scenario
+- Reports raw and percentage reduction to system congestion (denominator: total_candidates = 400,936) with 95% CI
+- Confirms subsidy negligibility at the scenario level with proper uncertainty quantification
+
+**Exports:**
+- `esc_school_ci.csv` — per ESC school CI from Section 8.1
+- `congested_school_ci.csv` — per congested JHS CI from Section 8.2
+
+### 11.7 ESC School-Level Unmet Demand Analysis (Section 10 of 2.4f)
 
 Since the system is slot-constrained, we identified which ESC schools would contribute most to decongestion if given additional slots.
 
@@ -517,7 +557,7 @@ Since the system is slot-constrained, we identified which ESC schools would cont
 - `n_congested_origins` = feeder schools whose non-beneficiaries flow to congested JHS and could divert to this ESC school
 - `n_congested_destinations` = congested public JHS that this ESC school could help decongest (traced via shared origins)
 
-### 11.7 Distance-Based Unmet Demand (Section 10.1 of 2.4f)
+### 11.8 Distance-Based Unmet Demand (Section 10.1 of 2.4f)
 
 **Question:** Which ESC schools have high unmet demand from *nearby* origin schools feeding students to congested JHS?
 
@@ -536,7 +576,90 @@ Since the system is slot-constrained, we identified which ESC schools would cont
 
 ---
 
-## 12. Next Steps
+## 12. Choice-Respecting Mechanisms Leveraging DCM Results
+
+The earlier framing positioned redistribution as purely "authoritative control." In reality, established mechanisms exist that use demand model outputs to design policy while preserving family agency. The NBR serves as a **prediction engine for policy optimization** — the planner uses predicted behavior to design the choice environment (subsidies, capacity, information, menus), while families retain full choice.
+
+| Authoritative Control | Choice-Respecting Design |
+|---|---|
+| Assigns students to schools | Designs the menu/subsidies/information families choose from |
+| Uses optimization to maximize system objective | Uses prediction to anticipate behavioral response |
+| NBR output = allocation target | NBR output = demand forecast for policy calibration |
+
+### 12.1 Capacity Design (Strategic Slot Allocation)
+
+**Sources:** Afacan & Van der Linden, "Capacity Design in School Choice," *Games and Economic Behavior* 146, 2024. Hammond & Xu, "Designing School Choice Mechanisms," *Economic Inquiry*, 2024.
+
+The planner decides how many ESC slots to contract at each school before families choose. The DCM tells you where demand is and where marginal seats yield the largest welfare gains. Families still choose freely — only the supply side is adjusted.
+
+**ESC fit:** Directly maps to the unmet demand analysis (Sections 10/10.1 of 2.4f). NBR-predicted demand per ESC school, compared to available slots, informs where DepEd should expand capacity.
+
+### 12.2 Personalized Subsidy Rules (Marginal Treatment Effects)
+
+**Sources:** Chen & Xie, "Personalized Subsidy Rules," arXiv:2202.13545, 2022. Javaudin, de Palma & Araldo, "Large-Scale Allocation of Personalized Incentives," IEEE ITSC 2022.
+
+Instead of uniform subsidies, set different voucher amounts for different student types based on who is at the margin of switching. Students with high predicted enrollment even without subsidy get lower vouchers (infra-marginal); students near the switching threshold get higher vouchers (highest marginal return per peso spent). Key theoretical result: subsidy rules weakly dominate treatment rules (direct assignment) because they implicitly target through unobserved heterogeneity.
+
+**ESC fit:** The NBR estimates heterogeneous price sensitivity via `log_net_cost`. Students whose mu jumps significantly between subsidy scenarios are the marginal cases worth targeting. Polynomial-time algorithm demonstrated at scale (200K individuals).
+
+### 12.3 Information Provision / Smart Matching Platforms
+
+**Sources:** Arteaga, Kapor, Neilson & Zimmerman, "Smart Matching Platforms and Heterogeneous Beliefs in Centralized School Choice," *QJE* 137(3): 1791-1848, 2022.
+
+A platform uses back-end demand predictions to give families personalized information about admission chances and school fit. Deployed nationally in Chile — 22% of families changed applications upon receiving warnings, reducing non-placement risk by 58%.
+
+**ESC fit:** Directly addresses the hypothetical paths finding — 54.7% of decongestion potential comes from paths families haven't used, possibly due to information gaps. NBR predictions could power recommendations: "Given where you live, here are ESC schools where you'd be a strong candidate."
+
+### 12.4 Econometric Market Design (Simulation-Based Policy Evaluation)
+
+**Sources:** Pathak & Shi, "How Well Do Structural Demand Models Work?," *Journal of Econometrics* 222(1): 161-195, 2021. Pathak & Shi, "Simulating Alternative School Choice Options in Boston," MIT Blueprint Labs, 2013.
+
+The DCM becomes a simulation engine: for each candidate policy design, simulate family choices and compute outcome metrics. Used in Boston to redesign school choice affecting 9,500 children annually. Structural demand models capture stable preference distributions across policy regimes.
+
+**ESC fit:** The constrained Monte Carlo simulation (notebook 2.4f) already does this at a basic level. The extension: simulate joint policy changes (subsidy + slot expansion + information) and evaluate combined impact.
+
+### 12.5 Incentive-Compatible Menu Design
+
+**Sources:** Dizon-Ross & Zucker, "Mechanism Design for Personalized Policy: A Field Experiment Incentivizing Exercise," NBER WP 33624, 2025.
+
+Design a menu of voucher contracts that families self-select into. Example: (a) high-value voucher valid only at schools in underserved areas, (b) medium voucher at any school, (c) small universal voucher. The menu is engineered so truthful self-selection leads to the planner's desired allocation. Almost doubled treatment effect vs one-size-fits-all, with no cost increase.
+
+**ESC fit:** NBR's preference heterogeneity (distance-sensitive vs price-sensitive families) identifies latent types that sort into different contracts. The WTP distribution determines menu spacing.
+
+### 12.6 Targeted Vouchers with Supply-Side Competition
+
+**Sources:** Neilson, "Targeted Vouchers, Competition Among Schools, and the Academic Achievement of Poor Students," submitted to *Econometrica*, revised April 2025.
+
+Chile's SEP program raised transfers by 50% for disadvantaged students. Structural model shows this changed the marginal revenue from quality improvement, inducing schools to compete on quality. Quality markdowns are larger in poorer areas.
+
+**ESC fit:** If DepEd targets higher ESC subsidies at disadvantaged students, the NBR predicts enrollment response. The policy question shifts from "will students move?" to "will schools respond by improving quality or capturing rents?"
+
+### 12.7 Reserve Design (Priority-Based Allocation)
+
+**Sources:** Dur, Kominers, Pathak & Sonmez, "Reserve Design: Unintended Consequences and the Demise of Boston's Walk Zones," *JPE* 126(6): 2457-2479, 2018. Phan, Tierney & Zhou, "Crowding in School Choice," *AER* 114(8): 2526-2552, 2024.
+
+Schools have multiple seat categories (e.g., 50% for nearby students, 50% open). Families rank freely; the reserve structure determines priority. DCM predicts how many students of each type apply to each school, enabling reserve sizing that achieves demographic/geographic targets without mandating assignments.
+
+**ESC fit:** ESC slots could be partially reserved for students from specific congested schools, with the remainder open. The NBR predicts uptake under different reserve structures.
+
+### 12.8 Experimental Validation of Voucher Welfare
+
+**Sources:** Arcidiacono, Muralidharan & Singleton, "Experimentally Validating Welfare Evaluation of School Vouchers," NBER WP 32968, 2024.
+
+Uses experimental variation to validate structural choice models and compute the marginal value of public funds (MVPF) for different voucher designs. Targeted vouchers to households with limited assets yielded MVPF > 3 (each peso generates 3+ pesos of welfare). Critical finding: all estimated models underpredicted take-up because the voucher induced household search and supply-side response.
+
+**ESC fit:** Caution for our work — static NBR predictions may understate impact because the voucher itself changes information sets and school behavior. Suggests augmenting with a search or dynamic updating component.
+
+### 12.9 Most Promising for KDD Paper
+
+1. **Capacity Design (12.1)** — already supported by Sections 10/10.1 of 2.4f
+2. **Personalized Subsidies (12.2)** — leverages heterogeneous price sensitivity already in the NBR
+3. **Information Provision (12.3)** — directly addresses the hypothetical paths finding
+4. **Econometric Market Design (12.4)** — extends the existing simulation framework
+
+---
+
+## 13. Next Steps
 
 1. ~~Finalize distance threshold based on data exploration~~ (Removed — not needed)
 2. ~~Implement Layer 1 (feasibility filter)~~ (Removed — no longer filtering)
@@ -551,10 +674,11 @@ Since the system is slot-constrained, we identified which ESC schools would cont
 11. Validate constrained simulation results against observed ESC uptake patterns
 12. Aggregate unmet demand findings by region/division for policy-level recommendations
 13. Develop narrative connecting slot-constrained finding → unmet demand ranking → distance-based prioritization for paper
+14. Select and implement choice-respecting mechanism(s) from Section 12 for paper contribution
 
 ---
 
-## 13. Related Files
+## 14. Related Files
 
 - **Choice Model Notebook:** `references/2.2-pjm-dcm-v3`
 - **Candidate Pool (updated):** `output/full_candidate_beneficiary_pool_without_probdist_0207_model4.parquet`
@@ -595,3 +719,9 @@ Since the system is slot-constrained, we identified which ESC schools would cont
 | 2026-02-07 | Fixed duplicate school IDs from esc_available multi-row join; aggregated slots per school before merge |
 | 2026-02-07 | Added `n_congested_destinations` metric (congested JHS an ESC school could help decongest, traced via shared origins) |
 | 2026-02-07 | Added Section 10.1 to 2.4f: Distance-based unmet demand analysis (≤3km, 3-5km, >5km bands) with nearby unmet demand ranking |
+| 2026-02-08 | Added `run_simulation_detailed()` variant tracking per-destination and per-origin accepted amounts |
+| 2026-02-08 | Added Section 8.1 to 2.4f: Per ESC school CI of accepted student flow (existing/hypothetical/both) |
+| 2026-02-08 | Added Section 8.2 to 2.4f: Per congested JHS CI of decongestion using proportional attribution from observed flows |
+| 2026-02-08 | Added Section 8.3 to 2.4f: Multi-scenario comparison with std and raw/pct congestion reduction with CI |
+| 2026-02-08 | Added Section 12 to .md: Choice-respecting mechanisms leveraging DCM results (8 mechanisms with sources and ESC fit) |
+| 2026-02-08 | Updated Section 2 with full NBR Model 4 coefficients table and key insights (from screenshot_nbr_regression_results_table.png) |
