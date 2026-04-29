@@ -207,36 +207,63 @@ function Stars({ rating }) {
 }
 
 function ResultCard({ school, selected, onSelect }) {
+  // SYSTEM VALIDATION: Check if subsidy is active [cite: 466]
+  const isEscParticipant = school.esc_subsidy > 0;
+
   return (
-    <button type="button" onClick={() => onSelect(school)} className={`w-full rounded-xl border bg-white p-4 text-left shadow-[0_1px_3px_rgba(0,0,0,0.06),0_1px_2px_rgba(0,0,0,0.04)] transition hover:-translate-y-0.5 hover:shadow-[0_4px_12px_rgba(0,0,0,0.08),0_2px_4px_rgba(0,0,0,0.04)] focus:outline-none ${selected ? "border-[#1a4b8c] ring-4 ring-[#1a4b8c]/10" : "border-[#e2e4e9]"}`}>
+    <button 
+      type="button" 
+      onClick={() => onSelect(school)} 
+      className={`w-full rounded-xl border bg-white p-4 text-left shadow-sm transition hover:-translate-y-0.5 ${selected ? "border-[#1a4b8c] ring-4 ring-[#1a4b8c]/10" : "border-[#e2e4e9]"}`}
+    >
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0">
           <h3 className="line-clamp-2 text-sm font-semibold leading-snug text-[#1a1d23]">{school.name}</h3>
           <p className="mt-1 text-xs text-[#6b7280] truncate">{school.municipality}, {school.province}</p>
         </div>
-        <span className={`shrink-0 rounded-full px-2.5 py-1 text-[11px] font-semibold ${typeMeta[school.type].badge}`}>
-          {school.type === "private_esc" ? "ESC" : typeMeta[school.type].label}
+        <span className={`shrink-0 rounded-full px-2.5 py-1 text-[11px] font-semibold ${isEscParticipant ? "bg-[#16a34a] text-white" : "bg-[#f59e0b] text-white"}`}>
+          {isEscParticipant ? "ESC" : "Private"}
         </span>
       </div>
+
       <div className="mt-4 grid grid-cols-3 gap-2">
-        <div className="min-w-0"><p className="text-[11px] uppercase tracking-[0.08em] text-[#9ca3af] truncate">Distance</p><p className="mt-1 text-sm font-semibold text-[#1a1d23] truncate">{school.distance_km} km</p></div>
-        <div className="min-w-0"><p className="text-[11px] uppercase tracking-[0.08em] text-[#9ca3af] truncate">Net Cost</p><p className="mt-1 text-sm font-semibold text-[#1a1d23] truncate">{pesos(school.net_cost)}</p></div>
-        <div className="min-w-0"><p className="text-[11px] uppercase tracking-[0.08em] text-[#9ca3af] truncate">Slots</p><p className="mt-1 text-sm font-semibold text-[#1a1d23] truncate">{school.slots_available}</p></div>
+        <div className="min-w-0">
+          <p className="text-[11px] uppercase tracking-[0.08em] text-[#9ca3af] truncate">Distance</p>
+          <p className="mt-1 text-sm font-semibold text-[#1a1d23] truncate">{school.distance_km} km</p>
+        </div>
+        <div className="min-w-0">
+          <p className="text-[11px] uppercase tracking-[0.08em] text-[#9ca3af] truncate">Net Cost</p>
+          <p className="mt-1 text-sm font-semibold text-[#1a1d23] truncate">{pesos(school.net_cost)}</p>
+        </div>
+        <div className="min-w-0">
+          <p className="text-[11px] uppercase tracking-[0.08em] text-[#9ca3af] truncate">Slots</p>
+          {/* FIXED: Only show number if ESC is active, otherwise show '-' [cite: 551] */}
+          <p className="mt-1 text-sm font-semibold text-[#1a1d23] truncate">
+            {isEscParticipant ? school.slots_available : "—"}
+          </p>
+        </div>
       </div>
-      <div className="mt-3 h-1.5 overflow-hidden rounded-full bg-[#f0f1f4]">
-        <div className={`h-full rounded-full ${slotTone(school)}`} style={{ width: `${pct(school.slots_available, school.slots_total)}%` }} />
-      </div>
+
+      {/* FIXED: Only show progress bar for ESC participants [cite: 420] */}
+      {isEscParticipant && (
+        <div className="mt-3 h-1.5 overflow-hidden rounded-full bg-[#f0f1f4]">
+          <div className={`h-full rounded-full ${slotTone(school)}`} style={{ width: `${pct(school.slots_available, school.slots_total)}%` }} />
+        </div>
+      )}
     </button>
   );
 }
 
 function SchoolInfoCard({ school, onClose }) {
   if (!school) return null;
+  
+  // SYSTEM VALIDATION: A school is an ESC participant ONLY if it has an active subsidy
+  const isEscParticipant = school.esc_subsidy > 0;
+  
   const meta = typeMeta[school.type];
   const availablePct = pct(school.slots_available, school.slots_total);
   const point = projectPoint(school);
   
-  // Dynamic positioning to prevent clipping off screen edges
   const xShift = point.x > (MAP_WIDTH / 2) ? "max(-105%, -1 * calc(100vw - 460px))" : "18px";
   const yShift = point.y > (MAP_HEIGHT / 2) ? "max(-85%, -1 * calc(100vh - 120px))" : "-18px";
   
@@ -254,12 +281,14 @@ function SchoolInfoCard({ school, onClose }) {
       <div className="flex items-start justify-between gap-4">
         <div className="min-w-0">
           <div className="flex items-center gap-2">
-            <span className="h-3 w-3 shrink-0 rounded-full" style={{ backgroundColor: meta.dot }} />
-            <span className="text-xs font-semibold uppercase tracking-[0.08em] text-[#6b7280] truncate">{meta.label}</span>
+            <span className="h-3 w-3 shrink-0 rounded-full" style={{ backgroundColor: isEscParticipant ? "#22c55e" : "#f59e0b" }} />
+            <span className="text-xs font-semibold uppercase tracking-[0.08em] text-[#6b7280] truncate">
+              {isEscParticipant ? "ESC Participating" : "Private No ESC"}
+            </span>
           </div>
           <h3 className="mt-3 text-lg font-semibold leading-tight text-[#1a1d23]">{school.name}</h3>
         </div>
-        <button type="button" onClick={onClose} className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full border border-[#e2e4e9] text-[#6b7280] transition hover:bg-[#f8f9fb] focus:outline-none" aria-label="Close school card">
+        <button type="button" onClick={onClose} className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full border border-[#e2e4e9] text-[#6b7280] transition hover:bg-[#f8f9fb] focus:outline-none">
           <X className="h-4 w-4" />
         </button>
       </div>
@@ -271,19 +300,37 @@ function SchoolInfoCard({ school, onClose }) {
 
       <div className="mt-4 space-y-2">
         <div className="flex items-center justify-between text-sm"><span className="text-[#6b7280]">Tuition Fee</span><span className="font-semibold text-[#1a1d23]">{pesos(school.tuition)}</span></div>
-        <div className="flex items-center justify-between text-sm"><span className="text-[#6b7280]">ESC Subsidy</span><span className="font-semibold text-[#16a34a]">{school.esc_subsidy ? `-${pesos(school.esc_subsidy)}` : "None"}</span></div>
-        <div className="mt-2 flex items-center justify-between border-t border-[#e2e4e9] pt-3"><span className="text-sm font-semibold text-[#1a1d23]">Net Cost</span><span className="text-xl font-bold text-[#1a4b8c]">{pesos(school.net_cost)}/yr</span></div>
-      </div>
-
-      <div className="mt-5 rounded-xl bg-[#f8f9fb] p-4">
-        <div className="flex items-center justify-between"><span className="text-sm font-semibold text-[#1a1d23]">Available Slots</span><span className="font-['SF_Mono','Fira_Code','Consolas',monospace] text-sm font-semibold text-[#1a1d23]">{school.slots_available} of {school.slots_total}</span></div>
-        <div className="mt-3 flex items-center gap-3">
-          <div className="h-3 flex-1 overflow-hidden rounded-full bg-white border border-[#e2e4e9]">
-            <div className={`h-full rounded-full ${slotTone(school)}`} style={{ width: `${availablePct}%` }} />
-          </div>
-          <span className="w-10 shrink-0 text-right text-xs font-semibold text-[#6b7280]">{availablePct}%</span>
+        <div className="flex items-center justify-between text-sm">
+            <span className="text-[#6b7280]">ESC Subsidy</span>
+            <span className={`font-semibold ${isEscParticipant ? "text-[#16a34a]" : "text-[#9ca3af]"}`}>
+                {isEscParticipant ? `-${pesos(school.esc_subsidy)}` : "None Available"}
+            </span>
+        </div>
+        <div className="mt-2 flex items-center justify-between border-t border-[#e2e4e9] pt-3">
+            <span className="text-sm font-semibold text-[#1a1d23]">Net Cost</span>
+            <span className="text-xl font-bold text-[#1a4b8c]">{pesos(school.net_cost)}/yr</span>
         </div>
       </div>
+
+      {/* FIXED: Slots are only visible for validated ESC participants */}
+      {isEscParticipant ? (
+        <div className="mt-5 rounded-xl bg-[#f8f9fb] p-4 border border-[#16a34a]/10">
+          <div className="flex items-center justify-between">
+            <span className="text-sm font-semibold text-[#1a1d23]">Available ESC Slots</span>
+            <span className="font-mono text-sm font-semibold text-[#1a1d23]">{school.slots_available} of {school.slots_total}</span>
+          </div>
+          <div className="mt-3 flex items-center gap-3">
+            <div className="h-3 flex-1 overflow-hidden rounded-full bg-white border border-[#e2e4e9]">
+              <div className={`h-full rounded-full ${slotTone(school)}`} style={{ width: `${availablePct}%` }} />
+            </div>
+            <span className="w-10 shrink-0 text-right text-xs font-semibold text-[#6b7280]">{availablePct}%</span>
+          </div>
+        </div>
+      ) : (
+        <div className="mt-5 rounded-xl bg-slate-50 p-4 border border-dashed border-slate-200">
+            <p className="text-xs text-center text-slate-500 italic">This institution does not currently offer ESC subsidized slots.</p>
+        </div>
+      )}
 
       <div className="mt-4 grid grid-cols-2 gap-3 text-sm">
         <div><p className="text-xs uppercase tracking-[0.08em] text-[#9ca3af]">ESC Rating</p><div className="mt-1"><Stars rating={school.esc_rating} /></div></div>
@@ -487,10 +534,10 @@ export default function PAARALStudentMockup() {
           <div className="flex items-center justify-between gap-4">
             <div className="flex min-w-0 items-center gap-3">
               <div className="flex h-12 w-[76px] items-center justify-center rounded-xl border border-[#e2e4e9] bg-white px-2 shadow-[0_1px_3px_rgba(0,0,0,0.06)] sm:w-32">
-                <img src="/src/assets/ecair-logo.png" alt="ECAIR" className="max-h-9 w-full object-contain" />
+                <img src="/assets/ecair-logo.png" alt="ECAIR" className="max-h-9 w-full object-contain" />
               </div>
               <div className="flex h-12 w-[76px] items-center justify-center rounded-xl border border-[#e2e4e9] bg-white px-2 shadow-[0_1px_3px_rgba(0,0,0,0.06)] sm:w-32">
-                <img src="/src/assets/deped-logo.png" alt="DepEd" className="max-h-10 w-full object-contain" />
+                <img src="/assets/deped-logo.png" alt="DepEd" className="max-h-10 w-full object-contain" />
               </div>
             </div>
             <div className="hidden rounded-full border border-[#e2e4e9] bg-[#f8f9fb] px-3 py-1.5 text-xs font-semibold text-[#6b7280] sm:block">
