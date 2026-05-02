@@ -1,0 +1,2185 @@
+{
+  "type": "FeatureCollection",
+  "features": [
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          121.01734308848181,
+          14.566655544041156
+        ]
+      },
+      "properties": {
+        "school_id": "ES_001",
+        "name": "Bagumbayan Elementary School",
+        "school_type": "public_es",
+        "region": "ncr",
+        "city": "Mandaluyong",
+        "city_type": "ncr",
+        "province": "ncr",
+        "num_classrooms": 20
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          121.02429442223558,
+          14.565675786444459
+        ]
+      },
+      "properties": {
+        "school_id": "ES_002",
+        "name": "Barangay Holy Spirit Elementary School",
+        "school_type": "public_es",
+        "region": "ncr",
+        "city": "Makati",
+        "city_type": "ncr",
+        "province": "ncr",
+        "num_classrooms": 14
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          120.9484539991185,
+          14.641964474362203
+        ]
+      },
+      "properties": {
+        "school_id": "ES_003",
+        "name": "Commonwealth Elementary School",
+        "school_type": "public_es",
+        "region": "ncr",
+        "city": "Caloocan",
+        "city_type": "ncr",
+        "province": "ncr",
+        "num_classrooms": 13
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          121.09418324308261,
+          14.562240023865634
+        ]
+      },
+      "properties": {
+        "school_id": "ES_004",
+        "name": "Dona Aurora Elementary School",
+        "school_type": "public_es",
+        "region": "ncr",
+        "city": "Pasig",
+        "city_type": "ncr",
+        "province": "ncr",
+        "num_classrooms": 12
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          121.01069148584025,
+          14.486074044749213
+        ]
+      },
+      "properties": {
+        "school_id": "ES_005",
+        "name": "Fairview Elementary School",
+        "school_type": "public_es",
+        "region": "ncr",
+        "city": "Parañaque",
+        "city_type": "ncr",
+        "province": "ncr",
+        "num_classrooms": 18
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          121.0743715521035,
+          14.574176073658284
+        ]
+      },
+      "properties": {
+        "school_id": "ES_006",
+        "name": "Kamuning Elementary School",
+        "school_type": "public_es",
+        "region": "ncr",
+        "city": "Pasig",
+        "city_type": "ncr",
+        "province": "ncr",
+        "num_classrooms": 15
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          121.0111154481822,
+          14.478336491513843
+        ]
+      },
+      "properties": {
+        "school_id": "ES_007",
+        "name": "Lagro Elementary School",
+        "school_type": "public_es",
+        "region": "ncr",
+        "city": "Parañaque",
+        "city_type": "ncr",
+        "province": "ncr",
+        "num_classrooms": 15
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          121.03179379966095,
+          14.481800754007018
+        ]
+      },
+      "properties": {
+        "school_id": "ES_008",
+        "name": "Malaya Elementary School",
+        "school_type": "public_es",
+        "region": "ncr",
+        "city": "Parañaque",
+        "city_type": "ncr",
+        "province": "ncr",
+        "num_classrooms": 14
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          121.0222135528296,
+          14.495586525590657
+        ]
+      },
+      "properties": {
+        "school_id": "ES_009",
+        "name": "Novaliches Elementary School",
+        "school_type": "public_es",
+        "region": "ncr",
+        "city": "Parañaque",
+        "city_type": "ncr",
+        "province": "ncr",
+        "num_classrooms": 16
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          120.93007982255631,
+          14.668027777391398
+        ]
+      },
+      "properties": {
+        "school_id": "ES_010",
+        "name": "Pinyahan Elementary School",
+        "school_type": "public_es",
+        "region": "ncr",
+        "city": "Navotas",
+        "city_type": "ncr",
+        "province": "ncr",
+        "num_classrooms": 15
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          120.97517416975748,
+          14.59784077004551
+        ]
+      },
+      "properties": {
+        "school_id": "ES_011",
+        "name": "Project 7 Elementary School",
+        "school_type": "public_es",
+        "region": "ncr",
+        "city": "Manila",
+        "city_type": "ncr",
+        "province": "ncr",
+        "num_classrooms": 13
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          120.98040948812431,
+          14.536806102351543
+        ]
+      },
+      "properties": {
+        "school_id": "ES_012",
+        "name": "Rosario Elementary School",
+        "school_type": "public_es",
+        "region": "ncr",
+        "city": "Pasay",
+        "city_type": "ncr",
+        "province": "ncr",
+        "num_classrooms": 18
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          121.17827436343669,
+          14.213500813331716
+        ]
+      },
+      "properties": {
+        "school_id": "ES_013",
+        "name": "San Andres Elementary School",
+        "school_type": "public_es",
+        "region": "iva",
+        "city": "Calamba",
+        "city_type": "other",
+        "province": "Laguna",
+        "num_classrooms": 17
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          121.16635854683307,
+          13.923789338894585
+        ]
+      },
+      "properties": {
+        "school_id": "ES_014",
+        "name": "Ugong Elementary School",
+        "school_type": "public_es",
+        "region": "iva",
+        "city": "Lipa City",
+        "city_type": "other",
+        "province": "Batangas",
+        "num_classrooms": 17
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          121.06808433728001,
+          13.747932245488785
+        ]
+      },
+      "properties": {
+        "school_id": "ES_015",
+        "name": "Urdaneta Elementary School",
+        "school_type": "public_es",
+        "region": "iva",
+        "city": "Batangas City",
+        "city_type": "other",
+        "province": "Batangas",
+        "num_classrooms": 12
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          121.00791647524302,
+          14.07844212019951
+        ]
+      },
+      "properties": {
+        "school_id": "ES_016",
+        "name": "Vasra Elementary School",
+        "school_type": "public_es",
+        "region": "iva",
+        "city": "Tanauan",
+        "city_type": "other",
+        "province": "Batangas",
+        "num_classrooms": 12
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          121.60920974968181,
+          13.937990563786164
+        ]
+      },
+      "properties": {
+        "school_id": "ES_017",
+        "name": "West Avenue Elementary School",
+        "school_type": "public_es",
+        "region": "iva",
+        "city": "Lucena City",
+        "city_type": "huc",
+        "province": "Quezon",
+        "num_classrooms": 12
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          120.95262993289522,
+          14.466266920136647
+        ]
+      },
+      "properties": {
+        "school_id": "ES_018",
+        "name": "Lucena Central Elementary School",
+        "school_type": "public_es",
+        "region": "iva",
+        "city": "Bacoor",
+        "city_type": "other",
+        "province": "Cavite",
+        "num_classrooms": 9
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          121.1331201635677,
+          14.554770678974752
+        ]
+      },
+      "properties": {
+        "school_id": "ES_019",
+        "name": "Calamba Elementary School",
+        "school_type": "public_es",
+        "region": "iva",
+        "city": "Cainta",
+        "city_type": "other",
+        "province": "Rizal",
+        "num_classrooms": 17
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          121.12638074822556,
+          14.312228121160476
+        ]
+      },
+      "properties": {
+        "school_id": "ES_020",
+        "name": "Batangas West Elementary School",
+        "school_type": "public_es",
+        "region": "iva",
+        "city": "Santa Rosa",
+        "city_type": "other",
+        "province": "Laguna",
+        "num_classrooms": 16
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          120.9664021038889,
+          14.442826669985207
+        ]
+      },
+      "properties": {
+        "school_id": "JHS_PUB_001",
+        "name": "Bagong Silang National High School",
+        "school_type": "public_jhs",
+        "region": "ncr",
+        "city": "Las Piñas",
+        "city_type": "ncr",
+        "province": "ncr",
+        "num_classrooms": 32,
+        "enrollment": 1715,
+        "congestion_ratio": 53.6
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          120.9792411235461,
+          14.642636833862703
+        ]
+      },
+      "properties": {
+        "school_id": "JHS_PUB_002",
+        "name": "Bignay National High School",
+        "school_type": "public_jhs",
+        "region": "ncr",
+        "city": "Caloocan",
+        "city_type": "ncr",
+        "province": "ncr",
+        "num_classrooms": 23,
+        "enrollment": 1143,
+        "congestion_ratio": 49.7
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          120.99035271342859,
+          14.444176100269853
+        ]
+      },
+      "properties": {
+        "school_id": "JHS_PUB_003",
+        "name": "Commonwealth High School",
+        "school_type": "public_jhs",
+        "region": "ncr",
+        "city": "Las Piñas",
+        "city_type": "ncr",
+        "province": "ncr",
+        "num_classrooms": 37,
+        "enrollment": 1628,
+        "congestion_ratio": 44
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          121.05077160758225,
+          14.583348410527973
+        ]
+      },
+      "properties": {
+        "school_id": "JHS_PUB_004",
+        "name": "Culiat High School",
+        "school_type": "public_jhs",
+        "region": "ncr",
+        "city": "San Juan",
+        "city_type": "ncr",
+        "province": "ncr",
+        "num_classrooms": 28,
+        "enrollment": 1271,
+        "congestion_ratio": 45.4
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          120.995913445944,
+          14.43039813046437
+        ]
+      },
+      "properties": {
+        "school_id": "JHS_PUB_005",
+        "name": "Dona Remedios Trinidad High School",
+        "school_type": "public_jhs",
+        "region": "ncr",
+        "city": "Las Piñas",
+        "city_type": "ncr",
+        "province": "ncr",
+        "num_classrooms": 23,
+        "enrollment": 1201,
+        "congestion_ratio": 52.2
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          121.02255431676605,
+          14.585599353800019
+        ]
+      },
+      "properties": {
+        "school_id": "JHS_PUB_006",
+        "name": "Fairview High School",
+        "school_type": "public_jhs",
+        "region": "ncr",
+        "city": "Mandaluyong",
+        "city_type": "ncr",
+        "province": "ncr",
+        "num_classrooms": 21,
+        "enrollment": 907,
+        "congestion_ratio": 43.2
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          120.99573076644393,
+          14.434931196017
+        ]
+      },
+      "properties": {
+        "school_id": "JHS_PUB_007",
+        "name": "Gen. T. de Leon National High School",
+        "school_type": "public_jhs",
+        "region": "ncr",
+        "city": "Las Piñas",
+        "city_type": "ncr",
+        "province": "ncr",
+        "num_classrooms": 26,
+        "enrollment": 1069,
+        "congestion_ratio": 41.1
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          120.97789632856703,
+          14.445358236566504
+        ]
+      },
+      "properties": {
+        "school_id": "JHS_PUB_008",
+        "name": "Kabayanan National High School",
+        "school_type": "public_jhs",
+        "region": "ncr",
+        "city": "Las Piñas",
+        "city_type": "ncr",
+        "province": "ncr",
+        "num_classrooms": 20,
+        "enrollment": 978,
+        "congestion_ratio": 48.9
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          120.95790740614254,
+          14.657514136878943
+        ]
+      },
+      "properties": {
+        "school_id": "JHS_PUB_009",
+        "name": "Krus na Ligas High School",
+        "school_type": "public_jhs",
+        "region": "ncr",
+        "city": "Caloocan",
+        "city_type": "ncr",
+        "province": "ncr",
+        "num_classrooms": 26,
+        "enrollment": 1139,
+        "congestion_ratio": 43.8
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          121.01842701348401,
+          14.58119690076704
+        ]
+      },
+      "properties": {
+        "school_id": "JHS_PUB_010",
+        "name": "Maligaya High School",
+        "school_type": "public_jhs",
+        "region": "ncr",
+        "city": "Mandaluyong",
+        "city_type": "ncr",
+        "province": "ncr",
+        "num_classrooms": 27,
+        "enrollment": 1096,
+        "congestion_ratio": 40.6
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          121.05055055972916,
+          14.602035558903125
+        ]
+      },
+      "properties": {
+        "school_id": "JHS_PUB_011",
+        "name": "Novaliches High School",
+        "school_type": "public_jhs",
+        "region": "ncr",
+        "city": "San Juan",
+        "city_type": "ncr",
+        "province": "ncr",
+        "num_classrooms": 25,
+        "enrollment": 1240,
+        "congestion_ratio": 49.6
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          121.00318875985322,
+          14.467197615923045
+        ]
+      },
+      "properties": {
+        "school_id": "JHS_PUB_012",
+        "name": "Pasig City Science High School",
+        "school_type": "public_jhs",
+        "region": "ncr",
+        "city": "Las Piñas",
+        "city_type": "ncr",
+        "province": "ncr",
+        "num_classrooms": 36,
+        "enrollment": 1656,
+        "congestion_ratio": 46
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          120.98909207397755,
+          14.695963011490775
+        ]
+      },
+      "properties": {
+        "school_id": "JHS_PUB_013",
+        "name": "Payatas National High School",
+        "school_type": "public_jhs",
+        "region": "ncr",
+        "city": "Valenzuela",
+        "city_type": "ncr",
+        "province": "ncr",
+        "num_classrooms": 33,
+        "enrollment": 1607,
+        "congestion_ratio": 48.7
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          121.0819418142784,
+          14.540311409718383
+        ]
+      },
+      "properties": {
+        "school_id": "JHS_PUB_014",
+        "name": "Rosario High School",
+        "school_type": "public_jhs",
+        "region": "ncr",
+        "city": "Taguig",
+        "city_type": "ncr",
+        "province": "ncr",
+        "num_classrooms": 20,
+        "enrollment": 962,
+        "congestion_ratio": 48.1
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          121.03641288478045,
+          14.597037619827017
+        ]
+      },
+      "properties": {
+        "school_id": "JHS_PUB_015",
+        "name": "San Andres National High School",
+        "school_type": "public_jhs",
+        "region": "ncr",
+        "city": "San Juan",
+        "city_type": "ncr",
+        "province": "ncr",
+        "num_classrooms": 22,
+        "enrollment": 917,
+        "congestion_ratio": 41.7
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          121.0144519617911,
+          14.481655103627784
+        ]
+      },
+      "properties": {
+        "school_id": "JHS_PUB_016",
+        "name": "Tandang Sora High School",
+        "school_type": "public_jhs",
+        "region": "ncr",
+        "city": "Parañaque",
+        "city_type": "ncr",
+        "province": "ncr",
+        "num_classrooms": 29,
+        "enrollment": 1523,
+        "congestion_ratio": 52.5
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          120.9920968636573,
+          14.456483155400448
+        ]
+      },
+      "properties": {
+        "school_id": "JHS_PUB_017",
+        "name": "Ugong National High School",
+        "school_type": "public_jhs",
+        "region": "ncr",
+        "city": "Las Piñas",
+        "city_type": "ncr",
+        "province": "ncr",
+        "num_classrooms": 30,
+        "enrollment": 1275,
+        "congestion_ratio": 42.5
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          120.95391149038167,
+          14.666764779992398
+        ]
+      },
+      "properties": {
+        "school_id": "JHS_PUB_018",
+        "name": "Valenzuela City School of Mathematics and Science",
+        "school_type": "public_jhs",
+        "region": "ncr",
+        "city": "Malabon",
+        "city_type": "ncr",
+        "province": "ncr",
+        "num_classrooms": 15,
+        "enrollment": 774,
+        "congestion_ratio": 51.6
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          121.04025585635804,
+          13.74279953139897
+        ]
+      },
+      "properties": {
+        "school_id": "JHS_PUB_019",
+        "name": "Batangas National High School",
+        "school_type": "public_jhs",
+        "region": "iva",
+        "city": "Batangas City",
+        "city_type": "other",
+        "province": "Batangas",
+        "num_classrooms": 30,
+        "enrollment": 1107,
+        "congestion_ratio": 36.9
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          120.94608896404684,
+          14.42193178861135
+        ]
+      },
+      "properties": {
+        "school_id": "JHS_PUB_020",
+        "name": "Lucena National High School",
+        "school_type": "public_jhs",
+        "region": "iva",
+        "city": "Imus",
+        "city_type": "other",
+        "province": "Cavite",
+        "num_classrooms": 35,
+        "enrollment": 1085,
+        "congestion_ratio": 31
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          120.9425334072099,
+          14.416735796118441
+        ]
+      },
+      "properties": {
+        "school_id": "JHS_PUB_021",
+        "name": "Calamba National High School",
+        "school_type": "public_jhs",
+        "region": "iva",
+        "city": "Imus",
+        "city_type": "other",
+        "province": "Cavite",
+        "num_classrooms": 25,
+        "enrollment": 1210,
+        "congestion_ratio": 48.4
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          121.18517256639723,
+          14.58197286823624
+        ]
+      },
+      "properties": {
+        "school_id": "JHS_PUB_022",
+        "name": "Dasmariñas National High School",
+        "school_type": "public_jhs",
+        "region": "iva",
+        "city": "Antipolo",
+        "city_type": "other",
+        "province": "Rizal",
+        "num_classrooms": 26,
+        "enrollment": 1126,
+        "congestion_ratio": 43.3
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          121.03074902879777,
+          14.34748155222225
+        ]
+      },
+      "properties": {
+        "school_id": "JHS_PUB_023",
+        "name": "Antipolo National High School",
+        "school_type": "public_jhs",
+        "region": "iva",
+        "city": "San Pedro",
+        "city_type": "other",
+        "province": "Laguna",
+        "num_classrooms": 29,
+        "enrollment": 1067,
+        "congestion_ratio": 36.8
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          121.12627702009668,
+          14.331839396774239
+        ]
+      },
+      "properties": {
+        "school_id": "JHS_PUB_024",
+        "name": "Santa Rosa Science and Technology High School",
+        "school_type": "public_jhs",
+        "region": "iva",
+        "city": "Santa Rosa",
+        "city_type": "other",
+        "province": "Laguna",
+        "num_classrooms": 37,
+        "enrollment": 1602,
+        "congestion_ratio": 43.3
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          121.10146912071305,
+          14.318217470049406
+        ]
+      },
+      "properties": {
+        "school_id": "JHS_PUB_025",
+        "name": "General Trias National High School",
+        "school_type": "public_jhs",
+        "region": "iva",
+        "city": "Santa Rosa",
+        "city_type": "other",
+        "province": "Laguna",
+        "num_classrooms": 35,
+        "enrollment": 1701,
+        "congestion_ratio": 48.6
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          121.63116771360826,
+          13.929748990886157
+        ]
+      },
+      "properties": {
+        "school_id": "JHS_PUB_026",
+        "name": "Imus National High School",
+        "school_type": "public_jhs",
+        "region": "iva",
+        "city": "Lucena City",
+        "city_type": "huc",
+        "province": "Quezon",
+        "num_classrooms": 16,
+        "enrollment": 539,
+        "congestion_ratio": 33.7
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          121.6280184834705,
+          13.921968598449576
+        ]
+      },
+      "properties": {
+        "school_id": "JHS_PUB_027",
+        "name": "San Pedro National High School",
+        "school_type": "public_jhs",
+        "region": "iva",
+        "city": "Lucena City",
+        "city_type": "huc",
+        "province": "Quezon",
+        "num_classrooms": 35,
+        "enrollment": 1376,
+        "congestion_ratio": 39.3
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          121.15113803303582,
+          13.936424908451627
+        ]
+      },
+      "properties": {
+        "school_id": "JHS_PUB_028",
+        "name": "Biñan National High School",
+        "school_type": "public_jhs",
+        "region": "iva",
+        "city": "Lipa City",
+        "city_type": "other",
+        "province": "Batangas",
+        "num_classrooms": 38,
+        "enrollment": 1463,
+        "congestion_ratio": 38.5
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          121.03155330866585,
+          14.369657797109982
+        ]
+      },
+      "properties": {
+        "school_id": "JHS_PUB_029",
+        "name": "Cainta National High School",
+        "school_type": "public_jhs",
+        "region": "iva",
+        "city": "San Pedro",
+        "city_type": "other",
+        "province": "Laguna",
+        "num_classrooms": 19,
+        "enrollment": 866,
+        "congestion_ratio": 45.6
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          121.15545588708865,
+          13.956846196405161
+        ]
+      },
+      "properties": {
+        "school_id": "JHS_PUB_030",
+        "name": "Lipa City National High School",
+        "school_type": "public_jhs",
+        "region": "iva",
+        "city": "Lipa City",
+        "city_type": "other",
+        "province": "Batangas",
+        "num_classrooms": 16,
+        "enrollment": 502,
+        "congestion_ratio": 31.4
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          120.96725570502099,
+          14.659334020167018
+        ]
+      },
+      "properties": {
+        "school_id": "JHS_PRI_001",
+        "name": "Saint Joseph Academy",
+        "school_type": "private_jhs",
+        "region": "ncr",
+        "city": "Navotas",
+        "city_type": "ncr",
+        "province": "ncr",
+        "num_classrooms": 23,
+        "tuition_annual": 118000
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          120.97849709924232,
+          14.59757659857052
+        ]
+      },
+      "properties": {
+        "school_id": "JHS_PRI_002",
+        "name": "Holy Cross School",
+        "school_type": "private_jhs",
+        "region": "ncr",
+        "city": "Manila",
+        "city_type": "ncr",
+        "province": "ncr",
+        "num_classrooms": 8,
+        "tuition_annual": 83000
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          121.08954079769507,
+          14.573048084317309
+        ]
+      },
+      "properties": {
+        "school_id": "JHS_PRI_003",
+        "name": "Our Lady of Lourdes School",
+        "school_type": "private_jhs",
+        "region": "ncr",
+        "city": "Pasig",
+        "city_type": "ncr",
+        "province": "ncr",
+        "num_classrooms": 25,
+        "tuition_annual": 114000
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          121.04311311371097,
+          14.593876185735816
+        ]
+      },
+      "properties": {
+        "school_id": "JHS_PRI_004",
+        "name": "San Beda College Preparatory School",
+        "school_type": "private_jhs",
+        "region": "ncr",
+        "city": "San Juan",
+        "city_type": "ncr",
+        "province": "ncr",
+        "num_classrooms": 22,
+        "tuition_annual": 133000
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          120.9698456584862,
+          14.611957467912346
+        ]
+      },
+      "properties": {
+        "school_id": "JHS_PRI_005",
+        "name": "Colegio de San Lorenzo",
+        "school_type": "private_jhs",
+        "region": "ncr",
+        "city": "Manila",
+        "city_type": "ncr",
+        "province": "ncr",
+        "num_classrooms": 25,
+        "tuition_annual": 120000
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          120.97576470710415,
+          14.690525310869873
+        ]
+      },
+      "properties": {
+        "school_id": "JHS_PRI_006",
+        "name": "Saint Theresa College",
+        "school_type": "private_jhs",
+        "region": "ncr",
+        "city": "Valenzuela",
+        "city_type": "ncr",
+        "province": "ncr",
+        "num_classrooms": 22,
+        "tuition_annual": 110000
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          121.03657940633062,
+          14.605091723668664
+        ]
+      },
+      "properties": {
+        "school_id": "JHS_PRI_007",
+        "name": "Holy Family School",
+        "school_type": "private_jhs",
+        "region": "ncr",
+        "city": "San Juan",
+        "city_type": "ncr",
+        "province": "ncr",
+        "num_classrooms": 17,
+        "tuition_annual": 140000
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          121.0296723246825,
+          14.578039227790638
+        ]
+      },
+      "properties": {
+        "school_id": "JHS_PRI_008",
+        "name": "Saint Francis of Assisi School",
+        "school_type": "private_jhs",
+        "region": "ncr",
+        "city": "Mandaluyong",
+        "city_type": "ncr",
+        "province": "ncr",
+        "num_classrooms": 21,
+        "tuition_annual": 80000
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          120.99118023650122,
+          14.557380412098386
+        ]
+      },
+      "properties": {
+        "school_id": "JHS_PRI_009",
+        "name": "Good Shepherd School",
+        "school_type": "private_jhs",
+        "region": "ncr",
+        "city": "Pasay",
+        "city_type": "ncr",
+        "province": "ncr",
+        "num_classrooms": 9,
+        "tuition_annual": 101000
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          120.92914037074355,
+          14.333924287128744
+        ]
+      },
+      "properties": {
+        "school_id": "JHS_PRI_010",
+        "name": "Immaculate Conception Academy",
+        "school_type": "private_jhs",
+        "region": "iva",
+        "city": "Dasmariñas",
+        "city_type": "other",
+        "province": "Cavite",
+        "num_classrooms": 17,
+        "tuition_annual": 23000
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          121.18293279395466,
+          14.22170449125173
+        ]
+      },
+      "properties": {
+        "school_id": "JHS_PRI_011",
+        "name": "Our Lady of Peace School",
+        "school_type": "private_jhs",
+        "region": "iva",
+        "city": "Calamba",
+        "city_type": "other",
+        "province": "Laguna",
+        "num_classrooms": 22,
+        "tuition_annual": 53000
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          121.1730015589676,
+          14.587277558454925
+        ]
+      },
+      "properties": {
+        "school_id": "JHS_PRI_012",
+        "name": "Saint Gabriel School",
+        "school_type": "private_jhs",
+        "region": "iva",
+        "city": "Antipolo",
+        "city_type": "other",
+        "province": "Rizal",
+        "num_classrooms": 10,
+        "tuition_annual": 36000
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          121.18015028992386,
+          14.569285014387372
+        ]
+      },
+      "properties": {
+        "school_id": "JHS_PRI_013",
+        "name": "Holy Redeemer School",
+        "school_type": "private_jhs",
+        "region": "iva",
+        "city": "Antipolo",
+        "city_type": "other",
+        "province": "Rizal",
+        "num_classrooms": 21,
+        "tuition_annual": 57000
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          120.94455354458152,
+          14.418157500625648
+        ]
+      },
+      "properties": {
+        "school_id": "JHS_PRI_014",
+        "name": "Saint Michael Academy",
+        "school_type": "private_jhs",
+        "region": "iva",
+        "city": "Imus",
+        "city_type": "other",
+        "province": "Cavite",
+        "num_classrooms": 25,
+        "tuition_annual": 57000
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          120.88472914004196,
+          14.405200242505318
+        ]
+      },
+      "properties": {
+        "school_id": "JHS_PRI_015",
+        "name": "Our Lady of Fatima School",
+        "school_type": "private_jhs",
+        "region": "iva",
+        "city": "General Trias",
+        "city_type": "other",
+        "province": "Cavite",
+        "num_classrooms": 10,
+        "tuition_annual": 22000
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          120.99184516951158,
+          14.537032094840802
+        ]
+      },
+      "properties": {
+        "school_id": "JHS_ESC_001",
+        "name": "Saint Anthony School",
+        "school_type": "private_jhs_esc",
+        "region": "ncr",
+        "city": "Pasay",
+        "city_type": "ncr",
+        "province": "ncr",
+        "num_classrooms": 19,
+        "tuition_annual": 110000,
+        "slots_total": 65,
+        "slots_available": 49
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          121.0649651571551,
+          14.51153623506625
+        ]
+      },
+      "properties": {
+        "school_id": "JHS_ESC_002",
+        "name": "Colegio de la Inmaculada Concepcion",
+        "school_type": "private_jhs_esc",
+        "region": "ncr",
+        "city": "Taguig",
+        "city_type": "ncr",
+        "province": "ncr",
+        "num_classrooms": 10,
+        "tuition_annual": 75000,
+        "slots_total": 55,
+        "slots_available": 37
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          121.08835958469075,
+          14.636990661451017
+        ]
+      },
+      "properties": {
+        "school_id": "JHS_ESC_003",
+        "name": "Saint Paul College",
+        "school_type": "private_jhs_esc",
+        "region": "ncr",
+        "city": "Marikina",
+        "city_type": "ncr",
+        "province": "ncr",
+        "num_classrooms": 23,
+        "tuition_annual": 52000,
+        "slots_total": 46,
+        "slots_available": 30
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          121.03983342235553,
+          14.562078579413802
+        ]
+      },
+      "properties": {
+        "school_id": "JHS_ESC_004",
+        "name": "Holy Rosary Academy",
+        "school_type": "private_jhs_esc",
+        "region": "ncr",
+        "city": "Makati",
+        "city_type": "ncr",
+        "province": "ncr",
+        "num_classrooms": 28,
+        "tuition_annual": 118000,
+        "slots_total": 50,
+        "slots_available": 26
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          120.95705272189555,
+          14.661519742632645
+        ]
+      },
+      "properties": {
+        "school_id": "JHS_ESC_005",
+        "name": "Saint John Bosco School",
+        "school_type": "private_jhs_esc",
+        "region": "ncr",
+        "city": "Navotas",
+        "city_type": "ncr",
+        "province": "ncr",
+        "num_classrooms": 25,
+        "tuition_annual": 143000,
+        "slots_total": 85,
+        "slots_available": 67
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          121.06267820630322,
+          14.672903313080777
+        ]
+      },
+      "properties": {
+        "school_id": "JHS_ESC_006",
+        "name": "Saint Mary's Academy",
+        "school_type": "private_jhs_esc",
+        "region": "ncr",
+        "city": "Quezon City",
+        "city_type": "ncr",
+        "province": "ncr",
+        "num_classrooms": 14,
+        "tuition_annual": 109000,
+        "slots_total": 40,
+        "slots_available": 24
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          121.04183935324019,
+          14.592679754949742
+        ]
+      },
+      "properties": {
+        "school_id": "JHS_ESC_007",
+        "name": "Assumption College",
+        "school_type": "private_jhs_esc",
+        "region": "ncr",
+        "city": "San Juan",
+        "city_type": "ncr",
+        "province": "ncr",
+        "num_classrooms": 30,
+        "tuition_annual": 103000,
+        "slots_total": 99,
+        "slots_available": 74
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          121.0888780928168,
+          14.565191769309642
+        ]
+      },
+      "properties": {
+        "school_id": "JHS_ESC_008",
+        "name": "Blessed Trinity School",
+        "school_type": "private_jhs_esc",
+        "region": "ncr",
+        "city": "Pasig",
+        "city_type": "ncr",
+        "province": "ncr",
+        "num_classrooms": 19,
+        "tuition_annual": 143000,
+        "slots_total": 74,
+        "slots_available": 38
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          121.02036801721854,
+          14.564441131351222
+        ]
+      },
+      "properties": {
+        "school_id": "JHS_ESC_009",
+        "name": "Saint Peter's College",
+        "school_type": "private_jhs_esc",
+        "region": "ncr",
+        "city": "Mandaluyong",
+        "city_type": "ncr",
+        "province": "ncr",
+        "num_classrooms": 26,
+        "tuition_annual": 138000,
+        "slots_total": 73,
+        "slots_available": 62
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          120.98393573930304,
+          14.449440926432937
+        ]
+      },
+      "properties": {
+        "school_id": "JHS_ESC_010",
+        "name": "Dominican School",
+        "school_type": "private_jhs_esc",
+        "region": "ncr",
+        "city": "Las Piñas",
+        "city_type": "ncr",
+        "province": "ncr",
+        "num_classrooms": 22,
+        "tuition_annual": 105000,
+        "slots_total": 63,
+        "slots_available": 38
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          121.01725404236474,
+          14.570849448003168
+        ]
+      },
+      "properties": {
+        "school_id": "JHS_ESC_011",
+        "name": "Saint Vincent de Paul School",
+        "school_type": "private_jhs_esc",
+        "region": "ncr",
+        "city": "Makati",
+        "city_type": "ncr",
+        "province": "ncr",
+        "num_classrooms": 12,
+        "tuition_annual": 75000,
+        "slots_total": 99,
+        "slots_available": 50
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          120.99091686235069,
+          14.715550395381717
+        ]
+      },
+      "properties": {
+        "school_id": "JHS_ESC_012",
+        "name": "Notre Dame School",
+        "school_type": "private_jhs_esc",
+        "region": "ncr",
+        "city": "Valenzuela",
+        "city_type": "ncr",
+        "province": "ncr",
+        "num_classrooms": 20,
+        "tuition_annual": 55000,
+        "slots_total": 69,
+        "slots_available": 59
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          120.99480576956927,
+          14.60946781938532
+        ]
+      },
+      "properties": {
+        "school_id": "JHS_ESC_013",
+        "name": "Sacred Heart School",
+        "school_type": "private_jhs_esc",
+        "region": "ncr",
+        "city": "Manila",
+        "city_type": "ncr",
+        "province": "ncr",
+        "num_classrooms": 22,
+        "tuition_annual": 108000,
+        "slots_total": 87,
+        "slots_available": 52
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          120.95727773239507,
+          14.679219557412724
+        ]
+      },
+      "properties": {
+        "school_id": "JHS_ESC_014",
+        "name": "Saint Mark's School",
+        "school_type": "private_jhs_esc",
+        "region": "ncr",
+        "city": "Navotas",
+        "city_type": "ncr",
+        "province": "ncr",
+        "num_classrooms": 24,
+        "tuition_annual": 121000,
+        "slots_total": 90,
+        "slots_available": 45
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          120.99335194276615,
+          14.523260239517302
+        ]
+      },
+      "properties": {
+        "school_id": "JHS_ESC_015",
+        "name": "Colegio de Santa Ana",
+        "school_type": "private_jhs_esc",
+        "region": "ncr",
+        "city": "Pasay",
+        "city_type": "ncr",
+        "province": "ncr",
+        "num_classrooms": 17,
+        "tuition_annual": 115000,
+        "slots_total": 55,
+        "slots_available": 41
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          120.9404995758058,
+          14.672373970121795
+        ]
+      },
+      "properties": {
+        "school_id": "JHS_ESC_016",
+        "name": "Saint Luke's Academy",
+        "school_type": "private_jhs_esc",
+        "region": "ncr",
+        "city": "Malabon",
+        "city_type": "ncr",
+        "province": "ncr",
+        "num_classrooms": 11,
+        "tuition_annual": 94000,
+        "slots_total": 73,
+        "slots_available": 43
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          121.03829537797863,
+          14.498979021637938
+        ]
+      },
+      "properties": {
+        "school_id": "JHS_ESC_017",
+        "name": "Holy Spirit School",
+        "school_type": "private_jhs_esc",
+        "region": "ncr",
+        "city": "Parañaque",
+        "city_type": "ncr",
+        "province": "ncr",
+        "num_classrooms": 11,
+        "tuition_annual": 142000,
+        "slots_total": 64,
+        "slots_available": 57
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          121.0372618566295,
+          14.694029711993693
+        ]
+      },
+      "properties": {
+        "school_id": "JHS_ESC_018",
+        "name": "Montessori de Sta. Rosa",
+        "school_type": "private_jhs_esc",
+        "region": "ncr",
+        "city": "Quezon City",
+        "city_type": "ncr",
+        "province": "ncr",
+        "num_classrooms": 19,
+        "tuition_annual": 64000,
+        "slots_total": 30,
+        "slots_available": 16
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          120.98305247562456,
+          14.519152030865365
+        ]
+      },
+      "properties": {
+        "school_id": "JHS_ESC_019",
+        "name": "Batangas Academy",
+        "school_type": "private_jhs_esc",
+        "region": "ncr",
+        "city": "Pasay",
+        "city_type": "ncr",
+        "province": "ncr",
+        "num_classrooms": 15,
+        "tuition_annual": 104000,
+        "slots_total": 59,
+        "slots_available": 33
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          121.02251800196001,
+          14.47529989926786
+        ]
+      },
+      "properties": {
+        "school_id": "JHS_ESC_020",
+        "name": "Colegio de Lucena",
+        "school_type": "private_jhs_esc",
+        "region": "ncr",
+        "city": "Parañaque",
+        "city_type": "ncr",
+        "province": "ncr",
+        "num_classrooms": 30,
+        "tuition_annual": 65000,
+        "slots_total": 73,
+        "slots_available": 63
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          121.04777509644309,
+          14.676249468964437
+        ]
+      },
+      "properties": {
+        "school_id": "JHS_ESC_021",
+        "name": "Saint Joseph Academy",
+        "school_type": "private_jhs_esc",
+        "region": "ncr",
+        "city": "Quezon City",
+        "city_type": "ncr",
+        "province": "ncr",
+        "num_classrooms": 27,
+        "tuition_annual": 77000,
+        "slots_total": 85,
+        "slots_available": 58
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          121.18388192336023,
+          14.215159778474378
+        ]
+      },
+      "properties": {
+        "school_id": "JHS_ESC_022",
+        "name": "Holy Cross School",
+        "school_type": "private_jhs_esc",
+        "region": "iva",
+        "city": "Calamba",
+        "city_type": "other",
+        "province": "Laguna",
+        "num_classrooms": 20,
+        "tuition_annual": 38000,
+        "slots_total": 73,
+        "slots_available": 44
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          121.05185263541765,
+          13.748757278254702
+        ]
+      },
+      "properties": {
+        "school_id": "JHS_ESC_023",
+        "name": "Our Lady of Lourdes School",
+        "school_type": "private_jhs_esc",
+        "region": "iva",
+        "city": "Batangas City",
+        "city_type": "other",
+        "province": "Batangas",
+        "num_classrooms": 18,
+        "tuition_annual": 36000,
+        "slots_total": 51,
+        "slots_available": 38
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          121.15446779044875,
+          14.196078584112543
+        ]
+      },
+      "properties": {
+        "school_id": "JHS_ESC_024",
+        "name": "San Beda College Preparatory School",
+        "school_type": "private_jhs_esc",
+        "region": "iva",
+        "city": "Calamba",
+        "city_type": "other",
+        "province": "Laguna",
+        "num_classrooms": 23,
+        "tuition_annual": 49000,
+        "slots_total": 54,
+        "slots_available": 38
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          121.12840017927267,
+          14.567832017288527
+        ]
+      },
+      "properties": {
+        "school_id": "JHS_ESC_025",
+        "name": "Colegio de San Lorenzo",
+        "school_type": "private_jhs_esc",
+        "region": "iva",
+        "city": "Cainta",
+        "city_type": "other",
+        "province": "Rizal",
+        "num_classrooms": 19,
+        "tuition_annual": 25000,
+        "slots_total": 48,
+        "slots_available": 38
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          120.94722782129665,
+          14.465051605823417
+        ]
+      },
+      "properties": {
+        "school_id": "JHS_ESC_026",
+        "name": "Saint Theresa College",
+        "school_type": "private_jhs_esc",
+        "region": "iva",
+        "city": "Bacoor",
+        "city_type": "other",
+        "province": "Cavite",
+        "num_classrooms": 13,
+        "tuition_annual": 56000,
+        "slots_total": 20,
+        "slots_available": 15
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          121.18097379006818,
+          14.58266572370525
+        ]
+      },
+      "properties": {
+        "school_id": "JHS_ESC_027",
+        "name": "Holy Family School",
+        "school_type": "private_jhs_esc",
+        "region": "iva",
+        "city": "Antipolo",
+        "city_type": "other",
+        "province": "Rizal",
+        "num_classrooms": 25,
+        "tuition_annual": 60000,
+        "slots_total": 44,
+        "slots_available": 29
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          121.09113323317223,
+          14.35209291630369
+        ]
+      },
+      "properties": {
+        "school_id": "JHS_ESC_028",
+        "name": "Saint Francis of Assisi School",
+        "school_type": "private_jhs_esc",
+        "region": "iva",
+        "city": "Biñan",
+        "city_type": "other",
+        "province": "Laguna",
+        "num_classrooms": 27,
+        "tuition_annual": 33000,
+        "slots_total": 61,
+        "slots_available": 35
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          121.09883771971947,
+          14.303339696703192
+        ]
+      },
+      "properties": {
+        "school_id": "JHS_ESC_029",
+        "name": "Good Shepherd School",
+        "school_type": "private_jhs_esc",
+        "region": "iva",
+        "city": "Santa Rosa",
+        "city_type": "other",
+        "province": "Laguna",
+        "num_classrooms": 17,
+        "tuition_annual": 27000,
+        "slots_total": 85,
+        "slots_available": 54
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          120.93524120106846,
+          14.431298189522549
+        ]
+      },
+      "properties": {
+        "school_id": "JHS_ESC_030",
+        "name": "Immaculate Conception Academy",
+        "school_type": "private_jhs_esc",
+        "region": "iva",
+        "city": "Imus",
+        "city_type": "other",
+        "province": "Cavite",
+        "num_classrooms": 11,
+        "tuition_annual": 26000,
+        "slots_total": 33,
+        "slots_available": 21
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          121.06292163804244,
+          14.35502917984338
+        ]
+      },
+      "properties": {
+        "school_id": "JHS_ESC_031",
+        "name": "Our Lady of Peace School",
+        "school_type": "private_jhs_esc",
+        "region": "iva",
+        "city": "Biñan",
+        "city_type": "other",
+        "province": "Laguna",
+        "num_classrooms": 15,
+        "tuition_annual": 53000,
+        "slots_total": 82,
+        "slots_available": 68
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          121.07551780718353,
+          13.75194922075847
+        ]
+      },
+      "properties": {
+        "school_id": "JHS_ESC_032",
+        "name": "Saint Gabriel School",
+        "school_type": "private_jhs_esc",
+        "region": "iva",
+        "city": "Batangas City",
+        "city_type": "other",
+        "province": "Batangas",
+        "num_classrooms": 15,
+        "tuition_annual": 57000,
+        "slots_total": 92,
+        "slots_available": 79
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          120.93548711977374,
+          14.330796243906486
+        ]
+      },
+      "properties": {
+        "school_id": "JHS_ESC_033",
+        "name": "Holy Redeemer School",
+        "school_type": "private_jhs_esc",
+        "region": "iva",
+        "city": "Dasmariñas",
+        "city_type": "other",
+        "province": "Cavite",
+        "num_classrooms": 18,
+        "tuition_annual": 42000,
+        "slots_total": 57,
+        "slots_available": 37
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          120.97542402179111,
+          14.456165425554317
+        ]
+      },
+      "properties": {
+        "school_id": "JHS_ESC_034",
+        "name": "Saint Michael Academy",
+        "school_type": "private_jhs_esc",
+        "region": "iva",
+        "city": "Bacoor",
+        "city_type": "other",
+        "province": "Cavite",
+        "num_classrooms": 29,
+        "tuition_annual": 57000,
+        "slots_total": 32,
+        "slots_available": 20
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          121.00561600191934,
+          14.088918082966734
+        ]
+      },
+      "properties": {
+        "school_id": "JHS_ESC_035",
+        "name": "Our Lady of Fatima School",
+        "school_type": "private_jhs_esc",
+        "region": "iva",
+        "city": "Tanauan",
+        "city_type": "other",
+        "province": "Batangas",
+        "num_classrooms": 23,
+        "tuition_annual": 24000,
+        "slots_total": 27,
+        "slots_available": 18
+      }
+    }
+  ]
+}

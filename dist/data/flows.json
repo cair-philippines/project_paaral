@@ -1,0 +1,146 @@
+[
+  {
+    "origin_school_id": "ES_012",
+    "destination_school_id": "JHS_ESC_001",
+    "student_count": 31,
+    "avg_distance_km": 1.6
+  },
+  {
+    "origin_school_id": "ES_013",
+    "destination_school_id": "JHS_ESC_022",
+    "student_count": 31,
+    "avg_distance_km": 0.9
+  },
+  {
+    "origin_school_id": "ES_018",
+    "destination_school_id": "JHS_ESC_026",
+    "student_count": 30,
+    "avg_distance_km": 0.8
+  },
+  {
+    "origin_school_id": "ES_017",
+    "destination_school_id": "JHS_ESC_022",
+    "student_count": 29,
+    "avg_distance_km": 88.4
+  },
+  {
+    "origin_school_id": "ES_003",
+    "destination_school_id": "JHS_ESC_005",
+    "student_count": 29,
+    "avg_distance_km": 3.1
+  },
+  {
+    "origin_school_id": "ES_014",
+    "destination_school_id": "JHS_ESC_032",
+    "student_count": 29,
+    "avg_distance_km": 34.4
+  },
+  {
+    "origin_school_id": "ES_016",
+    "destination_school_id": "JHS_ESC_035",
+    "student_count": 29,
+    "avg_distance_km": 1.9
+  },
+  {
+    "origin_school_id": "ES_008",
+    "destination_school_id": "JHS_ESC_020",
+    "student_count": 27,
+    "avg_distance_km": 1.6
+  },
+  {
+    "origin_school_id": "ES_011",
+    "destination_school_id": "JHS_ESC_013",
+    "student_count": 27,
+    "avg_distance_km": 3.2
+  },
+  {
+    "origin_school_id": "ES_010",
+    "destination_school_id": "JHS_ESC_016",
+    "student_count": 27,
+    "avg_distance_km": 1.6
+  },
+  {
+    "origin_school_id": "ES_019",
+    "destination_school_id": "JHS_ESC_025",
+    "student_count": 24,
+    "avg_distance_km": 2.2
+  },
+  {
+    "origin_school_id": "ES_015",
+    "destination_school_id": "JHS_ESC_032",
+    "student_count": 22,
+    "avg_distance_km": 1.5
+  },
+  {
+    "origin_school_id": "ES_007",
+    "destination_school_id": "JHS_ESC_020",
+    "student_count": 22,
+    "avg_distance_km": 1.7
+  },
+  {
+    "origin_school_id": "ES_006",
+    "destination_school_id": "JHS_ESC_008",
+    "student_count": 21,
+    "avg_distance_km": 2.4
+  },
+  {
+    "origin_school_id": "ES_020",
+    "destination_school_id": "JHS_ESC_029",
+    "student_count": 21,
+    "avg_distance_km": 4.4
+  },
+  {
+    "origin_school_id": "ES_009",
+    "destination_school_id": "JHS_ESC_017",
+    "student_count": 21,
+    "avg_distance_km": 2.3
+  },
+  {
+    "origin_school_id": "ES_005",
+    "destination_school_id": "JHS_ESC_020",
+    "student_count": 20,
+    "avg_distance_km": 2.3
+  },
+  {
+    "origin_school_id": "ES_004",
+    "destination_school_id": "JHS_ESC_008",
+    "student_count": 16,
+    "avg_distance_km": 0.9
+  },
+  {
+    "origin_school_id": "ES_001",
+    "destination_school_id": "JHS_ESC_011",
+    "student_count": 14,
+    "avg_distance_km": 0.6
+  },
+  {
+    "origin_school_id": "ES_002",
+    "destination_school_id": "JHS_ESC_009",
+    "student_count": 11,
+    "avg_distance_km": 0.6
+  },
+  {
+    "origin_school_id": "ES_001",
+    "destination_school_id": "JHS_ESC_009",
+    "student_count": 8,
+    "avg_distance_km": 0.5
+  },
+  {
+    "origin_school_id": "ES_009",
+    "destination_school_id": "JHS_ESC_020",
+    "student_count": 7,
+    "avg_distance_km": 2.9
+  },
+  {
+    "origin_school_id": "ES_002",
+    "destination_school_id": "JHS_ESC_011",
+    "student_count": 3,
+    "avg_distance_km": 1.2
+  },
+  {
+    "origin_school_id": "ES_012",
+    "destination_school_id": "JHS_ESC_015",
+    "student_count": 1,
+    "avg_distance_km": 2.7
+  }
+]
