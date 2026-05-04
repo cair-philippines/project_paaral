@@ -216,8 +216,153 @@
 
 ---
 
-## Pending
+### FlowMap v2 — Navigation + Animated Flows ✅
 
-| Chunk | Status |
+**Inspired by:** flowmap.blue (pan/zoom, animated arcs, SunsetDark color scale, flow-weighted circles)
+
+**Changes to `src/components/visualizations/FlowMap.jsx`:**
+
+| Feature | Detail |
 |---|---|
-| 7 — Edge Cases + Deployment | Not started |
+| Pan | Mouse drag; `dragOrig` ref tracks anchor; pan state updated on `mousemove` |
+| Zoom | Scroll wheel (cursor-centered), +/− buttons (map-center zoom), ⌖ reset button |
+| Zoom indicator | Live `zoom%` badge bottom-left |
+| Non-passive wheel | Registered via `useEffect` with `{ passive: false }` — React's synthetic `onWheel` is passive and blocks `preventDefault` |
+| Stale closure fix | `panRef`/`zoomRef` updated each render; wheel handler reads refs, not state closures |
+| Animated arcs | CSS `@keyframes dash-flow` (dashoffset 13→0) inside SVG `<defs><style>`; `stroke-dasharray: 8 5`; animation speed varies with flow weight (1.1s–1.8s) |
+| Color scale | SunsetDark ramp (7 stops, linear interpolation): warm yellow `#f3e79b` → deep purple `#5c53a5`; mapped to normalized flow weight |
+| Flow-weighted circles | Schools with ESC flow get scaled radius: `baseR + √(flow/maxTotal) × 3.5` + soft halo ring |
+| Hover tooltip | Top-left; shows school detail + up to 3 connected flows with `→`/`←` direction, city name, student count |
+| Drag-safe hover | `onMouseEnter` checks `dragOrig.current` before setting hover state — prevents tooltip during drag |
+
+**Arc animation direction:** `dashoffset: 13→0` makes dashes slide forward (origin→destination). Period = 13 (8+5 dasharray), so loop is seamless.
+
+**Legend:** replaced dot swatch for arcs with a 40×10px SunsetDark gradient rect.
+
+---
+
+### FlowMap + MapPanel Overhaul ✅
+
+**Replaced:** `FlowSankey.jsx` (Recharts Sankey) → `FlowMap.jsx` (geographic SVG arc map)
+
+**Changed:** `MapPanel.jsx` upgraded from plain dot grid to Carto Light styled map
+
+**Renamed tab:** "Flow Visualization" → "Flow Map" in AppShell
+
+---
+
+**New file: `src/components/visualizations/FlowMap.jsx`**
+
+| Feature | Detail |
+|---|---|
+| Canvas | 700 × 530 px SVG |
+| Bounds | lng 120.70–122.30, lat 13.60–14.80 (full NCR + Region IV-A) |
+| Palette | Carto Light: land `#f0f3f4`, water `#d1dce5` |
+| Water bodies | Manila Bay, Laguna de Bay, Taal Lake — closed SVG polygons |
+| Highways | NLEX, SLEX, EDSA, C5 — border + white-fill stroke technique |
+| Labels | Province labels (NCR, Cavite, Laguna, Rizal, Batangas, Quezon) + italic water labels |
+| Flow arcs | Quadratic bezier curves (origin ES → destination ESC); thickness/opacity scale with `budget_utilization` |
+| Reactivity | Arcs respond live to subsidy, slot budget, rank tolerance via `preview()` on drag, `results` after run |
+| Hover | Tooltip on school dot; connected arcs highlight orange with glow filter |
+
+**Arc weight formula:**
+- `flowScale = 0.25 + (budgetUtil / 100) × 0.75` — minimum 25% at default params, full weight at 100% utilization
+- Per-arc: `strokeWidth = 0.5 + (count/maxCount × flowScale) × 4.0`
+
+**Updated file: `src/components/visualizations/MapPanel.jsx`**
+- Same Carto Light palette, water bodies, highways, province labels as FlowMap
+- Bounds expanded from (120.78–122.25, 13.65–14.80) → (120.70–122.30, 13.60–14.80)
+- Canvas: 620 × 470 px (slightly smaller; no arc layer)
+- School dot + hover tooltip functionality unchanged
+
+**Key decisions:**
+- Arc control point lifts upward (−y in SVG = north on map) by 25% of arc distance — clean visual separation, direction-independent
+- FlowSankey.jsx retained as dead code (not imported anywhere); safe to delete later
+- Both map components are self-contained (no shared geo utility file — duplication is ~30 lines of coordinate constants, acceptable for mockup)
+
+---
+
+---
+
+## 2026-05-04
+
+### Full Dashboard Redesign ✅
+
+**Decision:** Scrapped the optimization simulation sandbox (Chunks 1–6 output) in favor of a simpler, flat descriptive dashboard. The previous mockup was doing too much — flows, predictions, scenario comparison — before stakeholders have even confirmed the basic congestion picture is right. The new view answers a simpler prior question: *what is the current state of congestion, and what does Rank-1 ESC demand look like against slot availability?*
+
+**Deleted:**
+- `src/context/` — SimulationContext, useReducer state
+- `src/hooks/` — useSimulation
+- `src/engine/` — optimizer.js, heuristics
+- `src/components/layout/` — AppShell
+- `src/components/controls/` — all sliders, panels
+- `src/components/visualizations/` — FlowMap, MapPanel, SummaryCards, ScenarioTable, FlowSankey
+- `src/components/shared/` — empty
+
+**New files:**
+| File | Purpose |
+|---|---|
+| `src/App.jsx` | Loads `schools.geojson` + `students.json`; passes to Dashboard |
+| `src/components/Dashboard.jsx` | Full-width layout; holds all filter/toggle state via useState |
+| `src/components/SummaryStrip.jsx` | 4 stat cards: total JHS, congested, public JHS congested, ESC oversubscribed |
+| `src/components/FilterBar.jsx` | Type tabs (All / Public JHS / Private No-ESC / Private ESC); congestion definition toggle + ratio slider; cascading region → province → city dropdowns |
+| `src/components/GeographicBreakdown.jsx` | Collapsible region → province → municipality rows with congestion badges |
+| `src/components/SchoolTable.jsx` | Sortable, paginated table; inline ESC columns (Slots, Rank-1 Demand, Overflow) for private ESC rows |
+
+**Key design decisions:**
+- No React context or state library — plain `useState` in Dashboard is sufficient
+- Congestion has two definitions: (a) enrollees > seats, (b) ratio > user-set threshold; toggle in FilterBar
+- ESC overflow = `max(0, rank1_demand - slots_total)` — computed from `students.json` rank-1 counts
+- Private schools can be congested too — enrollment ranges allow exceeding seats (~23% private non-ESC, ~13% private ESC)
+- Geographic breakdown filter is independent of the school table filter (breakdown always shows all JHS; table responds to all active filters)
+
+---
+
+### Real School Data Integration ✅
+
+**Source:** `https://github.com/cair-philippines/project-school-coordinates`
+
+**Files used:**
+- `data/gold/public_school_coordinates.csv` — 48,254 schools; filtered to NCR + Region IV-A, active, with coordinates
+- `data/gold/private_school_coordinates.csv` — 12,167 schools; same filter
+
+**CSVs are cached at `/tmp/` on first run; re-downloaded if missing.**
+
+**School counts (real):**
+| Type | Count | Source |
+|---|---|---|
+| `public_es` | 3,160 | public CSV, offers_es=True, offers_jhs=False |
+| `public_jhs` | 1,086 | public CSV, offers_jhs=True |
+| `private_jhs` | 561 | private CSV, offers_jhs=True, esc_participating=0 |
+| `private_jhs_esc` | 952 | private CSV, offers_jhs=True, esc_participating=1 |
+
+**Real fields used:** `school_id`, `school_name`, `latitude`, `longitude`, `region`, `province`, `municipality`, `barangay`
+
+**Still synthetic:** `num_classrooms`, `seats`, `enrollment`, `congestion_ratio`, `tuition_annual`, `slots_total`, `slots_available`
+
+**Normalization applied:**
+- Province for NCR: "NCR   SECOND DISTRICT" → "NCR Second District"
+- Province for Region IV-A: "CAVITE" → "Cavite" (title case)
+- City: "CITY OF MANDALUYONG" → "Mandaluyong" (stripped prefix, title case)
+- `city_type`: NCR → `ncr`; Lucena City → `huc`; all other IVA → `other`
+
+**Students:** 2,000 synthetic students (up from 500) across 300 sampled ES origin schools → distributed to 952 real ESC destinations via gravity model (road distance + 5km cross-region penalty). Scaled up to produce meaningful Rank-1 demand clusters.
+
+---
+
+### Header Update ✅
+
+Replicated header style from `paaral-mockup/src/App.jsx`:
+- ECAIR logo + DepEd logo row (assets copied from `paaral-mockup/public/assets/`)
+- "PAARAL" in SF Pro Display / system-ui, bold, 2xl/3xl
+- "Planning View" badge (blue, uppercase, tracking-widest) in place of "BETA"
+- Subtitle: "Platform for Analyzing Access and Resource Allocation in Learning"
+
+---
+
+### Number Formatting ✅
+
+Applied `.toLocaleString()` to all numeric outputs across:
+- `SummaryStrip.jsx` — all card values and sub-text counts
+- `GeographicBreakdown.jsx` — badge counts and school totals
+- `SchoolTable.jsx` — slots_total, rank1_demand, overflow, school count label, pagination range

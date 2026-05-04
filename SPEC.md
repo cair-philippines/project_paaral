@@ -10,10 +10,11 @@ Users adjust:
 
 ### Visualization Outputs
 
-1. **Summary Cards:** Students affected, congestion relief, budget utilization, preference respect
+1. **Summary Cards:** Students affected, congestion relief, budget utilization, preference respect, system congestion ratio
 2. **Scenario Comparison Table:** Side-by-side baseline vs. scenarios
-3. **Flow Visualization:** Sankey diagram showing student flows from congested public → ESC private
-4. **Geographic Heatmap:** Congestion relief by municipality within NCR and Region IV-A (optional)
+3. **Flow Map:** Geographic SVG arc map — bezier arcs from origin public ES to destination ESC schools; arc weight reactive to subsidy, slot budget, rank tolerance; Carto Light styled with water bodies (Manila Bay, Laguna de Bay, Taal Lake) and major highways (NLEX, SLEX, EDSA)
+4. **School Map:** Same Carto Light base map; school dots colored by congestion vs. threshold; hover tooltips with school detail
+5. **Geographic Heatmap:** Congestion relief by municipality within NCR and Region IV-A (optional, not yet built)
 
 ### Design Principles
 

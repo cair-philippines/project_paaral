@@ -1,146 +1,2936 @@
 [
   {
-    "origin_school_id": "ES_012",
-    "destination_school_id": "JHS_ESC_001",
-    "student_count": 31,
-    "avg_distance_km": 1.6
+    "origin_school_id": "137272",
+    "destination_school_id": "402889",
+    "student_count": 16,
+    "avg_distance_km": 6.2
   },
   {
-    "origin_school_id": "ES_013",
-    "destination_school_id": "JHS_ESC_022",
-    "student_count": 31,
-    "avg_distance_km": 0.9
+    "origin_school_id": "107663",
+    "destination_school_id": "401549",
+    "student_count": 14,
+    "avg_distance_km": 6.1
   },
   {
-    "origin_school_id": "ES_018",
-    "destination_school_id": "JHS_ESC_026",
-    "student_count": 30,
-    "avg_distance_km": 0.8
+    "origin_school_id": "136583",
+    "destination_school_id": "482045",
+    "student_count": 12,
+    "avg_distance_km": 0.7
   },
   {
-    "origin_school_id": "ES_017",
-    "destination_school_id": "JHS_ESC_022",
-    "student_count": 29,
-    "avg_distance_km": 88.4
+    "origin_school_id": "109129",
+    "destination_school_id": "402785",
+    "student_count": 12,
+    "avg_distance_km": 72.4
   },
   {
-    "origin_school_id": "ES_003",
-    "destination_school_id": "JHS_ESC_005",
-    "student_count": 29,
-    "avg_distance_km": 3.1
+    "origin_school_id": "108070",
+    "destination_school_id": "424226",
+    "student_count": 11,
+    "avg_distance_km": 4.5
   },
   {
-    "origin_school_id": "ES_014",
-    "destination_school_id": "JHS_ESC_032",
-    "student_count": 29,
-    "avg_distance_km": 34.4
-  },
-  {
-    "origin_school_id": "ES_016",
-    "destination_school_id": "JHS_ESC_035",
-    "student_count": 29,
-    "avg_distance_km": 1.9
-  },
-  {
-    "origin_school_id": "ES_008",
-    "destination_school_id": "JHS_ESC_020",
-    "student_count": 27,
-    "avg_distance_km": 1.6
-  },
-  {
-    "origin_school_id": "ES_011",
-    "destination_school_id": "JHS_ESC_013",
-    "student_count": 27,
-    "avg_distance_km": 3.2
-  },
-  {
-    "origin_school_id": "ES_010",
-    "destination_school_id": "JHS_ESC_016",
-    "student_count": 27,
-    "avg_distance_km": 1.6
-  },
-  {
-    "origin_school_id": "ES_019",
-    "destination_school_id": "JHS_ESC_025",
-    "student_count": 24,
-    "avg_distance_km": 2.2
-  },
-  {
-    "origin_school_id": "ES_015",
-    "destination_school_id": "JHS_ESC_032",
-    "student_count": 22,
-    "avg_distance_km": 1.5
-  },
-  {
-    "origin_school_id": "ES_007",
-    "destination_school_id": "JHS_ESC_020",
-    "student_count": 22,
+    "origin_school_id": "107252",
+    "destination_school_id": "401568",
+    "student_count": 11,
     "avg_distance_km": 1.7
   },
   {
-    "origin_school_id": "ES_006",
-    "destination_school_id": "JHS_ESC_008",
-    "student_count": 21,
+    "origin_school_id": "109108",
+    "destination_school_id": "402351",
+    "student_count": 11,
     "avg_distance_km": 2.4
   },
   {
-    "origin_school_id": "ES_020",
-    "destination_school_id": "JHS_ESC_029",
-    "student_count": 21,
-    "avg_distance_km": 4.4
-  },
-  {
-    "origin_school_id": "ES_009",
-    "destination_school_id": "JHS_ESC_017",
-    "student_count": 21,
-    "avg_distance_km": 2.3
-  },
-  {
-    "origin_school_id": "ES_005",
-    "destination_school_id": "JHS_ESC_020",
-    "student_count": 20,
-    "avg_distance_km": 2.3
-  },
-  {
-    "origin_school_id": "ES_004",
-    "destination_school_id": "JHS_ESC_008",
-    "student_count": 16,
-    "avg_distance_km": 0.9
-  },
-  {
-    "origin_school_id": "ES_001",
-    "destination_school_id": "JHS_ESC_011",
-    "student_count": 14,
-    "avg_distance_km": 0.6
-  },
-  {
-    "origin_school_id": "ES_002",
-    "destination_school_id": "JHS_ESC_009",
+    "origin_school_id": "108736",
+    "destination_school_id": "402748",
     "student_count": 11,
-    "avg_distance_km": 0.6
+    "avg_distance_km": 15.5
   },
   {
-    "origin_school_id": "ES_001",
-    "destination_school_id": "JHS_ESC_009",
+    "origin_school_id": "107659",
+    "destination_school_id": "401549",
+    "student_count": 11,
+    "avg_distance_km": 8.1
+  },
+  {
+    "origin_school_id": "107220",
+    "destination_school_id": "401555",
+    "student_count": 11,
+    "avg_distance_km": 0.1
+  },
+  {
+    "origin_school_id": "108029",
+    "destination_school_id": "402227",
+    "student_count": 11,
+    "avg_distance_km": 1.6
+  },
+  {
+    "origin_school_id": "108843",
+    "destination_school_id": "402723",
+    "student_count": 11,
+    "avg_distance_km": 7.3
+  },
+  {
+    "origin_school_id": "109026",
+    "destination_school_id": "402719",
+    "student_count": 10,
+    "avg_distance_km": 37.7
+  },
+  {
+    "origin_school_id": "136463",
+    "destination_school_id": "406341",
+    "student_count": 10,
+    "avg_distance_km": 0.3
+  },
+  {
+    "origin_school_id": "136807",
+    "destination_school_id": "407172",
+    "student_count": 10,
+    "avg_distance_km": 0.1
+  },
+  {
+    "origin_school_id": "108846",
+    "destination_school_id": "402723",
+    "student_count": 10,
+    "avg_distance_km": 17
+  },
+  {
+    "origin_school_id": "109516",
+    "destination_school_id": "402975",
+    "student_count": 10,
+    "avg_distance_km": 8.6
+  },
+  {
+    "origin_school_id": "109213",
+    "destination_school_id": "402748",
+    "student_count": 10,
+    "avg_distance_km": 29.5
+  },
+  {
+    "origin_school_id": "109421",
+    "destination_school_id": "402976",
+    "student_count": 10,
+    "avg_distance_km": 10.3
+  },
+  {
+    "origin_school_id": "107514",
+    "destination_school_id": "423517",
+    "student_count": 10,
+    "avg_distance_km": 1.6
+  },
+  {
+    "origin_school_id": "108680",
+    "destination_school_id": "402741",
+    "student_count": 10,
+    "avg_distance_km": 5.2
+  },
+  {
+    "origin_school_id": "108914",
+    "destination_school_id": "402782",
+    "student_count": 9,
+    "avg_distance_km": 17.2
+  },
+  {
+    "origin_school_id": "108030",
+    "destination_school_id": "401662",
+    "student_count": 9,
+    "avg_distance_km": 4.6
+  },
+  {
+    "origin_school_id": "109702",
+    "destination_school_id": "401617",
+    "student_count": 9,
+    "avg_distance_km": 5.5
+  },
+  {
+    "origin_school_id": "109198",
+    "destination_school_id": "402748",
+    "student_count": 9,
+    "avg_distance_km": 27.1
+  },
+  {
+    "origin_school_id": "109348",
+    "destination_school_id": "402889",
+    "student_count": 9,
+    "avg_distance_km": 4.8
+  },
+  {
+    "origin_school_id": "107251",
+    "destination_school_id": "401568",
+    "student_count": 9,
+    "avg_distance_km": 4.7
+  },
+  {
+    "origin_school_id": "109854",
+    "destination_school_id": "403313",
+    "student_count": 9,
+    "avg_distance_km": 0.4
+  },
+  {
+    "origin_school_id": "107212",
+    "destination_school_id": "401549",
+    "student_count": 9,
+    "avg_distance_km": 0.7
+  },
+  {
+    "origin_school_id": "108905",
+    "destination_school_id": "402782",
+    "student_count": 9,
+    "avg_distance_km": 23.8
+  },
+  {
+    "origin_school_id": "136495",
+    "destination_school_id": "406397",
+    "student_count": 9,
+    "avg_distance_km": 1.6
+  },
+  {
+    "origin_school_id": "102290",
+    "destination_school_id": "403168",
+    "student_count": 9,
+    "avg_distance_km": 1
+  },
+  {
+    "origin_school_id": "109579",
+    "destination_school_id": "401602",
+    "student_count": 9,
+    "avg_distance_km": 15.1
+  },
+  {
+    "origin_school_id": "107675",
+    "destination_school_id": "401555",
+    "student_count": 9,
+    "avg_distance_km": 5.7
+  },
+  {
+    "origin_school_id": "108877",
+    "destination_school_id": "402838",
+    "student_count": 9,
+    "avg_distance_km": 29.5
+  },
+  {
+    "origin_school_id": "109554",
+    "destination_school_id": "403174",
+    "student_count": 9,
+    "avg_distance_km": 4.5
+  },
+  {
+    "origin_school_id": "107472",
+    "destination_school_id": "403212",
+    "student_count": 9,
+    "avg_distance_km": 2.4
+  },
+  {
+    "origin_school_id": "109014",
+    "destination_school_id": "402838",
+    "student_count": 9,
+    "avg_distance_km": 17.2
+  },
+  {
+    "origin_school_id": "109079",
+    "destination_school_id": "402800",
+    "student_count": 9,
+    "avg_distance_km": 7.3
+  },
+  {
+    "origin_school_id": "107445",
+    "destination_school_id": "401602",
+    "student_count": 9,
+    "avg_distance_km": 5.9
+  },
+  {
+    "origin_school_id": "109847",
+    "destination_school_id": "402472",
+    "student_count": 8,
+    "avg_distance_km": 2.1
+  },
+  {
+    "origin_school_id": "107690",
+    "destination_school_id": "410923",
+    "student_count": 8,
+    "avg_distance_km": 3.8
+  },
+  {
+    "origin_school_id": "164524",
+    "destination_school_id": "424577",
+    "student_count": 8,
+    "avg_distance_km": 4.5
+  },
+  {
+    "origin_school_id": "108037",
+    "destination_school_id": "424226",
+    "student_count": 8,
+    "avg_distance_km": 7
+  },
+  {
+    "origin_school_id": "109449",
+    "destination_school_id": "403060",
+    "student_count": 8,
+    "avg_distance_km": 0.3
+  },
+  {
+    "origin_school_id": "109367",
+    "destination_school_id": "425504",
+    "student_count": 8,
+    "avg_distance_km": 1.1
+  },
+  {
+    "origin_school_id": "109124",
+    "destination_school_id": "402785",
+    "student_count": 8,
+    "avg_distance_km": 43.7
+  },
+  {
+    "origin_school_id": "109218",
+    "destination_school_id": "402748",
+    "student_count": 8,
+    "avg_distance_km": 16.7
+  },
+  {
+    "origin_school_id": "108087",
+    "destination_school_id": "424126",
     "student_count": 8,
     "avg_distance_km": 0.5
   },
   {
-    "origin_school_id": "ES_009",
-    "destination_school_id": "JHS_ESC_020",
+    "origin_school_id": "164519",
+    "destination_school_id": "402513",
+    "student_count": 8,
+    "avg_distance_km": 8.2
+  },
+  {
+    "origin_school_id": "109203",
+    "destination_school_id": "402748",
+    "student_count": 8,
+    "avg_distance_km": 10.9
+  },
+  {
+    "origin_school_id": "165003",
+    "destination_school_id": "494026",
+    "student_count": 8,
+    "avg_distance_km": 3.2
+  },
+  {
+    "origin_school_id": "163502",
+    "destination_school_id": "494505",
+    "student_count": 8,
+    "avg_distance_km": 3.6
+  },
+  {
+    "origin_school_id": "108871",
+    "destination_school_id": "402771",
+    "student_count": 8,
+    "avg_distance_km": 1.6
+  },
+  {
+    "origin_school_id": "109092",
+    "destination_school_id": "402785",
+    "student_count": 8,
+    "avg_distance_km": 72.6
+  },
+  {
+    "origin_school_id": "109700",
+    "destination_school_id": "401617",
+    "student_count": 8,
+    "avg_distance_km": 3.8
+  },
+  {
+    "origin_school_id": "108628",
+    "destination_school_id": "402731",
+    "student_count": 8,
+    "avg_distance_km": 4.3
+  },
+  {
+    "origin_school_id": "109196",
+    "destination_school_id": "402748",
+    "student_count": 8,
+    "avg_distance_km": 28.8
+  },
+  {
+    "origin_school_id": "109134",
+    "destination_school_id": "402785",
+    "student_count": 8,
+    "avg_distance_km": 26.9
+  },
+  {
+    "origin_school_id": "109175",
+    "destination_school_id": "425064",
+    "student_count": 8,
+    "avg_distance_km": 2.2
+  },
+  {
+    "origin_school_id": "107245",
+    "destination_school_id": "423589",
+    "student_count": 8,
+    "avg_distance_km": 4
+  },
+  {
+    "origin_school_id": "108723",
+    "destination_school_id": "402745",
+    "student_count": 8,
+    "avg_distance_km": 17.5
+  },
+  {
+    "origin_school_id": "108933",
+    "destination_school_id": "402785",
+    "student_count": 8,
+    "avg_distance_km": 14.6
+  },
+  {
+    "origin_school_id": "107420",
+    "destination_school_id": "401599",
+    "student_count": 8,
+    "avg_distance_km": 6.6
+  },
+  {
+    "origin_school_id": "108235",
+    "destination_school_id": "410917",
     "student_count": 7,
+    "avg_distance_km": 1.2
+  },
+  {
+    "origin_school_id": "136545",
+    "destination_school_id": "408636",
+    "student_count": 7,
+    "avg_distance_km": 5
+  },
+  {
+    "origin_school_id": "108035",
+    "destination_school_id": "401662",
+    "student_count": 7,
+    "avg_distance_km": 6.9
+  },
+  {
+    "origin_school_id": "107244",
+    "destination_school_id": "423589",
+    "student_count": 7,
+    "avg_distance_km": 5.4
+  },
+  {
+    "origin_school_id": "136802",
+    "destination_school_id": "487020",
+    "student_count": 7,
+    "avg_distance_km": 2.2
+  },
+  {
+    "origin_school_id": "109545",
+    "destination_school_id": "403158",
+    "student_count": 7,
+    "avg_distance_km": 0.6
+  },
+  {
+    "origin_school_id": "107651",
+    "destination_school_id": "401656",
+    "student_count": 7,
+    "avg_distance_km": 2.6
+  },
+  {
+    "origin_school_id": "107234",
+    "destination_school_id": "423589",
+    "student_count": 7,
+    "avg_distance_km": 2
+  },
+  {
+    "origin_school_id": "109324",
+    "destination_school_id": "494007",
+    "student_count": 7,
+    "avg_distance_km": 0.8
+  },
+  {
+    "origin_school_id": "109745",
+    "destination_school_id": "403256",
+    "student_count": 7,
+    "avg_distance_km": 0.6
+  },
+  {
+    "origin_school_id": "136774",
+    "destination_school_id": "486510",
+    "student_count": 7,
+    "avg_distance_km": 0.4
+  },
+  {
+    "origin_school_id": "109139",
+    "destination_school_id": "402785",
+    "student_count": 7,
+    "avg_distance_km": 22.3
+  },
+  {
+    "origin_school_id": "107778",
+    "destination_school_id": "428552",
+    "student_count": 7,
+    "avg_distance_km": 9
+  },
+  {
+    "origin_school_id": "108903",
+    "destination_school_id": "402782",
+    "student_count": 7,
+    "avg_distance_km": 19.8
+  },
+  {
+    "origin_school_id": "109616",
+    "destination_school_id": "403174",
+    "student_count": 7,
+    "avg_distance_km": 2.7
+  },
+  {
+    "origin_school_id": "108755",
+    "destination_school_id": "402723",
+    "student_count": 7,
+    "avg_distance_km": 18.3
+  },
+  {
+    "origin_school_id": "136753",
+    "destination_school_id": "407070",
+    "student_count": 7,
+    "avg_distance_km": 0.5
+  },
+  {
+    "origin_school_id": "107988",
+    "destination_school_id": "402159",
+    "student_count": 7,
+    "avg_distance_km": 0.2
+  },
+  {
+    "origin_school_id": "136509",
+    "destination_school_id": "406407",
+    "student_count": 7,
+    "avg_distance_km": 3
+  },
+  {
+    "origin_school_id": "103685",
+    "destination_school_id": "401603",
+    "student_count": 7,
+    "avg_distance_km": 3.2
+  },
+  {
+    "origin_school_id": "108936",
+    "destination_school_id": "402785",
+    "student_count": 7,
+    "avg_distance_km": 18
+  },
+  {
+    "origin_school_id": "107654",
+    "destination_school_id": "401656",
+    "student_count": 7,
+    "avg_distance_km": 2
+  },
+  {
+    "origin_school_id": "107701",
+    "destination_school_id": "401661",
+    "student_count": 7,
+    "avg_distance_km": 3.6
+  },
+  {
+    "origin_school_id": "108476",
+    "destination_school_id": "402660",
+    "student_count": 7,
+    "avg_distance_km": 1.1
+  },
+  {
+    "origin_school_id": "109152",
+    "destination_school_id": "402785",
+    "student_count": 7,
+    "avg_distance_km": 29.4
+  },
+  {
+    "origin_school_id": "109190",
+    "destination_school_id": "402813",
+    "student_count": 7,
+    "avg_distance_km": 1
+  },
+  {
+    "origin_school_id": "107539",
+    "destination_school_id": "402351",
+    "student_count": 7,
+    "avg_distance_km": 4.3
+  },
+  {
+    "origin_school_id": "108224",
+    "destination_school_id": "400828",
+    "student_count": 7,
+    "avg_distance_km": 2.8
+  },
+  {
+    "origin_school_id": "109469",
+    "destination_school_id": "407855",
+    "student_count": 7,
+    "avg_distance_km": 1.4
+  },
+  {
+    "origin_school_id": "107508",
+    "destination_school_id": "423533",
+    "student_count": 7,
+    "avg_distance_km": 10
+  },
+  {
+    "origin_school_id": "107689",
+    "destination_school_id": "401554",
+    "student_count": 7,
+    "avg_distance_km": 2.6
+  },
+  {
+    "origin_school_id": "107698",
+    "destination_school_id": "401665",
+    "student_count": 7,
+    "avg_distance_km": 1.8
+  },
+  {
+    "origin_school_id": "136918",
+    "destination_school_id": "402889",
+    "student_count": 7,
+    "avg_distance_km": 9.2
+  },
+  {
+    "origin_school_id": "108798",
+    "destination_school_id": "402723",
+    "student_count": 7,
+    "avg_distance_km": 11.8
+  },
+  {
+    "origin_school_id": "109663",
+    "destination_school_id": "403234",
+    "student_count": 7,
+    "avg_distance_km": 3.7
+  },
+  {
+    "origin_school_id": "108440",
+    "destination_school_id": "402579",
+    "student_count": 6,
+    "avg_distance_km": 3
+  },
+  {
+    "origin_school_id": "107625",
+    "destination_school_id": "401647",
+    "student_count": 6,
+    "avg_distance_km": 8.7
+  },
+  {
+    "origin_school_id": "109292",
+    "destination_school_id": "402838",
+    "student_count": 6,
+    "avg_distance_km": 5.7
+  },
+  {
+    "origin_school_id": "108741",
+    "destination_school_id": "402748",
+    "student_count": 6,
+    "avg_distance_km": 13.9
+  },
+  {
+    "origin_school_id": "107463",
+    "destination_school_id": "401608",
+    "student_count": 6,
+    "avg_distance_km": 13.3
+  },
+  {
+    "origin_school_id": "108150",
+    "destination_school_id": "402238",
+    "student_count": 6,
+    "avg_distance_km": 2.7
+  },
+  {
+    "origin_school_id": "108853",
+    "destination_school_id": "402735",
+    "student_count": 6,
+    "avg_distance_km": 27.5
+  },
+  {
+    "origin_school_id": "108031",
+    "destination_school_id": "402227",
+    "student_count": 6,
+    "avg_distance_km": 1.5
+  },
+  {
+    "origin_school_id": "109591",
+    "destination_school_id": "403174",
+    "student_count": 6,
+    "avg_distance_km": 3
+  },
+  {
+    "origin_school_id": "136812",
+    "destination_school_id": "410053",
+    "student_count": 6,
+    "avg_distance_km": 1.2
+  },
+  {
+    "origin_school_id": "108179",
+    "destination_school_id": "424136",
+    "student_count": 6,
+    "avg_distance_km": 1.3
+  },
+  {
+    "origin_school_id": "108130",
+    "destination_school_id": "402529",
+    "student_count": 6,
+    "avg_distance_km": 4.2
+  },
+  {
+    "origin_school_id": "108929",
+    "destination_school_id": "402785",
+    "student_count": 6,
+    "avg_distance_km": 23.9
+  },
+  {
+    "origin_school_id": "108345",
+    "destination_school_id": "402556",
+    "student_count": 6,
+    "avg_distance_km": 4
+  },
+  {
+    "origin_school_id": "109106",
+    "destination_school_id": "402351",
+    "student_count": 6,
+    "avg_distance_km": 1.8
+  },
+  {
+    "origin_school_id": "109256",
+    "destination_school_id": "402830",
+    "student_count": 6,
+    "avg_distance_km": 11.5
+  },
+  {
+    "origin_school_id": "136797",
+    "destination_school_id": "407153",
+    "student_count": 6,
+    "avg_distance_km": 0.5
+  },
+  {
+    "origin_school_id": "108859",
+    "destination_school_id": "402830",
+    "student_count": 6,
+    "avg_distance_km": 6.7
+  },
+  {
+    "origin_school_id": "109509",
+    "destination_school_id": "403113",
+    "student_count": 6,
+    "avg_distance_km": 1
+  },
+  {
+    "origin_school_id": "108335",
+    "destination_school_id": "402513",
+    "student_count": 6,
+    "avg_distance_km": 3.7
+  },
+  {
+    "origin_school_id": "109354",
+    "destination_school_id": "402903",
+    "student_count": 6,
+    "avg_distance_km": 2.3
+  },
+  {
+    "origin_school_id": "109183",
+    "destination_school_id": "402217",
+    "student_count": 6,
+    "avg_distance_km": 9.6
+  },
+  {
+    "origin_school_id": "109815",
+    "destination_school_id": "403322",
+    "student_count": 6,
+    "avg_distance_km": 3.1
+  },
+  {
+    "origin_school_id": "109181",
+    "destination_school_id": "402217",
+    "student_count": 6,
+    "avg_distance_km": 16
+  },
+  {
+    "origin_school_id": "109816",
+    "destination_school_id": "428531",
+    "student_count": 6,
+    "avg_distance_km": 0.2
+  },
+  {
+    "origin_school_id": "109484",
+    "destination_school_id": "402290",
+    "student_count": 6,
+    "avg_distance_km": 2
+  },
+  {
+    "origin_school_id": "164506",
+    "destination_school_id": "494026",
+    "student_count": 6,
+    "avg_distance_km": 5.3
+  },
+  {
+    "origin_school_id": "108508",
+    "destination_school_id": "402714",
+    "student_count": 6,
+    "avg_distance_km": 5
+  },
+  {
+    "origin_school_id": "109078",
+    "destination_school_id": "425009",
+    "student_count": 6,
+    "avg_distance_km": 15.3
+  },
+  {
+    "origin_school_id": "109789",
+    "destination_school_id": "403271",
+    "student_count": 6,
+    "avg_distance_km": 1.1
+  },
+  {
+    "origin_school_id": "164512",
+    "destination_school_id": "402432",
+    "student_count": 6,
+    "avg_distance_km": 1.4
+  },
+  {
+    "origin_school_id": "107681",
+    "destination_school_id": "401555",
+    "student_count": 6,
+    "avg_distance_km": 4.7
+  },
+  {
+    "origin_school_id": "107699",
+    "destination_school_id": "402412",
+    "student_count": 6,
+    "avg_distance_km": 4.1
+  },
+  {
+    "origin_school_id": "109804",
+    "destination_school_id": "403289",
+    "student_count": 6,
+    "avg_distance_km": 1.5
+  },
+  {
+    "origin_school_id": "108117",
+    "destination_school_id": "402529",
+    "student_count": 6,
     "avg_distance_km": 2.9
   },
   {
-    "origin_school_id": "ES_002",
-    "destination_school_id": "JHS_ESC_011",
+    "origin_school_id": "108451",
+    "destination_school_id": "402653",
+    "student_count": 6,
+    "avg_distance_km": 1.1
+  },
+  {
+    "origin_school_id": "109074",
+    "destination_school_id": "425009",
+    "student_count": 6,
+    "avg_distance_km": 16.4
+  },
+  {
+    "origin_school_id": "109590",
+    "destination_school_id": "426001",
+    "student_count": 6,
+    "avg_distance_km": 2.8
+  },
+  {
+    "origin_school_id": "109151",
+    "destination_school_id": "402785",
+    "student_count": 6,
+    "avg_distance_km": 28.4
+  },
+  {
+    "origin_school_id": "109341",
+    "destination_school_id": "402889",
+    "student_count": 6,
+    "avg_distance_km": 4.4
+  },
+  {
+    "origin_school_id": "108906",
+    "destination_school_id": "402782",
+    "student_count": 6,
+    "avg_distance_km": 6.2
+  },
+  {
+    "origin_school_id": "109113",
+    "destination_school_id": "402835",
+    "student_count": 6,
+    "avg_distance_km": 4.2
+  },
+  {
+    "origin_school_id": "136444",
+    "destination_school_id": "406302",
+    "student_count": 6,
+    "avg_distance_km": 0.7
+  },
+  {
+    "origin_school_id": "109204",
+    "destination_school_id": "402748",
+    "student_count": 6,
+    "avg_distance_km": 7.7
+  },
+  {
+    "origin_school_id": "109141",
+    "destination_school_id": "402785",
+    "student_count": 6,
+    "avg_distance_km": 31.4
+  },
+  {
+    "origin_school_id": "136760",
+    "destination_school_id": "486023",
+    "student_count": 6,
+    "avg_distance_km": 1.2
+  },
+  {
+    "origin_school_id": "164504",
+    "destination_school_id": "402656",
+    "student_count": 6,
+    "avg_distance_km": 7.6
+  },
+  {
+    "origin_school_id": "136468",
+    "destination_school_id": "406350",
+    "student_count": 5,
+    "avg_distance_km": 0.9
+  },
+  {
+    "origin_school_id": "108952",
+    "destination_school_id": "402787",
+    "student_count": 5,
+    "avg_distance_km": 15.2
+  },
+  {
+    "origin_school_id": "109660",
+    "destination_school_id": "427036",
+    "student_count": 5,
+    "avg_distance_km": 4
+  },
+  {
+    "origin_school_id": "109587",
+    "destination_school_id": "403166",
+    "student_count": 5,
+    "avg_distance_km": 1.8
+  },
+  {
+    "origin_school_id": "107490",
+    "destination_school_id": "401617",
+    "student_count": 5,
+    "avg_distance_km": 0.4
+  },
+  {
+    "origin_school_id": "109481",
+    "destination_school_id": "403095",
+    "student_count": 5,
+    "avg_distance_km": 0.5
+  },
+  {
+    "origin_school_id": "107424",
+    "destination_school_id": "401549",
+    "student_count": 5,
+    "avg_distance_km": 6.3
+  },
+  {
+    "origin_school_id": "107442",
+    "destination_school_id": "401602",
+    "student_count": 5,
+    "avg_distance_km": 10.5
+  },
+  {
+    "origin_school_id": "136500",
+    "destination_school_id": "406407",
+    "student_count": 5,
+    "avg_distance_km": 2
+  },
+  {
+    "origin_school_id": "107668",
+    "destination_school_id": "403168",
+    "student_count": 5,
+    "avg_distance_km": 6.3
+  },
+  {
+    "origin_school_id": "108125",
+    "destination_school_id": "424130",
+    "student_count": 5,
+    "avg_distance_km": 1.8
+  },
+  {
+    "origin_school_id": "109546",
+    "destination_school_id": "401701",
+    "student_count": 5,
+    "avg_distance_km": 10.6
+  },
+  {
+    "origin_school_id": "136792",
+    "destination_school_id": "407164",
+    "student_count": 5,
+    "avg_distance_km": 0.6
+  },
+  {
+    "origin_school_id": "108187",
+    "destination_school_id": "402365",
+    "student_count": 5,
+    "avg_distance_km": 0.8
+  },
+  {
+    "origin_school_id": "107665",
+    "destination_school_id": "401549",
+    "student_count": 5,
+    "avg_distance_km": 6.8
+  },
+  {
+    "origin_school_id": "109194",
+    "destination_school_id": "402748",
+    "student_count": 5,
+    "avg_distance_km": 16.7
+  },
+  {
+    "origin_school_id": "109734",
+    "destination_school_id": "403241",
+    "student_count": 5,
+    "avg_distance_km": 1.8
+  },
+  {
+    "origin_school_id": "109024",
+    "destination_school_id": "402719",
+    "student_count": 5,
+    "avg_distance_km": 17.2
+  },
+  {
+    "origin_school_id": "109763",
+    "destination_school_id": "402741",
+    "student_count": 5,
+    "avg_distance_km": 5.4
+  },
+  {
+    "origin_school_id": "109333",
+    "destination_school_id": "402944",
+    "student_count": 5,
+    "avg_distance_km": 3.1
+  },
+  {
+    "origin_school_id": "109370",
+    "destination_school_id": "402994",
+    "student_count": 5,
+    "avg_distance_km": 1.5
+  },
+  {
+    "origin_school_id": "136478",
+    "destination_school_id": "482022",
+    "student_count": 5,
+    "avg_distance_km": 1.6
+  },
+  {
+    "origin_school_id": "109303",
+    "destination_school_id": "402838",
+    "student_count": 5,
+    "avg_distance_km": 5.6
+  },
+  {
+    "origin_school_id": "136598",
+    "destination_school_id": "406837",
+    "student_count": 5,
+    "avg_distance_km": 1.1
+  },
+  {
+    "origin_school_id": "136704",
+    "destination_school_id": "406837",
+    "student_count": 5,
+    "avg_distance_km": 1
+  },
+  {
+    "origin_school_id": "136568",
+    "destination_school_id": "406599",
+    "student_count": 5,
+    "avg_distance_km": 1.3
+  },
+  {
+    "origin_school_id": "107227",
+    "destination_school_id": "401704",
+    "student_count": 5,
+    "avg_distance_km": 7.3
+  },
+  {
+    "origin_school_id": "136684",
+    "destination_school_id": "406811",
+    "student_count": 5,
+    "avg_distance_km": 0.9
+  },
+  {
+    "origin_school_id": "108985",
+    "destination_school_id": "402795",
+    "student_count": 5,
+    "avg_distance_km": 67.5
+  },
+  {
+    "origin_school_id": "107278",
+    "destination_school_id": "401603",
+    "student_count": 5,
+    "avg_distance_km": 4
+  },
+  {
+    "origin_school_id": "108060",
+    "destination_school_id": "402243",
+    "student_count": 5,
+    "avg_distance_km": 1.5
+  },
+  {
+    "origin_school_id": "109496",
+    "destination_school_id": "403090",
+    "student_count": 5,
+    "avg_distance_km": 1
+  },
+  {
+    "origin_school_id": "109173",
+    "destination_school_id": "402217",
+    "student_count": 5,
+    "avg_distance_km": 15
+  },
+  {
+    "origin_school_id": "109480",
+    "destination_school_id": "425623",
+    "student_count": 5,
+    "avg_distance_km": 4.3
+  },
+  {
+    "origin_school_id": "109478",
+    "destination_school_id": "403070",
+    "student_count": 5,
+    "avg_distance_km": 0.9
+  },
+  {
+    "origin_school_id": "108453",
+    "destination_school_id": "402656",
+    "student_count": 5,
+    "avg_distance_km": 0.9
+  },
+  {
+    "origin_school_id": "108657",
+    "destination_school_id": "402735",
+    "student_count": 5,
+    "avg_distance_km": 18.9
+  },
+  {
+    "origin_school_id": "107296",
+    "destination_school_id": "423589",
+    "student_count": 5,
+    "avg_distance_km": 17.3
+  },
+  {
+    "origin_school_id": "107636",
+    "destination_school_id": "401647",
+    "student_count": 5,
+    "avg_distance_km": 4
+  },
+  {
+    "origin_school_id": "109531",
+    "destination_school_id": "403119",
+    "student_count": 5,
+    "avg_distance_km": 0.8
+  },
+  {
+    "origin_school_id": "109403",
+    "destination_school_id": "403017",
+    "student_count": 5,
+    "avg_distance_km": 0.5
+  },
+  {
+    "origin_school_id": "107640",
+    "destination_school_id": "401654",
+    "student_count": 5,
+    "avg_distance_km": 6
+  },
+  {
+    "origin_school_id": "108087",
+    "destination_school_id": "424866",
+    "student_count": 5,
+    "avg_distance_km": 0.9
+  },
+  {
+    "origin_school_id": "107671",
+    "destination_school_id": "401555",
+    "student_count": 5,
+    "avg_distance_km": 5.9
+  },
+  {
+    "origin_school_id": "137127",
+    "destination_school_id": "486038",
+    "student_count": 5,
+    "avg_distance_km": 1.4
+  },
+  {
+    "origin_school_id": "109616",
+    "destination_school_id": "403156",
+    "student_count": 5,
+    "avg_distance_km": 2.7
+  },
+  {
+    "origin_school_id": "108916",
+    "destination_school_id": "402782",
+    "student_count": 4,
+    "avg_distance_km": 13.1
+  },
+  {
+    "origin_school_id": "108219",
+    "destination_school_id": "424538",
+    "student_count": 4,
+    "avg_distance_km": 1.1
+  },
+  {
+    "origin_school_id": "108179",
+    "destination_school_id": "424135",
+    "student_count": 4,
+    "avg_distance_km": 1.6
+  },
+  {
+    "origin_school_id": "251501",
+    "destination_school_id": "402675",
+    "student_count": 4,
+    "avg_distance_km": 2.4
+  },
+  {
+    "origin_school_id": "109154",
+    "destination_school_id": "402785",
+    "student_count": 4,
+    "avg_distance_km": 39.3
+  },
+  {
+    "origin_school_id": "136800",
+    "destination_school_id": "487020",
+    "student_count": 4,
+    "avg_distance_km": 0.3
+  },
+  {
+    "origin_school_id": "107710",
+    "destination_school_id": "401698",
+    "student_count": 4,
+    "avg_distance_km": 1.2
+  },
+  {
+    "origin_school_id": "136523",
+    "destination_school_id": "406464",
+    "student_count": 4,
+    "avg_distance_km": 1.7
+  },
+  {
+    "origin_school_id": "107559",
+    "destination_school_id": "401641",
+    "student_count": 4,
+    "avg_distance_km": 20
+  },
+  {
+    "origin_school_id": "107642",
+    "destination_school_id": "401656",
+    "student_count": 4,
+    "avg_distance_km": 7.6
+  },
+  {
+    "origin_school_id": "109070",
+    "destination_school_id": "402513",
+    "student_count": 4,
+    "avg_distance_km": 18.4
+  },
+  {
+    "origin_school_id": "109189",
+    "destination_school_id": "425064",
+    "student_count": 4,
+    "avg_distance_km": 2
+  },
+  {
+    "origin_school_id": "109330",
+    "destination_school_id": "402967",
+    "student_count": 4,
+    "avg_distance_km": 1.3
+  },
+  {
+    "origin_school_id": "107650",
+    "destination_school_id": "401554",
+    "student_count": 4,
+    "avg_distance_km": 3.3
+  },
+  {
+    "origin_school_id": "108985",
+    "destination_school_id": "402719",
+    "student_count": 4,
+    "avg_distance_km": 67.3
+  },
+  {
+    "origin_school_id": "109428",
+    "destination_school_id": "403077",
+    "student_count": 4,
+    "avg_distance_km": 2.1
+  },
+  {
+    "origin_school_id": "107462",
+    "destination_school_id": "401609",
+    "student_count": 4,
+    "avg_distance_km": 5.4
+  },
+  {
+    "origin_school_id": "136532",
+    "destination_school_id": "482716",
+    "student_count": 4,
+    "avg_distance_km": 0.6
+  },
+  {
+    "origin_school_id": "109722",
+    "destination_school_id": "403259",
+    "student_count": 4,
+    "avg_distance_km": 0.3
+  },
+  {
+    "origin_school_id": "107463",
+    "destination_school_id": "401609",
+    "student_count": 4,
+    "avg_distance_km": 13.2
+  },
+  {
+    "origin_school_id": "136691",
+    "destination_school_id": "406857",
+    "student_count": 4,
+    "avg_distance_km": 0.2
+  },
+  {
+    "origin_school_id": "109654",
+    "destination_school_id": "403234",
+    "student_count": 4,
+    "avg_distance_km": 5
+  },
+  {
+    "origin_school_id": "109778",
+    "destination_school_id": "403300",
+    "student_count": 4,
+    "avg_distance_km": 2.2
+  },
+  {
+    "origin_school_id": "136740",
+    "destination_school_id": "406938",
+    "student_count": 4,
+    "avg_distance_km": 0.2
+  },
+  {
+    "origin_school_id": "107474",
+    "destination_school_id": "401568",
+    "student_count": 4,
+    "avg_distance_km": 5.4
+  },
+  {
+    "origin_school_id": "107618",
+    "destination_school_id": "401650",
+    "student_count": 4,
+    "avg_distance_km": 2.3
+  },
+  {
+    "origin_school_id": "109711",
+    "destination_school_id": "403256",
+    "student_count": 4,
+    "avg_distance_km": 0.5
+  },
+  {
+    "origin_school_id": "109205",
+    "destination_school_id": "402748",
+    "student_count": 4,
+    "avg_distance_km": 10.8
+  },
+  {
+    "origin_school_id": "107444",
+    "destination_school_id": "401602",
+    "student_count": 4,
+    "avg_distance_km": 16.2
+  },
+  {
+    "origin_school_id": "107628",
+    "destination_school_id": "401650",
+    "student_count": 4,
+    "avg_distance_km": 9.5
+  },
+  {
+    "origin_school_id": "109444",
+    "destination_school_id": "403081",
+    "student_count": 4,
+    "avg_distance_km": 1.1
+  },
+  {
+    "origin_school_id": "108092",
+    "destination_school_id": "424866",
+    "student_count": 4,
+    "avg_distance_km": 1
+  },
+  {
+    "origin_school_id": "136775",
+    "destination_school_id": "407078",
+    "student_count": 4,
+    "avg_distance_km": 1.1
+  },
+  {
+    "origin_school_id": "109174",
+    "destination_school_id": "401650",
+    "student_count": 4,
+    "avg_distance_km": 13
+  },
+  {
+    "origin_school_id": "108281",
+    "destination_school_id": "402511",
+    "student_count": 4,
+    "avg_distance_km": 7
+  },
+  {
+    "origin_school_id": "107583",
+    "destination_school_id": "401701",
+    "student_count": 4,
+    "avg_distance_km": 15.6
+  },
+  {
+    "origin_school_id": "109452",
+    "destination_school_id": "403113",
+    "student_count": 4,
+    "avg_distance_km": 6.7
+  },
+  {
+    "origin_school_id": "109333",
+    "destination_school_id": "402959",
+    "student_count": 4,
+    "avg_distance_km": 3.3
+  },
+  {
+    "origin_school_id": "109789",
+    "destination_school_id": "403286",
+    "student_count": 4,
+    "avg_distance_km": 1.7
+  },
+  {
+    "origin_school_id": "109083",
+    "destination_school_id": "402800",
+    "student_count": 4,
+    "avg_distance_km": 4.1
+  },
+  {
+    "origin_school_id": "108060",
+    "destination_school_id": "402254",
+    "student_count": 4,
+    "avg_distance_km": 1.3
+  },
+  {
+    "origin_school_id": "107649",
+    "destination_school_id": "401654",
+    "student_count": 4,
+    "avg_distance_km": 6.2
+  },
+  {
+    "origin_school_id": "107707",
+    "destination_school_id": "401684",
+    "student_count": 4,
+    "avg_distance_km": 2.2
+  },
+  {
+    "origin_school_id": "108044",
+    "destination_school_id": "424226",
+    "student_count": 4,
+    "avg_distance_km": 10
+  },
+  {
+    "origin_school_id": "107618",
+    "destination_school_id": "401647",
+    "student_count": 4,
+    "avg_distance_km": 2.5
+  },
+  {
+    "origin_school_id": "136429",
+    "destination_school_id": "406291",
+    "student_count": 4,
+    "avg_distance_km": 0.4
+  },
+  {
+    "origin_school_id": "107713",
+    "destination_school_id": "402412",
+    "student_count": 4,
+    "avg_distance_km": 5.1
+  },
+  {
+    "origin_school_id": "109090",
+    "destination_school_id": "402785",
+    "student_count": 4,
+    "avg_distance_km": 55.5
+  },
+  {
+    "origin_school_id": "108292",
+    "destination_school_id": "402701",
+    "student_count": 4,
+    "avg_distance_km": 4.2
+  },
+  {
+    "origin_school_id": "136797",
+    "destination_school_id": "407161",
+    "student_count": 4,
+    "avg_distance_km": 0.6
+  },
+  {
+    "origin_school_id": "109562",
+    "destination_school_id": "403174",
+    "student_count": 4,
+    "avg_distance_km": 8.1
+  },
+  {
+    "origin_school_id": "109070",
+    "destination_school_id": "402571",
+    "student_count": 4,
+    "avg_distance_km": 18
+  },
+  {
+    "origin_school_id": "109457",
+    "destination_school_id": "403114",
+    "student_count": 4,
+    "avg_distance_km": 3.9
+  },
+  {
+    "origin_school_id": "109555",
+    "destination_school_id": "401701",
+    "student_count": 3,
+    "avg_distance_km": 10.5
+  },
+  {
+    "origin_school_id": "109705",
+    "destination_school_id": "401617",
+    "student_count": 3,
+    "avg_distance_km": 5.2
+  },
+  {
+    "origin_school_id": "136684",
+    "destination_school_id": "406816",
+    "student_count": 3,
+    "avg_distance_km": 1.1
+  },
+  {
+    "origin_school_id": "136815",
+    "destination_school_id": "407179",
+    "student_count": 3,
+    "avg_distance_km": 0.5
+  },
+  {
+    "origin_school_id": "108174",
+    "destination_school_id": "402254",
+    "student_count": 3,
+    "avg_distance_km": 6.4
+  },
+  {
+    "origin_school_id": "136460",
+    "destination_school_id": "482060",
+    "student_count": 3,
+    "avg_distance_km": 0.6
+  },
+  {
+    "origin_school_id": "109680",
+    "destination_school_id": "427024",
+    "student_count": 3,
+    "avg_distance_km": 8.2
+  },
+  {
+    "origin_school_id": "109457",
+    "destination_school_id": "403115",
+    "student_count": 3,
+    "avg_distance_km": 4
+  },
+  {
+    "origin_school_id": "251501",
+    "destination_school_id": "402688",
+    "student_count": 3,
+    "avg_distance_km": 2
+  },
+  {
+    "origin_school_id": "109587",
+    "destination_school_id": "403154",
+    "student_count": 3,
+    "avg_distance_km": 2.1
+  },
+  {
+    "origin_school_id": "136433",
+    "destination_school_id": "406293",
+    "student_count": 3,
+    "avg_distance_km": 2.4
+  },
+  {
+    "origin_school_id": "109452",
+    "destination_school_id": "403114",
+    "student_count": 3,
+    "avg_distance_km": 6.8
+  },
+  {
+    "origin_school_id": "107462",
+    "destination_school_id": "401608",
+    "student_count": 3,
+    "avg_distance_km": 5.2
+  },
+  {
+    "origin_school_id": "109691",
+    "destination_school_id": "403203",
+    "student_count": 3,
+    "avg_distance_km": 2.5
+  },
+  {
+    "origin_school_id": "136670",
+    "destination_school_id": "406760",
     "student_count": 3,
     "avg_distance_km": 1.2
   },
   {
-    "origin_school_id": "ES_012",
-    "destination_school_id": "JHS_ESC_015",
+    "origin_school_id": "109662",
+    "destination_school_id": "427020",
+    "student_count": 3,
+    "avg_distance_km": 1
+  },
+  {
+    "origin_school_id": "136688",
+    "destination_school_id": "406855",
+    "student_count": 3,
+    "avg_distance_km": 0.8
+  },
+  {
+    "origin_school_id": "109098",
+    "destination_school_id": "402785",
+    "student_count": 3,
+    "avg_distance_km": 72.7
+  },
+  {
+    "origin_school_id": "136598",
+    "destination_school_id": "406653",
+    "student_count": 3,
+    "avg_distance_km": 1.1
+  },
+  {
+    "origin_school_id": "136483",
+    "destination_school_id": "482085",
+    "student_count": 3,
+    "avg_distance_km": 0.5
+  },
+  {
+    "origin_school_id": "109456",
+    "destination_school_id": "403114",
+    "student_count": 3,
+    "avg_distance_km": 5
+  },
+  {
+    "origin_school_id": "109356",
+    "destination_school_id": "403145",
+    "student_count": 3,
+    "avg_distance_km": 1.3
+  },
+  {
+    "origin_school_id": "109136",
+    "destination_school_id": "402785",
+    "student_count": 3,
+    "avg_distance_km": 71.8
+  },
+  {
+    "origin_school_id": "109804",
+    "destination_school_id": "403286",
+    "student_count": 3,
+    "avg_distance_km": 1.4
+  },
+  {
+    "origin_school_id": "108159",
+    "destination_school_id": "402532",
+    "student_count": 3,
+    "avg_distance_km": 0.9
+  },
+  {
+    "origin_school_id": "108655",
+    "destination_school_id": "402738",
+    "student_count": 3,
+    "avg_distance_km": 16
+  },
+  {
+    "origin_school_id": "136457",
+    "destination_school_id": "482060",
+    "student_count": 3,
+    "avg_distance_km": 1
+  },
+  {
+    "origin_school_id": "109173",
+    "destination_school_id": "402731",
+    "student_count": 3,
+    "avg_distance_km": 15.6
+  },
+  {
+    "origin_school_id": "107457",
+    "destination_school_id": "401609",
+    "student_count": 3,
+    "avg_distance_km": 8.1
+  },
+  {
+    "origin_school_id": "108174",
+    "destination_school_id": "402243",
+    "student_count": 3,
+    "avg_distance_km": 6.4
+  },
+  {
+    "origin_school_id": "108488",
+    "destination_school_id": "402701",
+    "student_count": 3,
+    "avg_distance_km": 1.1
+  },
+  {
+    "origin_school_id": "108143",
+    "destination_school_id": "424384",
+    "student_count": 3,
+    "avg_distance_km": 4.5
+  },
+  {
+    "origin_school_id": "136741",
+    "destination_school_id": "485522",
+    "student_count": 3,
+    "avg_distance_km": 0.6
+  },
+  {
+    "origin_school_id": "109711",
+    "destination_school_id": "403245",
+    "student_count": 3,
+    "avg_distance_km": 0.5
+  },
+  {
+    "origin_school_id": "108214",
+    "destination_school_id": "402421",
+    "student_count": 3,
+    "avg_distance_km": 3.1
+  },
+  {
+    "origin_school_id": "109793",
+    "destination_school_id": "403293",
+    "student_count": 3,
+    "avg_distance_km": 0.2
+  },
+  {
+    "origin_school_id": "107457",
+    "destination_school_id": "401608",
+    "student_count": 3,
+    "avg_distance_km": 8.3
+  },
+  {
+    "origin_school_id": "136462",
+    "destination_school_id": "406341",
+    "student_count": 3,
+    "avg_distance_km": 0.2
+  },
+  {
+    "origin_school_id": "109531",
+    "destination_school_id": "403139",
+    "student_count": 3,
+    "avg_distance_km": 0.8
+  },
+  {
+    "origin_school_id": "107686",
+    "destination_school_id": "401603",
+    "student_count": 3,
+    "avg_distance_km": 2.9
+  },
+  {
+    "origin_school_id": "109505",
+    "destination_school_id": "494026",
+    "student_count": 3,
+    "avg_distance_km": 11.7
+  },
+  {
+    "origin_school_id": "108143",
+    "destination_school_id": "402238",
+    "student_count": 3,
+    "avg_distance_km": 4.4
+  },
+  {
+    "origin_school_id": "109711",
+    "destination_school_id": "403241",
+    "student_count": 3,
+    "avg_distance_km": 0.5
+  },
+  {
+    "origin_school_id": "107481",
+    "destination_school_id": "423542",
+    "student_count": 3,
+    "avg_distance_km": 1.3
+  },
+  {
+    "origin_school_id": "136691",
+    "destination_school_id": "406855",
+    "student_count": 3,
+    "avg_distance_km": 0.5
+  },
+  {
+    "origin_school_id": "109668",
+    "destination_school_id": "403234",
+    "student_count": 3,
+    "avg_distance_km": 4
+  },
+  {
+    "origin_school_id": "136775",
+    "destination_school_id": "407087",
+    "student_count": 3,
+    "avg_distance_km": 1.2
+  },
+  {
+    "origin_school_id": "108365",
+    "destination_school_id": "402562",
+    "student_count": 3,
+    "avg_distance_km": 4.8
+  },
+  {
+    "origin_school_id": "108370",
+    "destination_school_id": "402563",
+    "student_count": 3,
+    "avg_distance_km": 4.1
+  },
+  {
+    "origin_school_id": "108734",
+    "destination_school_id": "402748",
+    "student_count": 3,
+    "avg_distance_km": 9.9
+  },
+  {
+    "origin_school_id": "109662",
+    "destination_school_id": "403220",
+    "student_count": 3,
+    "avg_distance_km": 1
+  },
+  {
+    "origin_school_id": "108216",
+    "destination_school_id": "402444",
+    "student_count": 3,
+    "avg_distance_km": 0.9
+  },
+  {
+    "origin_school_id": "109472",
+    "destination_school_id": "403063",
+    "student_count": 3,
+    "avg_distance_km": 4.1
+  },
+  {
+    "origin_school_id": "107296",
+    "destination_school_id": "401549",
+    "student_count": 3,
+    "avg_distance_km": 17.1
+  },
+  {
+    "origin_school_id": "136713",
+    "destination_school_id": "406377",
+    "student_count": 3,
+    "avg_distance_km": 1.7
+  },
+  {
+    "origin_school_id": "109444",
+    "destination_school_id": "403078",
+    "student_count": 3,
+    "avg_distance_km": 0.6
+  },
+  {
+    "origin_school_id": "109463",
+    "destination_school_id": "403075",
+    "student_count": 3,
+    "avg_distance_km": 0.5
+  },
+  {
+    "origin_school_id": "107559",
+    "destination_school_id": "401650",
+    "student_count": 3,
+    "avg_distance_km": 20
+  },
+  {
+    "origin_school_id": "107636",
+    "destination_school_id": "401650",
+    "student_count": 3,
+    "avg_distance_km": 4
+  },
+  {
+    "origin_school_id": "108159",
+    "destination_school_id": "402323",
+    "student_count": 2,
+    "avg_distance_km": 1.4
+  },
+  {
+    "origin_school_id": "109161",
+    "destination_school_id": "402217",
+    "student_count": 2,
+    "avg_distance_km": 9
+  },
+  {
+    "origin_school_id": "107625",
+    "destination_school_id": "401650",
+    "student_count": 2,
+    "avg_distance_km": 8.9
+  },
+  {
+    "origin_school_id": "109356",
+    "destination_school_id": "403147",
+    "student_count": 2,
+    "avg_distance_km": 1
+  },
+  {
+    "origin_school_id": "109168",
+    "destination_school_id": "402817",
+    "student_count": 2,
+    "avg_distance_km": 4.5
+  },
+  {
+    "origin_school_id": "136688",
+    "destination_school_id": "406859",
+    "student_count": 2,
+    "avg_distance_km": 0.7
+  },
+  {
+    "origin_school_id": "136468",
+    "destination_school_id": "482045",
+    "student_count": 2,
+    "avg_distance_km": 1.2
+  },
+  {
+    "origin_school_id": "109478",
+    "destination_school_id": "403074",
+    "student_count": 2,
+    "avg_distance_km": 1.4
+  },
+  {
+    "origin_school_id": "109403",
+    "destination_school_id": "403026",
+    "student_count": 2,
+    "avg_distance_km": 1
+  },
+  {
+    "origin_school_id": "109367",
+    "destination_school_id": "402998",
+    "student_count": 2,
+    "avg_distance_km": 1.5
+  },
+  {
+    "origin_school_id": "137127",
+    "destination_school_id": "407074",
+    "student_count": 2,
+    "avg_distance_km": 1.8
+  },
+  {
+    "origin_school_id": "109680",
+    "destination_school_id": "403233",
+    "student_count": 2,
+    "avg_distance_km": 8.6
+  },
+  {
+    "origin_school_id": "108292",
+    "destination_school_id": "402656",
+    "student_count": 2,
+    "avg_distance_km": 4.5
+  },
+  {
+    "origin_school_id": "136721",
+    "destination_school_id": "406884",
+    "student_count": 2,
+    "avg_distance_km": 0.4
+  },
+  {
+    "origin_school_id": "108853",
+    "destination_school_id": "402737",
+    "student_count": 2,
+    "avg_distance_km": 27.9
+  },
+  {
+    "origin_school_id": "136800",
+    "destination_school_id": "407172",
+    "student_count": 2,
+    "avg_distance_km": 0.8
+  },
+  {
+    "origin_school_id": "107453",
+    "destination_school_id": "401609",
+    "student_count": 2,
+    "avg_distance_km": 9.4
+  },
+  {
+    "origin_school_id": "109368",
+    "destination_school_id": "402976",
+    "student_count": 2,
+    "avg_distance_km": 0.9
+  },
+  {
+    "origin_school_id": "109660",
+    "destination_school_id": "427043",
+    "student_count": 2,
+    "avg_distance_km": 4.6
+  },
+  {
+    "origin_school_id": "251501",
+    "destination_school_id": "402659",
+    "student_count": 2,
+    "avg_distance_km": 2.3
+  },
+  {
+    "origin_school_id": "109691",
+    "destination_school_id": "403206",
+    "student_count": 2,
+    "avg_distance_km": 2.5
+  },
+  {
+    "origin_school_id": "107675",
+    "destination_school_id": "423536",
+    "student_count": 2,
+    "avg_distance_km": 6.6
+  },
+  {
+    "origin_school_id": "107296",
+    "destination_school_id": "401561",
+    "student_count": 2,
+    "avg_distance_km": 17.7
+  },
+  {
+    "origin_school_id": "107474",
+    "destination_school_id": "407825",
+    "student_count": 2,
+    "avg_distance_km": 6
+  },
+  {
+    "origin_school_id": "109527",
+    "destination_school_id": "403115",
+    "student_count": 2,
+    "avg_distance_km": 1
+  },
+  {
+    "origin_school_id": "107481",
+    "destination_school_id": "401615",
+    "student_count": 2,
+    "avg_distance_km": 1.5
+  },
+  {
+    "origin_school_id": "136477",
+    "destination_school_id": "406366",
+    "student_count": 2,
+    "avg_distance_km": 0.5
+  },
+  {
+    "origin_school_id": "109805",
+    "destination_school_id": "403305",
+    "student_count": 2,
+    "avg_distance_km": 4.3
+  },
+  {
+    "origin_school_id": "109338",
+    "destination_school_id": "402954",
+    "student_count": 2,
+    "avg_distance_km": 2.4
+  },
+  {
+    "origin_school_id": "108821",
+    "destination_school_id": "402723",
+    "student_count": 2,
+    "avg_distance_km": 28.7
+  },
+  {
+    "origin_school_id": "107633",
+    "destination_school_id": "401650",
+    "student_count": 2,
+    "avg_distance_km": 10
+  },
+  {
+    "origin_school_id": "109161",
+    "destination_school_id": "402813",
+    "student_count": 2,
+    "avg_distance_km": 9.2
+  },
+  {
+    "origin_school_id": "108451",
+    "destination_school_id": "407732",
+    "student_count": 2,
+    "avg_distance_km": 1.6
+  },
+  {
+    "origin_school_id": "107508",
+    "destination_school_id": "423517",
+    "student_count": 2,
+    "avg_distance_km": 10.1
+  },
+  {
+    "origin_school_id": "107707",
+    "destination_school_id": "401665",
+    "student_count": 2,
+    "avg_distance_km": 2.2
+  },
+  {
+    "origin_school_id": "136721",
+    "destination_school_id": "406873",
+    "student_count": 2,
+    "avg_distance_km": 0.2
+  },
+  {
+    "origin_school_id": "109329",
+    "destination_school_id": "402888",
+    "student_count": 2,
+    "avg_distance_km": 1.3
+  },
+  {
+    "origin_school_id": "107650",
+    "destination_school_id": "401656",
+    "student_count": 2,
+    "avg_distance_km": 3.9
+  },
+  {
+    "origin_school_id": "108704",
+    "destination_school_id": "402745",
+    "student_count": 2,
+    "avg_distance_km": 4.3
+  },
+  {
+    "origin_school_id": "109370",
+    "destination_school_id": "402977",
+    "student_count": 2,
+    "avg_distance_km": 1.9
+  },
+  {
+    "origin_school_id": "136821",
+    "destination_school_id": "407189",
+    "student_count": 2,
+    "avg_distance_km": 0.8
+  },
+  {
+    "origin_school_id": "136689",
+    "destination_school_id": "406857",
+    "student_count": 2,
+    "avg_distance_km": 1
+  },
+  {
+    "origin_school_id": "136716",
+    "destination_school_id": "406647",
+    "student_count": 2,
+    "avg_distance_km": 2.1
+  },
+  {
+    "origin_school_id": "109527",
+    "destination_school_id": "403114",
+    "student_count": 2,
+    "avg_distance_km": 0.5
+  },
+  {
+    "origin_school_id": "108476",
+    "destination_school_id": "402675",
+    "student_count": 2,
+    "avg_distance_km": 1.4
+  },
+  {
+    "origin_school_id": "109284",
+    "destination_school_id": "402835",
+    "student_count": 2,
+    "avg_distance_km": 4.8
+  },
+  {
+    "origin_school_id": "136509",
+    "destination_school_id": "482942",
+    "student_count": 2,
+    "avg_distance_km": 3.9
+  },
+  {
+    "origin_school_id": "108969",
+    "destination_school_id": "425040",
+    "student_count": 2,
+    "avg_distance_km": 3.4
+  },
+  {
+    "origin_school_id": "136688",
+    "destination_school_id": "406857",
+    "student_count": 2,
+    "avg_distance_km": 0.6
+  },
+  {
+    "origin_school_id": "136820",
+    "destination_school_id": "407183",
+    "student_count": 2,
+    "avg_distance_km": 0.3
+  },
+  {
+    "origin_school_id": "107453",
+    "destination_school_id": "401608",
+    "student_count": 2,
+    "avg_distance_km": 9.5
+  },
+  {
+    "origin_school_id": "108966",
+    "destination_school_id": "425040",
+    "student_count": 2,
+    "avg_distance_km": 0.9
+  },
+  {
+    "origin_school_id": "109591",
+    "destination_school_id": "403152",
+    "student_count": 2,
+    "avg_distance_km": 3
+  },
+  {
+    "origin_school_id": "107584",
+    "destination_school_id": "401646",
+    "student_count": 2,
+    "avg_distance_km": 4.6
+  },
+  {
+    "origin_school_id": "108174",
+    "destination_school_id": "424263",
+    "student_count": 2,
+    "avg_distance_km": 6.9
+  },
+  {
+    "origin_school_id": "136460",
+    "destination_school_id": "482045",
+    "student_count": 2,
+    "avg_distance_km": 0.6
+  },
+  {
+    "origin_school_id": "136698",
+    "destination_school_id": "485558",
+    "student_count": 2,
+    "avg_distance_km": 1.1
+  },
+  {
+    "origin_school_id": "109680",
+    "destination_school_id": "403205",
+    "student_count": 2,
+    "avg_distance_km": 8.5
+  },
+  {
+    "origin_school_id": "108224",
+    "destination_school_id": "400820",
+    "student_count": 2,
+    "avg_distance_km": 3.5
+  },
+  {
+    "origin_school_id": "109463",
+    "destination_school_id": "403061",
+    "student_count": 2,
+    "avg_distance_km": 0.3
+  },
+  {
+    "origin_school_id": "136802",
+    "destination_school_id": "407172",
+    "student_count": 2,
+    "avg_distance_km": 2.8
+  },
+  {
+    "origin_school_id": "109368",
+    "destination_school_id": "402978",
+    "student_count": 2,
+    "avg_distance_km": 0.8
+  },
+  {
+    "origin_school_id": "109041",
+    "destination_school_id": "402719",
+    "student_count": 2,
+    "avg_distance_km": 38.3
+  },
+  {
+    "origin_school_id": "109330",
+    "destination_school_id": "402951",
+    "student_count": 2,
+    "avg_distance_km": 1.9
+  },
+  {
+    "origin_school_id": "107709",
+    "destination_school_id": "423551",
+    "student_count": 2,
+    "avg_distance_km": 2.8
+  },
+  {
+    "origin_school_id": "137127",
+    "destination_school_id": "407070",
+    "student_count": 2,
+    "avg_distance_km": 1.3
+  },
+  {
+    "origin_school_id": "108370",
+    "destination_school_id": "402562",
+    "student_count": 2,
+    "avg_distance_km": 4
+  },
+  {
+    "origin_school_id": "109174",
+    "destination_school_id": "401647",
+    "student_count": 2,
+    "avg_distance_km": 12.7
+  },
+  {
+    "origin_school_id": "107671",
+    "destination_school_id": "401554",
+    "student_count": 2,
+    "avg_distance_km": 5.8
+  },
+  {
+    "origin_school_id": "136716",
+    "destination_school_id": "406371",
+    "student_count": 2,
+    "avg_distance_km": 1.8
+  },
+  {
+    "origin_school_id": "136423",
+    "destination_school_id": "406291",
+    "student_count": 2,
+    "avg_distance_km": 1.5
+  },
+  {
+    "origin_school_id": "109711",
+    "destination_school_id": "403259",
+    "student_count": 2,
+    "avg_distance_km": 0.6
+  },
+  {
+    "origin_school_id": "108169",
+    "destination_school_id": "402329",
+    "student_count": 2,
+    "avg_distance_km": 1
+  },
+  {
+    "origin_school_id": "107710",
+    "destination_school_id": "401687",
+    "student_count": 2,
+    "avg_distance_km": 1.6
+  },
+  {
+    "origin_school_id": "136423",
+    "destination_school_id": "406342",
+    "student_count": 1,
+    "avg_distance_km": 2.6
+  },
+  {
+    "origin_school_id": "107234",
+    "destination_school_id": "401561",
+    "student_count": 1,
+    "avg_distance_km": 2.6
+  },
+  {
+    "origin_school_id": "109074",
+    "destination_school_id": "402745",
+    "student_count": 1,
+    "avg_distance_km": 17.1
+  },
+  {
+    "origin_school_id": "109722",
+    "destination_school_id": "403256",
+    "student_count": 1,
+    "avg_distance_km": 0.6
+  },
+  {
+    "origin_school_id": "108853",
+    "destination_school_id": "402738",
+    "student_count": 1,
+    "avg_distance_km": 27.8
+  },
+  {
+    "origin_school_id": "136760",
+    "destination_school_id": "407052",
+    "student_count": 1,
+    "avg_distance_km": 1.5
+  },
+  {
+    "origin_school_id": "107269",
+    "destination_school_id": "401656",
+    "student_count": 1,
+    "avg_distance_km": 5.1
+  },
+  {
+    "origin_school_id": "109496",
+    "destination_school_id": "403087",
+    "student_count": 1,
+    "avg_distance_km": 1.4
+  },
+  {
+    "origin_school_id": "109662",
+    "destination_school_id": "427043",
+    "student_count": 1,
+    "avg_distance_km": 1.7
+  },
+  {
+    "origin_school_id": "109193",
+    "destination_school_id": "402732",
+    "student_count": 1,
+    "avg_distance_km": 9
+  },
+  {
+    "origin_school_id": "109469",
+    "destination_school_id": "425577",
+    "student_count": 1,
+    "avg_distance_km": 2.5
+  },
+  {
+    "origin_school_id": "109545",
+    "destination_school_id": "403156",
+    "student_count": 1,
+    "avg_distance_km": 0.8
+  },
+  {
+    "origin_school_id": "107628",
+    "destination_school_id": "401647",
+    "student_count": 1,
+    "avg_distance_km": 9.5
+  },
+  {
+    "origin_school_id": "136598",
+    "destination_school_id": "406836",
+    "student_count": 1,
+    "avg_distance_km": 2
+  },
+  {
+    "origin_school_id": "108219",
+    "destination_school_id": "402444",
+    "student_count": 1,
+    "avg_distance_km": 1.6
+  },
+  {
+    "origin_school_id": "107584",
+    "destination_school_id": "423597",
+    "student_count": 1,
+    "avg_distance_km": 4.8
+  },
+  {
+    "origin_school_id": "109330",
+    "destination_school_id": "402954",
+    "student_count": 1,
+    "avg_distance_km": 1.8
+  },
+  {
+    "origin_school_id": "136463",
+    "destination_school_id": "406342",
+    "student_count": 1,
+    "avg_distance_km": 1.4
+  },
+  {
+    "origin_school_id": "108087",
+    "destination_school_id": "402340",
+    "student_count": 1,
+    "avg_distance_km": 1.8
+  },
+  {
+    "origin_school_id": "136483",
+    "destination_school_id": "406753",
+    "student_count": 1,
+    "avg_distance_km": 1.8
+  },
+  {
+    "origin_school_id": "109789",
+    "destination_school_id": "403305",
+    "student_count": 1,
+    "avg_distance_km": 1.8
+  },
+  {
+    "origin_school_id": "108655",
+    "destination_school_id": "402735",
+    "student_count": 1,
+    "avg_distance_km": 16.5
+  },
+  {
+    "origin_school_id": "136691",
+    "destination_school_id": "406852",
+    "student_count": 1,
+    "avg_distance_km": 0.7
+  },
+  {
+    "origin_school_id": "109452",
+    "destination_school_id": "403115",
+    "student_count": 1,
+    "avg_distance_km": 6.8
+  },
+  {
+    "origin_school_id": "136523",
+    "destination_school_id": "406467",
+    "student_count": 1,
+    "avg_distance_km": 1.6
+  },
+  {
+    "origin_school_id": "109193",
+    "destination_school_id": "402731",
+    "student_count": 1,
+    "avg_distance_km": 8.6
+  },
+  {
+    "origin_school_id": "108969",
+    "destination_school_id": "402789",
+    "student_count": 1,
+    "avg_distance_km": 3.8
+  },
+  {
+    "origin_school_id": "109338",
+    "destination_school_id": "402951",
+    "student_count": 1,
+    "avg_distance_km": 3
+  },
+  {
+    "origin_school_id": "108657",
+    "destination_school_id": "402738",
+    "student_count": 1,
+    "avg_distance_km": 19.4
+  },
+  {
+    "origin_school_id": "109854",
+    "destination_school_id": "428509",
+    "student_count": 1,
+    "avg_distance_km": 1.5
+  },
+  {
+    "origin_school_id": "136691",
+    "destination_school_id": "406859",
+    "student_count": 1,
+    "avg_distance_km": 0.9
+  },
+  {
+    "origin_school_id": "136468",
+    "destination_school_id": "406312",
+    "student_count": 1,
+    "avg_distance_km": 1.5
+  },
+  {
+    "origin_school_id": "136775",
+    "destination_school_id": "407106",
+    "student_count": 1,
+    "avg_distance_km": 1.7
+  },
+  {
+    "origin_school_id": "108451",
+    "destination_school_id": "402647",
+    "student_count": 1,
+    "avg_distance_km": 1.7
+  },
+  {
+    "origin_school_id": "107634",
+    "destination_school_id": "401647",
+    "student_count": 1,
+    "avg_distance_km": 18.8
+  },
+  {
+    "origin_school_id": "109456",
+    "destination_school_id": "403115",
+    "student_count": 1,
+    "avg_distance_km": 5.2
+  },
+  {
+    "origin_school_id": "136698",
+    "destination_school_id": "485591",
+    "student_count": 1,
+    "avg_distance_km": 1.2
+  },
+  {
+    "origin_school_id": "136483",
+    "destination_school_id": "406353",
+    "student_count": 1,
+    "avg_distance_km": 1.4
+  },
+  {
+    "origin_school_id": "109680",
+    "destination_school_id": "403206",
+    "student_count": 1,
+    "avg_distance_km": 8.4
+  },
+  {
+    "origin_school_id": "107710",
+    "destination_school_id": "401689",
+    "student_count": 1,
+    "avg_distance_km": 1.8
+  },
+  {
+    "origin_school_id": "107642",
+    "destination_school_id": "401654",
+    "student_count": 1,
+    "avg_distance_km": 8.6
+  },
+  {
+    "origin_school_id": "108871",
+    "destination_school_id": "402773",
+    "student_count": 1,
+    "avg_distance_km": 2.1
+  },
+  {
+    "origin_school_id": "108174",
+    "destination_school_id": "402240",
+    "student_count": 1,
+    "avg_distance_km": 6.7
+  },
+  {
+    "origin_school_id": "109173",
+    "destination_school_id": "402732",
+    "student_count": 1,
+    "avg_distance_km": 16.3
+  },
+  {
+    "origin_school_id": "108655",
+    "destination_school_id": "402737",
+    "student_count": 1,
+    "avg_distance_km": 16.1
+  },
+  {
+    "origin_school_id": "109616",
+    "destination_school_id": "403158",
+    "student_count": 1,
+    "avg_distance_km": 2.9
+  },
+  {
+    "origin_school_id": "109734",
+    "destination_school_id": "403245",
+    "student_count": 1,
+    "avg_distance_km": 1.8
+  },
+  {
+    "origin_school_id": "136815",
+    "destination_school_id": "407188",
+    "student_count": 1,
+    "avg_distance_km": 0.7
+  },
+  {
+    "origin_school_id": "109168",
+    "destination_school_id": "402815",
+    "student_count": 1,
+    "avg_distance_km": 4.5
+  },
+  {
+    "origin_school_id": "109722",
+    "destination_school_id": "403245",
+    "student_count": 1,
+    "avg_distance_km": 0.7
+  },
+  {
+    "origin_school_id": "136812",
+    "destination_school_id": "487031",
+    "student_count": 1,
+    "avg_distance_km": 1.8
+  },
+  {
+    "origin_school_id": "107707",
+    "destination_school_id": "401689",
     "student_count": 1,
     "avg_distance_km": 2.7
+  },
+  {
+    "origin_school_id": "109745",
+    "destination_school_id": "403241",
+    "student_count": 1,
+    "avg_distance_km": 1.5
+  },
+  {
+    "origin_school_id": "136815",
+    "destination_school_id": "487031",
+    "student_count": 1,
+    "avg_distance_km": 1.4
+  },
+  {
+    "origin_school_id": "108187",
+    "destination_school_id": "402362",
+    "student_count": 1,
+    "avg_distance_km": 2
+  },
+  {
+    "origin_school_id": "108488",
+    "destination_school_id": "402704",
+    "student_count": 1,
+    "avg_distance_km": 1.2
+  },
+  {
+    "origin_school_id": "108628",
+    "destination_school_id": "402732",
+    "student_count": 1,
+    "avg_distance_km": 5
+  },
+  {
+    "origin_school_id": "109847",
+    "destination_school_id": "403371",
+    "student_count": 1,
+    "avg_distance_km": 3
+  },
+  {
+    "origin_school_id": "109070",
+    "destination_school_id": "424559",
+    "student_count": 1,
+    "avg_distance_km": 18.5
+  },
+  {
+    "origin_school_id": "107642",
+    "destination_school_id": "410923",
+    "student_count": 1,
+    "avg_distance_km": 8.5
+  },
+  {
+    "origin_school_id": "136433",
+    "destination_school_id": "482022",
+    "student_count": 1,
+    "avg_distance_km": 2.5
+  },
+  {
+    "origin_school_id": "109805",
+    "destination_school_id": "403271",
+    "student_count": 1,
+    "avg_distance_km": 4.8
+  },
+  {
+    "origin_school_id": "109456",
+    "destination_school_id": "403113",
+    "student_count": 1,
+    "avg_distance_km": 5.3
+  },
+  {
+    "origin_school_id": "109330",
+    "destination_school_id": "402947",
+    "student_count": 1,
+    "avg_distance_km": 1.5
+  },
+  {
+    "origin_school_id": "164512",
+    "destination_school_id": "424584",
+    "student_count": 1,
+    "avg_distance_km": 1.8
+  },
+  {
+    "origin_school_id": "136583",
+    "destination_school_id": "482060",
+    "student_count": 1,
+    "avg_distance_km": 1.3
+  },
+  {
+    "origin_school_id": "108966",
+    "destination_school_id": "402789",
+    "student_count": 1,
+    "avg_distance_km": 1.1
+  },
+  {
+    "origin_school_id": "108476",
+    "destination_school_id": "402672",
+    "student_count": 1,
+    "avg_distance_km": 1.6
+  },
+  {
+    "origin_school_id": "136760",
+    "destination_school_id": "486510",
+    "student_count": 1,
+    "avg_distance_km": 2.3
+  },
+  {
+    "origin_school_id": "109778",
+    "destination_school_id": "403298",
+    "student_count": 1,
+    "avg_distance_km": 2.6
+  },
+  {
+    "origin_school_id": "109329",
+    "destination_school_id": "402928",
+    "student_count": 1,
+    "avg_distance_km": 1.9
+  },
+  {
+    "origin_school_id": "108476",
+    "destination_school_id": "402659",
+    "student_count": 1,
+    "avg_distance_km": 1.5
+  },
+  {
+    "origin_school_id": "136463",
+    "destination_school_id": "406312",
+    "student_count": 1,
+    "avg_distance_km": 0.8
+  },
+  {
+    "origin_school_id": "107675",
+    "destination_school_id": "401554",
+    "student_count": 1,
+    "avg_distance_km": 7
+  },
+  {
+    "origin_school_id": "136689",
+    "destination_school_id": "406852",
+    "student_count": 1,
+    "avg_distance_km": 0.7
+  },
+  {
+    "origin_school_id": "109854",
+    "destination_school_id": "403326",
+    "student_count": 1,
+    "avg_distance_km": 1.5
+  },
+  {
+    "origin_school_id": "136820",
+    "destination_school_id": "487048",
+    "student_count": 1,
+    "avg_distance_km": 1
+  },
+  {
+    "origin_school_id": "108169",
+    "destination_school_id": "408334",
+    "student_count": 1,
+    "avg_distance_km": 1.2
+  },
+  {
+    "origin_school_id": "136821",
+    "destination_school_id": "407153",
+    "student_count": 1,
+    "avg_distance_km": 1.4
+  },
+  {
+    "origin_school_id": "136689",
+    "destination_school_id": "406855",
+    "student_count": 1,
+    "avg_distance_km": 1.2
+  },
+  {
+    "origin_school_id": "109481",
+    "destination_school_id": "403092",
+    "student_count": 1,
+    "avg_distance_km": 0.9
+  },
+  {
+    "origin_school_id": "107701",
+    "destination_school_id": "401663",
+    "student_count": 1,
+    "avg_distance_km": 4.1
+  },
+  {
+    "origin_school_id": "107474",
+    "destination_school_id": "494505",
+    "student_count": 1,
+    "avg_distance_km": 5.8
+  },
+  {
+    "origin_school_id": "136433",
+    "destination_school_id": "406291",
+    "student_count": 1,
+    "avg_distance_km": 1.9
+  },
+  {
+    "origin_school_id": "109691",
+    "destination_school_id": "401615",
+    "student_count": 1,
+    "avg_distance_km": 2.9
+  },
+  {
+    "origin_school_id": "109745",
+    "destination_school_id": "403259",
+    "student_count": 1,
+    "avg_distance_km": 1.2
+  },
+  {
+    "origin_school_id": "136820",
+    "destination_school_id": "407203",
+    "student_count": 1,
+    "avg_distance_km": 0.5
+  },
+  {
+    "origin_school_id": "109680",
+    "destination_school_id": "403214",
+    "student_count": 1,
+    "avg_distance_km": 8.8
+  },
+  {
+    "origin_school_id": "136477",
+    "destination_school_id": "406371",
+    "student_count": 1,
+    "avg_distance_km": 1.5
+  },
+  {
+    "origin_school_id": "109356",
+    "destination_school_id": "403148",
+    "student_count": 1,
+    "avg_distance_km": 1.9
+  },
+  {
+    "origin_school_id": "109449",
+    "destination_school_id": "403057",
+    "student_count": 1,
+    "avg_distance_km": 1.2
+  },
+  {
+    "origin_school_id": "109793",
+    "destination_school_id": "403274",
+    "student_count": 1,
+    "avg_distance_km": 0.3
+  },
+  {
+    "origin_school_id": "164524",
+    "destination_school_id": "402579",
+    "student_count": 1,
+    "avg_distance_km": 5.2
+  },
+  {
+    "origin_school_id": "136477",
+    "destination_school_id": "406370",
+    "student_count": 1,
+    "avg_distance_km": 0.9
+  },
+  {
+    "origin_school_id": "107633",
+    "destination_school_id": "401647",
+    "student_count": 1,
+    "avg_distance_km": 10.2
+  },
+  {
+    "origin_school_id": "136523",
+    "destination_school_id": "406462",
+    "student_count": 1,
+    "avg_distance_km": 1.8
+  },
+  {
+    "origin_school_id": "136545",
+    "destination_school_id": "406716",
+    "student_count": 1,
+    "avg_distance_km": 5.8
+  },
+  {
+    "origin_school_id": "109193",
+    "destination_school_id": "402728",
+    "student_count": 1,
+    "avg_distance_km": 9.4
+  },
+  {
+    "origin_school_id": "136797",
+    "destination_school_id": "407159",
+    "student_count": 1,
+    "avg_distance_km": 0.8
+  },
+  {
+    "origin_school_id": "136532",
+    "destination_school_id": "406482",
+    "student_count": 1,
+    "avg_distance_km": 1.4
+  },
+  {
+    "origin_school_id": "136760",
+    "destination_school_id": "407059",
+    "student_count": 1,
+    "avg_distance_km": 1.6
+  },
+  {
+    "origin_school_id": "107710",
+    "destination_school_id": "494512",
+    "student_count": 1,
+    "avg_distance_km": 1.9
+  },
+  {
+    "origin_school_id": "109815",
+    "destination_school_id": "403317",
+    "student_count": 1,
+    "avg_distance_km": 3.7
+  },
+  {
+    "origin_school_id": "107245",
+    "destination_school_id": "401561",
+    "student_count": 1,
+    "avg_distance_km": 4.9
+  },
+  {
+    "origin_school_id": "136740",
+    "destination_school_id": "406939",
+    "student_count": 1,
+    "avg_distance_km": 0.9
+  },
+  {
+    "origin_school_id": "109333",
+    "destination_school_id": "402888",
+    "student_count": 1,
+    "avg_distance_km": 3
+  },
+  {
+    "origin_school_id": "109691",
+    "destination_school_id": "403202",
+    "student_count": 1,
+    "avg_distance_km": 2.7
+  },
+  {
+    "origin_school_id": "136713",
+    "destination_school_id": "406370",
+    "student_count": 1,
+    "avg_distance_km": 2.3
+  },
+  {
+    "origin_school_id": "109616",
+    "destination_school_id": "403169",
+    "student_count": 1,
+    "avg_distance_km": 3.1
+  },
+  {
+    "origin_school_id": "136812",
+    "destination_school_id": "483551",
+    "student_count": 1,
+    "avg_distance_km": 1.6
+  },
+  {
+    "origin_school_id": "109333",
+    "destination_school_id": "402964",
+    "student_count": 1,
+    "avg_distance_km": 3.3
   }
 ]
