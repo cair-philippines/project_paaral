@@ -1,0 +1,970 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>PAARAL — Browse Interaction</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+      background: #080808;
+    }
+
+    /* ── Screen shell ──────────────────────────────────────────── */
+    .screen {
+      width: 100%;
+      aspect-ratio: 16 / 9;
+      min-height: 480px;
+      position: relative;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+    }
+    .screen + .screen { border-top: 3px solid #080808; }
+
+    .lbl {
+      position: absolute;
+      top: 10px; left: 14px;
+      font-size: 9.5px; font-weight: 700;
+      letter-spacing: 0.12em; text-transform: uppercase;
+      pointer-events: none; z-index: 300;
+      color: rgba(255,255,255,0.3);
+    }
+    .lbl.dk { color: rgba(0,0,0,0.22); }
+
+    /* ── Gradient ──────────────────────────────────────────────── */
+    .grad { background: linear-gradient(108deg, #1a0e3e 0%, #2b1260 25%, #691842 62%, #8c2028 100%); }
+
+    /* ── Navbar ────────────────────────────────────────────────── */
+    .navbar {
+      height: 62px; flex-shrink: 0;
+      display: flex; align-items: center;
+      justify-content: space-between;
+      padding: 0 26px;
+      position: relative; z-index: 200;
+    }
+    .nav-logo {
+      border: 1.5px solid rgba(255,255,255,0.42);
+      border-radius: 9px; padding: 7px 16px;
+      display: flex; align-items: center; gap: 7px;
+    }
+    .nav-logo img { filter: brightness(0) invert(1); opacity: 0.9; }
+    .nav-ecair  { height: 14px; }
+    .nav-deped  { height: 19px; }
+    .nav-div    { width: 1px; height: 12px; background: rgba(255,255,255,0.3); }
+
+    .nav-right  { display: flex; align-items: center; gap: 9px; }
+
+    .nav-signin {
+      border: 1.5px solid rgba(255,255,255,0.42);
+      border-radius: 9px; padding: 7px 16px;
+      color: rgba(255,255,255,0.8);
+      font-size: 12px; font-weight: 600;
+      letter-spacing: 0.07em; text-transform: uppercase;
+    }
+
+    .nav-lrn {
+      display: flex; align-items: center; gap: 6px;
+      padding: 5px 13px 5px 7px;
+      border-radius: 50px;
+      background: rgba(255,255,255,0.12);
+      border: 1px solid rgba(255,255,255,0.2);
+    }
+    .nav-lrn-av {
+      width: 22px; height: 22px; border-radius: 50%;
+      background: rgba(255,255,255,0.22);
+      display: flex; align-items: center; justify-content: center;
+      font-size: 10px; font-weight: 700; color: #fff;
+    }
+    .nav-lrn-id {
+      font-size: 11.5px; font-weight: 600;
+      color: rgba(255,255,255,0.82); letter-spacing: 0.03em;
+    }
+
+    .nav-app {
+      display: flex; align-items: center; gap: 6px;
+      padding: 7px 16px;
+      background: rgba(255,255,255,0.9);
+      border-radius: 9px;
+      font-size: 12.5px; font-weight: 700; color: #1a0e3e;
+      cursor: pointer;
+    }
+    .nav-app.active { background: #fff; box-shadow: 0 0 0 3px rgba(255,255,255,0.3); }
+    .app-ct {
+      width: 17px; height: 17px; border-radius: 50%;
+      background: #ef4444;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 9px; font-weight: 800; color: #fff;
+      margin-left: 1px;
+    }
+
+    /* ── Tab bar (below navbar) ─────────────────────────────────── */
+    .tabbar {
+      display: flex;
+      background: rgba(0,0,0,0.22);
+      border-bottom: 1px solid rgba(255,255,255,0.08);
+      padding: 0 26px;
+      flex-shrink: 0;
+    }
+    .vtab {
+      padding: 9px 18px 8px;
+      font-size: 12px; font-weight: 600;
+      color: rgba(255,255,255,0.45);
+      letter-spacing: 0.04em;
+      border-bottom: 2.5px solid transparent;
+      cursor: pointer;
+    }
+    .vtab.on { color: #fff; border-bottom-color: rgba(255,255,255,0.75); }
+
+    /* ── Browse layout ──────────────────────────────────────────── */
+    .browse { flex: 1; display: flex; min-height: 0; position: relative; }
+
+    /* ── Filter sidebar ─────────────────────────────────────────── */
+    .filters {
+      width: 252px; flex-shrink: 0;
+      background: #f1f3f5;
+      border-right: 1px solid #dde1e7;
+      display: flex; flex-direction: column;
+      position: relative; z-index: 10;
+    }
+    .filters-head {
+      padding: 14px 16px 12px;
+      border-bottom: 1px solid #dde1e7;
+      display: flex; align-items: center; justify-content: space-between;
+    }
+    .filters-title {
+      font-size: 11px; font-weight: 700;
+      letter-spacing: 0.09em; text-transform: uppercase;
+      color: #64748b;
+    }
+    .filters-body { padding: 14px 16px; display: flex; flex-direction: column; gap: 16px; }
+
+    .filter-group {}
+    .filter-group-label {
+      font-size: 10px; font-weight: 700;
+      letter-spacing: 0.1em; text-transform: uppercase;
+      color: #94a3b8; margin-bottom: 8px;
+    }
+    .filter-search {
+      width: 100%; padding: 8px 12px;
+      background: #fff; border: 1px solid #dde1e7;
+      border-radius: 8px; font-size: 13px;
+      color: #94a3b8; font-family: inherit;
+      outline: none;
+    }
+    .filter-chips { display: flex; flex-wrap: wrap; gap: 6px; }
+    .chip {
+      padding: 5px 11px;
+      border-radius: 50px;
+      border: 1px solid #dde1e7;
+      font-size: 11.5px; font-weight: 500; color: #64748b;
+      background: #fff; cursor: pointer;
+    }
+    .chip.on {
+      background: #1a4b8c; border-color: #1a4b8c;
+      color: #fff; font-weight: 600;
+    }
+    .filter-range {
+      height: 4px; border-radius: 2px;
+      background: linear-gradient(90deg, #1a4b8c 0%, #1a4b8c 60%, #dde1e7 60%);
+      margin-top: 6px; position: relative;
+    }
+    .filter-range-thumb {
+      width: 14px; height: 14px; border-radius: 50%;
+      background: #1a4b8c; border: 2px solid #fff;
+      box-shadow: 0 1px 4px rgba(0,0,0,0.2);
+      position: absolute; top: -5px; left: 58%;
+    }
+    .filter-range-label {
+      font-size: 11px; color: #64748b; margin-top: 8px;
+    }
+
+    /* Collapsed filter strip */
+    .filters-strip {
+      width: 38px; flex-shrink: 0;
+      background: #f1f3f5;
+      border-right: 1px solid #dde1e7;
+      display: flex; align-items: center; justify-content: center;
+      position: relative; z-index: 10;
+      cursor: pointer;
+    }
+    .strip-label {
+      font-size: 10px; font-weight: 700;
+      letter-spacing: 0.1em; text-transform: uppercase;
+      color: #94a3b8;
+      writing-mode: vertical-rl;
+      transform: rotate(180deg);
+    }
+
+    /* ── Map area ───────────────────────────────────────────────── */
+    .map-area {
+      flex: 1;
+      background: #dce8f0;
+      position: relative;
+      overflow: hidden;
+    }
+
+    /* Simple SVG map texture overlay */
+    .map-bg {
+      position: absolute; inset: 0;
+    }
+
+    /* School pins */
+    .pin {
+      position: absolute;
+      width: 12px; height: 12px;
+      border-radius: 50%;
+      border: 2px solid #fff;
+      box-shadow: 0 1px 4px rgba(0,0,0,0.25);
+      cursor: pointer;
+      transform: translate(-50%, -50%);
+      z-index: 5;
+    }
+    .pin.pub  { background: #22c55e; }
+    .pin.esc  { background: #3b82f6; }
+    .pin.priv { background: #94a3b8; }
+    .pin.sel  {
+      width: 16px; height: 16px;
+      box-shadow: 0 0 0 4px rgba(59,130,246,0.35), 0 2px 8px rgba(0,0,0,0.3);
+      z-index: 6;
+    }
+
+    /* Map pin legend */
+    .map-legend {
+      position: absolute; bottom: 14px; left: 14px;
+      background: rgba(255,255,255,0.92);
+      border-radius: 8px; padding: 8px 12px;
+      display: flex; flex-direction: column; gap: 5px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+      z-index: 10;
+    }
+    .legend-row { display: flex; align-items: center; gap: 6px; }
+    .legend-dot { width: 9px; height: 9px; border-radius: 50%; border: 1.5px solid #fff; box-shadow: 0 1px 3px rgba(0,0,0,0.2); }
+    .legend-text { font-size: 10.5px; font-weight: 500; color: #374151; }
+
+    /* ── Results floating panel ─────────────────────────────────── */
+    .results {
+      position: absolute;
+      top: 10px; right: 10px; bottom: 10px;
+      width: 288px;
+      background: #fff;
+      border-radius: 14px;
+      box-shadow: 0 4px 20px rgba(0,0,0,0.14);
+      display: flex; flex-direction: column;
+      z-index: 20;
+      overflow: hidden;
+    }
+
+    .results-head {
+      padding: 13px 14px 11px;
+      border-bottom: 1px solid #f1f5f9;
+      display: flex; align-items: center; justify-content: space-between;
+      flex-shrink: 0;
+    }
+    .results-count {
+      font-size: 11px; font-weight: 700;
+      letter-spacing: 0.08em; text-transform: uppercase;
+      color: #64748b;
+    }
+    .results-collapse {
+      width: 24px; height: 24px; border-radius: 6px;
+      background: #f1f5f9;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 13px; color: #64748b; cursor: pointer;
+    }
+
+    .results-list { flex: 1; overflow-y: auto; padding: 8px; }
+
+    /* Compact school card */
+    .school-card {
+      padding: 10px 11px;
+      border-radius: 10px;
+      border: 1px solid #f1f5f9;
+      margin-bottom: 6px;
+      cursor: pointer;
+      transition: border-color 0.1s;
+      background: #fff;
+    }
+    .school-card:hover { border-color: #bfdbfe; }
+    .school-card.sel   { border-color: #3b82f6; background: #f0f7ff; }
+
+    .sc-top { display: flex; align-items: flex-start; gap: 8px; margin-bottom: 5px; }
+    .sc-name {
+      flex: 1; font-size: 12.5px; font-weight: 700;
+      color: #111827; line-height: 1.3;
+    }
+    .sc-type {
+      font-size: 9.5px; font-weight: 700;
+      padding: 2px 7px; border-radius: 50px;
+      white-space: nowrap; flex-shrink: 0;
+      margin-top: 1px;
+    }
+    .sc-type.pub  { background: #dcfce7; color: #15803d; }
+    .sc-type.esc  { background: #eff6ff; color: #1d4ed8; }
+    .sc-type.priv { background: #f3f4f6; color: #6b7280; }
+
+    .sc-meta {
+      display: flex; gap: 10px;
+      font-size: 11px; color: #6b7280; font-weight: 500;
+    }
+    .sc-meta-sep { color: #d1d5db; }
+
+    /* Expanded card (selected) */
+    .sc-expand {
+      margin-top: 9px;
+      padding-top: 9px;
+      border-top: 1px solid #e0ecff;
+    }
+    .sc-desc {
+      font-size: 11.5px; color: #4b5563; line-height: 1.6;
+      margin-bottom: 10px;
+    }
+    .sc-stats {
+      display: flex; gap: 8px; margin-bottom: 10px;
+    }
+    .sc-stat {
+      flex: 1; background: #f8fafc; border-radius: 8px;
+      padding: 7px 8px; text-align: center;
+    }
+    .sc-stat-val {
+      font-size: 13px; font-weight: 700; color: #111827;
+      margin-bottom: 1px;
+    }
+    .sc-stat-lbl { font-size: 9.5px; color: #94a3b8; font-weight: 500; }
+
+    .sc-actions { display: flex; flex-direction: column; gap: 6px; }
+
+    .btn-detail {
+      width: 100%; padding: 9px;
+      background: #1a4b8c; color: #fff;
+      font-size: 12px; font-weight: 700;
+      border: none; border-radius: 8px;
+      cursor: pointer; font-family: inherit;
+    }
+    .btn-add {
+      width: 100%; padding: 8px;
+      background: transparent; color: #1a4b8c;
+      font-size: 12px; font-weight: 600;
+      border: 1.5px solid #bfdbfe; border-radius: 8px;
+      cursor: pointer; font-family: inherit;
+    }
+
+    /* Collapsed results strip */
+    .results-strip {
+      position: absolute;
+      top: 10px; right: 10px; bottom: 10px;
+      width: 36px;
+      background: #fff;
+      border-radius: 10px;
+      box-shadow: 0 4px 20px rgba(0,0,0,0.12);
+      display: flex; align-items: center; justify-content: center;
+      z-index: 20;
+      cursor: pointer;
+    }
+    .results-strip-lbl {
+      font-size: 10px; font-weight: 700;
+      letter-spacing: 0.1em; text-transform: uppercase;
+      color: #94a3b8;
+      writing-mode: vertical-rl; transform: rotate(180deg);
+    }
+
+    /* ── School Profile view ─────────────────────────────────────── */
+    .detail-wrap { flex: 1; display: flex; flex-direction: column; min-height: 0; background: #ebebeb; }
+
+    .detail-subnav {
+      height: 46px; background: #fff;
+      border-bottom: 1px solid #e5e7eb;
+      display: flex; align-items: center;
+      padding: 0 30px; gap: 32px; flex-shrink: 0;
+    }
+    .stab { font-size: 13.5px; font-weight: 500; color: #9ca3af; cursor: pointer; padding-bottom: 2px; }
+    .stab.on { font-weight: 700; color: #111827; border-bottom: 2.5px solid #111827; }
+
+    .gallery {
+      margin: 14px 24px 0;
+      border-radius: 14px; overflow: hidden;
+      display: flex; gap: 5px; height: 210px; flex-shrink: 0;
+    }
+    .g-main { flex: 0 0 47%; background: linear-gradient(150deg, #64748b 0%, #475569 100%); }
+    .g-side  { flex: 1; display: flex; flex-direction: column; gap: 5px; }
+    .g-t1    { flex: 1; background: linear-gradient(135deg, #93c5fd 0%, #3b82f6 100%); }
+    .g-t2    { flex: 1; background: linear-gradient(135deg, #d1d5db 0%, #6b7280 100%); }
+
+    .detail-content { flex: 1; padding: 14px 24px 18px; display: flex; flex-direction: column; gap: 11px; overflow: hidden; }
+
+    .dcard { background: #fff; border-radius: 14px; padding: 20px 26px; flex-shrink: 0; }
+    .dcard h2 {
+      font-size: clamp(18px, 2vw, 26px); font-weight: 800;
+      color: #111827; letter-spacing: -0.02em; margin-bottom: 9px;
+    }
+    .dcard p { font-size: 13px; color: #4b5563; line-height: 1.7; }
+
+    .dcard-row { display: flex; gap: 10px; }
+    .dcard-stat {
+      flex: 1; background: #f8fafc; border-radius: 10px;
+      padding: 14px 16px;
+    }
+    .ds-val { font-size: clamp(18px, 2.2vw, 28px); font-weight: 700; color: #111827; margin-bottom: 3px; letter-spacing: -0.02em; }
+    .ds-lbl { font-size: 11.5px; color: #6b7280; font-weight: 500; }
+
+    /* ── Application drawer (reused from navbar-portal mockup) ──── */
+    .drawer {
+      position: absolute; top: 0; right: 0; bottom: 0;
+      width: 320px;
+      background: #fff;
+      box-shadow: -4px 0 20px rgba(0,0,0,0.12);
+      z-index: 50;
+      display: flex; flex-direction: column;
+    }
+    .drawer-hd {
+      padding: 16px 18px 0; flex-shrink: 0;
+    }
+    .drawer-title-row {
+      display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px;
+    }
+    .drawer-title { font-size: 12px; font-weight: 700; letter-spacing: 0.09em; text-transform: uppercase; color: #1a4b8c; }
+    .drawer-x { width: 24px; height: 24px; border-radius: 50%; background: #f3f4f6; display: flex; align-items: center; justify-content: center; font-size: 13px; color: #6b7280; cursor: pointer; }
+    .drawer-id {
+      display: flex; align-items: center; gap: 7px;
+      padding: 8px 12px; background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 9px; margin-bottom: 12px;
+    }
+    .d-lrn { font-size: 11px; font-weight: 700; color: #1a4b8c; letter-spacing: 0.04em; }
+    .d-sep  { color: #cbd5e1; }
+    .d-cat  { font-size: 9.5px; font-weight: 700; padding: 2px 9px; border-radius: 50px; border: 1px solid; }
+    .d-cat.b { background: #eff6ff; border-color: #bfdbfe; color: #1d4ed8; }
+    .drawer-tabs { display: flex; border-bottom: 1px solid #e5e7eb; }
+    .dti { flex: 1; padding: 9px 4px 8px; font-size: 10.5px; font-weight: 700; text-align: center; color: #9ca3af; letter-spacing: 0.06em; text-transform: uppercase; border-bottom: 2px solid transparent; cursor: pointer; }
+    .dti.on { color: #1a4b8c; border-bottom-color: #1a4b8c; }
+    .drawer-body { flex: 1; overflow-y: auto; padding: 14px 18px; }
+    .wi { display: flex; align-items: flex-start; gap: 9px; padding: 10px 12px; border: 1px solid #e5e7eb; border-radius: 9px; margin-bottom: 7px; background: #fafafa; }
+    .wi-rank { width: 20px; height: 20px; border-radius: 50%; background: #e0e7ff; display: flex; align-items: center; justify-content: center; font-size: 10px; font-weight: 700; color: #3730a3; flex-shrink: 0; margin-top: 1px; }
+    .wi-name { font-size: 12.5px; font-weight: 700; color: #111827; margin-bottom: 2px; }
+    .wi-meta { font-size: 10.5px; color: #9ca3af; }
+    .wt { font-size: 9.5px; font-weight: 700; padding: 2px 7px; border-radius: 50px; }
+    .wt.pub { background: #dcfce7; color: #15803d; }
+    .wt.esc { background: #eff6ff; color: #1d4ed8; }
+    .drawer-foot { padding: 12px 18px 16px; border-top: 1px solid #e5e7eb; flex-shrink: 0; }
+    .gate { display: flex; align-items: center; gap: 6px; font-size: 10.5px; color: #6b7280; margin-bottom: 7px; }
+    .gd { width: 6px; height: 6px; border-radius: 50%; flex-shrink: 0; }
+    .gd.ok { background: #22c55e; }
+    .gd.no { background: #d1d5db; }
+    .gd.wn { background: #f59e0b; }
+    .sub-btn { width: 100%; padding: 11px; background: #e5e7eb; color: #9ca3af; font-size: 13px; font-weight: 700; border: none; border-radius: 50px; cursor: not-allowed; font-family: inherit; }
+    .sub-btn.ok { background: #1a4b8c; color: #fff; cursor: pointer; }
+  </style>
+</head>
+<body>
+
+  <!-- ═══════════════════════════════════════════════════════════
+       SCREEN 1 — Map tab · no school selected · results open
+  ═══════════════════════════════════════════════════════════ -->
+  <div class="screen" style="background:#dce8f0">
+    <span class="lbl">Screen 1 — Map tab · no selection · results panel open</span>
+
+    <nav class="navbar grad">
+      <div class="nav-logo">
+        <img class="nav-ecair" src="../public/assets/ecair-logo.png" alt="ECAIR">
+        <div class="nav-div"></div>
+        <img class="nav-deped" src="../public/assets/deped-logo.png" alt="DepEd">
+      </div>
+      <div class="nav-right">
+        <div class="nav-signin">Sign In</div>
+      </div>
+    </nav>
+
+    <div class="tabbar grad">
+      <div class="vtab on">Map</div>
+      <div class="vtab">School Profile</div>
+    </div>
+
+    <div class="browse">
+
+      <!-- Filter sidebar -->
+      <div class="filters">
+        <div class="filters-head">
+          <span class="filters-title">Filters</span>
+          <span style="font-size:12px;color:#94a3b8;cursor:pointer">‹</span>
+        </div>
+        <div class="filters-body">
+          <div class="filter-group">
+            <div class="filter-group-label">Search</div>
+            <input class="filter-search" placeholder="School name…">
+          </div>
+          <div class="filter-group">
+            <div class="filter-group-label">School type</div>
+            <div class="filter-chips">
+              <span class="chip on">All</span>
+              <span class="chip">Public</span>
+              <span class="chip">ESC Partner</span>
+              <span class="chip">Private</span>
+            </div>
+          </div>
+          <div class="filter-group">
+            <div class="filter-group-label">Max distance</div>
+            <div class="filter-range"><div class="filter-range-thumb"></div></div>
+            <div class="filter-range-label">Up to 10 km</div>
+          </div>
+          <div class="filter-group">
+            <div class="filter-group-label">Slots</div>
+            <div class="filter-chips">
+              <span class="chip on">Any</span>
+              <span class="chip">Available</span>
+              <span class="chip">Limited</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Map -->
+      <div class="map-area">
+
+        <!-- Simple map background detail -->
+        <svg class="map-bg" viewBox="0 0 800 600" xmlns="http://www.w3.org/2000/svg">
+          <rect width="800" height="600" fill="#dce8f0"/>
+          <!-- water/bay shapes -->
+          <path d="M0,420 Q80,380 120,440 Q160,500 100,580 L0,580Z" fill="#c5d9e8" opacity="0.6"/>
+          <path d="M700,0 Q780,80 800,160 L800,0Z" fill="#c5d9e8" opacity="0.4"/>
+          <!-- land masses / district shapes -->
+          <path d="M80,60 Q200,40 320,70 Q400,90 460,60 Q520,30 600,80 Q660,120 680,200 Q700,280 650,340 Q580,400 500,380 Q420,360 360,400 Q300,440 220,420 Q140,400 100,340 Q60,280 70,200 Q75,130 80,60Z" fill="#e8f0f5" stroke="#c5d9e8" stroke-width="1.5"/>
+          <!-- road grid suggestion -->
+          <line x1="200" y1="0" x2="200" y2="600" stroke="#d0dce8" stroke-width="0.8" stroke-dasharray="4,8"/>
+          <line x1="380" y1="0" x2="380" y2="600" stroke="#d0dce8" stroke-width="0.8" stroke-dasharray="4,8"/>
+          <line x1="560" y1="0" x2="560" y2="600" stroke="#d0dce8" stroke-width="0.8" stroke-dasharray="4,8"/>
+          <line x1="0" y1="150" x2="800" y2="150" stroke="#d0dce8" stroke-width="0.8" stroke-dasharray="4,8"/>
+          <line x1="0" y1="300" x2="800" y2="300" stroke="#d0dce8" stroke-width="0.8" stroke-dasharray="4,8"/>
+          <line x1="0" y1="450" x2="800" y2="450" stroke="#d0dce8" stroke-width="0.8" stroke-dasharray="4,8"/>
+        </svg>
+
+        <!-- School pins -->
+        <div class="pin esc" style="left:34%;top:38%"></div>
+        <div class="pin pub" style="left:44%;top:50%"></div>
+        <div class="pin esc" style="left:54%;top:35%"></div>
+        <div class="pin priv" style="left:28%;top:55%"></div>
+        <div class="pin pub" style="left:60%;top:58%"></div>
+        <div class="pin esc" style="left:46%;top:27%"></div>
+        <div class="pin priv" style="left:38%;top:66%"></div>
+        <div class="pin esc" style="left:62%;top:44%"></div>
+        <div class="pin pub" style="left:25%;top:42%"></div>
+        <div class="pin esc" style="left:50%;top:62%"></div>
+
+        <!-- Legend -->
+        <div class="map-legend">
+          <div class="legend-row"><div class="legend-dot" style="background:#3b82f6"></div><span class="legend-text">ESC Partner</span></div>
+          <div class="legend-row"><div class="legend-dot" style="background:#22c55e"></div><span class="legend-text">Public JHS</span></div>
+          <div class="legend-row"><div class="legend-dot" style="background:#94a3b8"></div><span class="legend-text">Private (no ESC)</span></div>
+        </div>
+
+        <!-- Results floating panel -->
+        <div class="results">
+          <div class="results-head">
+            <span class="results-count">50 schools found</span>
+            <div class="results-collapse">›</div>
+          </div>
+          <div class="results-list">
+            <div class="school-card">
+              <div class="sc-top">
+                <span class="sc-name">St. Mary's Academy of Taguig</span>
+                <span class="sc-type esc">ESC</span>
+              </div>
+              <div class="sc-meta">
+                <span>3.2 km</span><span class="sc-meta-sep">·</span>
+                <span>₱32,000 net</span><span class="sc-meta-sep">·</span>
+                <span>12 slots</span>
+              </div>
+            </div>
+
+            <div class="school-card">
+              <div class="sc-top">
+                <span class="sc-name">Bagumbayan National High School</span>
+                <span class="sc-type pub">Public</span>
+              </div>
+              <div class="sc-meta">
+                <span>1.1 km</span><span class="sc-meta-sep">·</span>
+                <span>Free</span><span class="sc-meta-sep">·</span>
+                <span>Open</span>
+              </div>
+            </div>
+
+            <div class="school-card">
+              <div class="sc-top">
+                <span class="sc-name">Pasig Grace Christian School</span>
+                <span class="sc-type esc">ESC</span>
+              </div>
+              <div class="sc-meta">
+                <span>5.4 km</span><span class="sc-meta-sep">·</span>
+                <span>₱28,000 net</span><span class="sc-meta-sep">·</span>
+                <span>8 slots</span>
+              </div>
+            </div>
+
+            <div class="school-card">
+              <div class="sc-top">
+                <span class="sc-name">Immaculate Conception Academy</span>
+                <span class="sc-type esc">ESC</span>
+              </div>
+              <div class="sc-meta">
+                <span>4.8 km</span><span class="sc-meta-sep">·</span>
+                <span>₱38,000 net</span><span class="sc-meta-sep">·</span>
+                <span>5 slots</span>
+              </div>
+            </div>
+
+            <div class="school-card">
+              <div class="sc-top">
+                <span class="sc-name">Pateros National High School</span>
+                <span class="sc-type pub">Public</span>
+              </div>
+              <div class="sc-meta">
+                <span>2.7 km</span><span class="sc-meta-sep">·</span>
+                <span>Free</span><span class="sc-meta-sep">·</span>
+                <span>Open</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+      </div><!-- /map-area -->
+    </div><!-- /browse -->
+  </div>
+
+
+  <!-- ═══════════════════════════════════════════════════════════
+       SCREEN 2 — Map tab · school selected · card expanded
+  ═══════════════════════════════════════════════════════════ -->
+  <div class="screen" style="background:#dce8f0">
+    <span class="lbl">Screen 2 — Map tab · school selected · card expanded</span>
+
+    <nav class="navbar grad">
+      <div class="nav-logo">
+        <img class="nav-ecair" src="../public/assets/ecair-logo.png" alt="ECAIR">
+        <div class="nav-div"></div>
+        <img class="nav-deped" src="../public/assets/deped-logo.png" alt="DepEd">
+      </div>
+      <div class="nav-right">
+        <div class="nav-signin">Sign In</div>
+      </div>
+    </nav>
+
+    <div class="tabbar grad">
+      <div class="vtab on">Map</div>
+      <div class="vtab">School Profile</div>
+    </div>
+
+    <div class="browse">
+
+      <div class="filters">
+        <div class="filters-head">
+          <span class="filters-title">Filters</span>
+          <span style="font-size:12px;color:#94a3b8;cursor:pointer">‹</span>
+        </div>
+        <div class="filters-body">
+          <div class="filter-group">
+            <div class="filter-group-label">Search</div>
+            <input class="filter-search" placeholder="School name…">
+          </div>
+          <div class="filter-group">
+            <div class="filter-group-label">School type</div>
+            <div class="filter-chips">
+              <span class="chip on">All</span>
+              <span class="chip">Public</span>
+              <span class="chip">ESC Partner</span>
+              <span class="chip">Private</span>
+            </div>
+          </div>
+          <div class="filter-group">
+            <div class="filter-group-label">Max distance</div>
+            <div class="filter-range"><div class="filter-range-thumb"></div></div>
+            <div class="filter-range-label">Up to 10 km</div>
+          </div>
+          <div class="filter-group">
+            <div class="filter-group-label">Slots</div>
+            <div class="filter-chips">
+              <span class="chip on">Any</span>
+              <span class="chip">Available</span>
+              <span class="chip">Limited</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="map-area">
+        <svg class="map-bg" viewBox="0 0 800 600" xmlns="http://www.w3.org/2000/svg">
+          <rect width="800" height="600" fill="#dce8f0"/>
+          <path d="M0,420 Q80,380 120,440 Q160,500 100,580 L0,580Z" fill="#c5d9e8" opacity="0.6"/>
+          <path d="M700,0 Q780,80 800,160 L800,0Z" fill="#c5d9e8" opacity="0.4"/>
+          <path d="M80,60 Q200,40 320,70 Q400,90 460,60 Q520,30 600,80 Q660,120 680,200 Q700,280 650,340 Q580,400 500,380 Q420,360 360,400 Q300,440 220,420 Q140,400 100,340 Q60,280 70,200 Q75,130 80,60Z" fill="#e8f0f5" stroke="#c5d9e8" stroke-width="1.5"/>
+          <line x1="200" y1="0" x2="200" y2="600" stroke="#d0dce8" stroke-width="0.8" stroke-dasharray="4,8"/>
+          <line x1="380" y1="0" x2="380" y2="600" stroke="#d0dce8" stroke-width="0.8" stroke-dasharray="4,8"/>
+          <line x1="560" y1="0" x2="560" y2="600" stroke="#d0dce8" stroke-width="0.8" stroke-dasharray="4,8"/>
+          <line x1="0" y1="150" x2="800" y2="150" stroke="#d0dce8" stroke-width="0.8" stroke-dasharray="4,8"/>
+          <line x1="0" y1="300" x2="800" y2="300" stroke="#d0dce8" stroke-width="0.8" stroke-dasharray="4,8"/>
+          <line x1="0" y1="450" x2="800" y2="450" stroke="#d0dce8" stroke-width="0.8" stroke-dasharray="4,8"/>
+        </svg>
+
+        <!-- Pins — one selected -->
+        <div class="pin esc sel" style="left:34%;top:38%"></div>
+        <div class="pin pub" style="left:44%;top:50%"></div>
+        <div class="pin esc" style="left:54%;top:35%"></div>
+        <div class="pin priv" style="left:28%;top:55%"></div>
+        <div class="pin pub" style="left:60%;top:58%"></div>
+        <div class="pin esc" style="left:46%;top:27%"></div>
+        <div class="pin priv" style="left:38%;top:66%"></div>
+        <div class="pin esc" style="left:62%;top:44%"></div>
+        <div class="pin pub" style="left:25%;top:42%"></div>
+        <div class="pin esc" style="left:50%;top:62%"></div>
+
+        <div class="map-legend">
+          <div class="legend-row"><div class="legend-dot" style="background:#3b82f6"></div><span class="legend-text">ESC Partner</span></div>
+          <div class="legend-row"><div class="legend-dot" style="background:#22c55e"></div><span class="legend-text">Public JHS</span></div>
+          <div class="legend-row"><div class="legend-dot" style="background:#94a3b8"></div><span class="legend-text">Private (no ESC)</span></div>
+        </div>
+
+        <!-- Results panel — first card selected + expanded -->
+        <div class="results">
+          <div class="results-head">
+            <span class="results-count">50 schools found</span>
+            <div class="results-collapse">›</div>
+          </div>
+          <div class="results-list">
+
+            <!-- SELECTED + EXPANDED -->
+            <div class="school-card sel">
+              <div class="sc-top">
+                <span class="sc-name">St. Mary's Academy of Taguig</span>
+                <span class="sc-type esc">ESC</span>
+              </div>
+              <div class="sc-meta">
+                <span>3.2 km</span><span class="sc-meta-sep">·</span>
+                <span>₱32,000 net</span><span class="sc-meta-sep">·</span>
+                <span>12 slots</span>
+              </div>
+              <div class="sc-expand">
+                <p class="sc-desc">Private sectarian school in Taguig City. ESC subsidy ₱13,000 applied. Sectarian · Grades 7–10.</p>
+                <div class="sc-stats">
+                  <div class="sc-stat">
+                    <div class="sc-stat-val">₱32k</div>
+                    <div class="sc-stat-lbl">Net cost</div>
+                  </div>
+                  <div class="sc-stat">
+                    <div class="sc-stat-val">12</div>
+                    <div class="sc-stat-lbl">Slots left</div>
+                  </div>
+                  <div class="sc-stat">
+                    <div class="sc-stat-val">4 ★</div>
+                    <div class="sc-stat-lbl">ESC rating</div>
+                  </div>
+                </div>
+                <div class="sc-actions">
+                  <button class="btn-detail">See full school details →</button>
+                  <button class="btn-add">+ Add to My Choices</button>
+                </div>
+              </div>
+            </div>
+
+            <div class="school-card">
+              <div class="sc-top">
+                <span class="sc-name">Bagumbayan National High School</span>
+                <span class="sc-type pub">Public</span>
+              </div>
+              <div class="sc-meta">
+                <span>1.1 km</span><span class="sc-meta-sep">·</span>
+                <span>Free</span><span class="sc-meta-sep">·</span>
+                <span>Open</span>
+              </div>
+            </div>
+
+            <div class="school-card">
+              <div class="sc-top">
+                <span class="sc-name">Pasig Grace Christian School</span>
+                <span class="sc-type esc">ESC</span>
+              </div>
+              <div class="sc-meta">
+                <span>5.4 km</span><span class="sc-meta-sep">·</span>
+                <span>₱28,000 net</span><span class="sc-meta-sep">·</span>
+                <span>8 slots</span>
+              </div>
+            </div>
+
+            <div class="school-card">
+              <div class="sc-top">
+                <span class="sc-name">Immaculate Conception Academy</span>
+                <span class="sc-type esc">ESC</span>
+              </div>
+              <div class="sc-meta">
+                <span>4.8 km</span><span class="sc-meta-sep">·</span>
+                <span>₱38,000 net</span><span class="sc-meta-sep">·</span>
+                <span>5 slots</span>
+              </div>
+            </div>
+
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </div>
+
+
+  <!-- ═══════════════════════════════════════════════════════════
+       SCREEN 3 — Map tab · results panel collapsed
+  ═══════════════════════════════════════════════════════════ -->
+  <div class="screen" style="background:#dce8f0">
+    <span class="lbl">Screen 3 — Map tab · results panel collapsed</span>
+
+    <nav class="navbar grad">
+      <div class="nav-logo">
+        <img class="nav-ecair" src="../public/assets/ecair-logo.png" alt="ECAIR">
+        <div class="nav-div"></div>
+        <img class="nav-deped" src="../public/assets/deped-logo.png" alt="DepEd">
+      </div>
+      <div class="nav-right">
+        <div class="nav-signin">Sign In</div>
+      </div>
+    </nav>
+
+    <div class="tabbar grad">
+      <div class="vtab on">Map</div>
+      <div class="vtab">School Profile</div>
+    </div>
+
+    <div class="browse">
+
+      <div class="filters">
+        <div class="filters-head">
+          <span class="filters-title">Filters</span>
+          <span style="font-size:12px;color:#94a3b8;cursor:pointer">‹</span>
+        </div>
+        <div class="filters-body">
+          <div class="filter-group">
+            <div class="filter-group-label">Search</div>
+            <input class="filter-search" placeholder="School name…">
+          </div>
+          <div class="filter-group">
+            <div class="filter-group-label">School type</div>
+            <div class="filter-chips">
+              <span class="chip on">All</span>
+              <span class="chip">Public</span>
+              <span class="chip">ESC Partner</span>
+              <span class="chip">Private</span>
+            </div>
+          </div>
+          <div class="filter-group">
+            <div class="filter-group-label">Max distance</div>
+            <div class="filter-range"><div class="filter-range-thumb"></div></div>
+            <div class="filter-range-label">Up to 10 km</div>
+          </div>
+          <div class="filter-group">
+            <div class="filter-group-label">Slots</div>
+            <div class="filter-chips">
+              <span class="chip on">Any</span>
+              <span class="chip">Available</span>
+              <span class="chip">Limited</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="map-area">
+        <svg class="map-bg" viewBox="0 0 800 600" xmlns="http://www.w3.org/2000/svg">
+          <rect width="800" height="600" fill="#dce8f0"/>
+          <path d="M0,420 Q80,380 120,440 Q160,500 100,580 L0,580Z" fill="#c5d9e8" opacity="0.6"/>
+          <path d="M700,0 Q780,80 800,160 L800,0Z" fill="#c5d9e8" opacity="0.4"/>
+          <path d="M80,60 Q200,40 320,70 Q400,90 460,60 Q520,30 600,80 Q660,120 680,200 Q700,280 650,340 Q580,400 500,380 Q420,360 360,400 Q300,440 220,420 Q140,400 100,340 Q60,280 70,200 Q75,130 80,60Z" fill="#e8f0f5" stroke="#c5d9e8" stroke-width="1.5"/>
+          <line x1="200" y1="0" x2="200" y2="600" stroke="#d0dce8" stroke-width="0.8" stroke-dasharray="4,8"/>
+          <line x1="380" y1="0" x2="380" y2="600" stroke="#d0dce8" stroke-width="0.8" stroke-dasharray="4,8"/>
+          <line x1="560" y1="0" x2="560" y2="600" stroke="#d0dce8" stroke-width="0.8" stroke-dasharray="4,8"/>
+          <line x1="0" y1="150" x2="800" y2="150" stroke="#d0dce8" stroke-width="0.8" stroke-dasharray="4,8"/>
+          <line x1="0" y1="300" x2="800" y2="300" stroke="#d0dce8" stroke-width="0.8" stroke-dasharray="4,8"/>
+          <line x1="0" y1="450" x2="800" y2="450" stroke="#d0dce8" stroke-width="0.8" stroke-dasharray="4,8"/>
+        </svg>
+
+        <div class="pin esc" style="left:34%;top:38%"></div>
+        <div class="pin pub" style="left:44%;top:50%"></div>
+        <div class="pin esc" style="left:54%;top:35%"></div>
+        <div class="pin priv" style="left:28%;top:55%"></div>
+        <div class="pin pub" style="left:60%;top:58%"></div>
+        <div class="pin esc" style="left:46%;top:27%"></div>
+        <div class="pin priv" style="left:38%;top:66%"></div>
+        <div class="pin esc" style="left:62%;top:44%"></div>
+        <div class="pin pub" style="left:25%;top:42%"></div>
+        <div class="pin esc" style="left:50%;top:62%"></div>
+
+        <div class="map-legend">
+          <div class="legend-row"><div class="legend-dot" style="background:#3b82f6"></div><span class="legend-text">ESC Partner</span></div>
+          <div class="legend-row"><div class="legend-dot" style="background:#22c55e"></div><span class="legend-text">Public JHS</span></div>
+          <div class="legend-row"><div class="legend-dot" style="background:#94a3b8"></div><span class="legend-text">Private (no ESC)</span></div>
+        </div>
+
+        <!-- Results panel COLLAPSED to strip -->
+        <div class="results-strip">
+          <span class="results-strip-lbl">Results</span>
+        </div>
+
+      </div>
+    </div>
+  </div>
+
+
+  <!-- ═══════════════════════════════════════════════════════════
+       SCREEN 4 — School Profile tab (after "See full school details")
+  ═══════════════════════════════════════════════════════════ -->
+  <div class="screen" style="background:#ebebeb">
+    <span class="lbl dk">Screen 4 — School Profile tab</span>
+
+    <nav class="navbar grad">
+      <div class="nav-logo">
+        <img class="nav-ecair" src="../public/assets/ecair-logo.png" alt="ECAIR">
+        <div class="nav-div"></div>
+        <img class="nav-deped" src="../public/assets/deped-logo.png" alt="DepEd">
+      </div>
+      <div class="nav-right">
+        <div class="nav-signin">Sign In</div>
+      </div>
+    </nav>
+
+    <div class="tabbar grad">
+      <div class="vtab">Map</div>
+      <div class="vtab on">School Profile</div>
+    </div>
+
+    <div class="detail-wrap">
+      <div class="detail-subnav">
+        <span class="stab on">Overview</span>
+        <span class="stab">School Characteristics</span>
+        <span class="stab">Fee Information</span>
+        <span style="flex:1"></span>
+        <button style="padding:7px 18px;background:#1a4b8c;color:#fff;font-size:12px;font-weight:700;border:none;border-radius:8px;cursor:pointer;font-family:inherit;">
+          + Add to My Choices
+        </button>
+      </div>
+
+      <div class="gallery">
+        <div class="g-main"></div>
+        <div class="g-side">
+          <div class="g-t1"></div>
+          <div class="g-t2"></div>
+        </div>
+      </div>
+
+      <div class="detail-content">
+        <div class="dcard">
+          <h2>St. Mary's Academy of Taguig</h2>
+          <p>Private sectarian ESC partner school in Taguig City, Metro Manila. Offers Grades 7–10 under the Division of Taguig-Pateros. One of the top-rated ESC partner schools in the district with 12 available slots for the 2026–2027 school year.</p>
+        </div>
+        <div class="dcard">
+          <div class="dcard-row">
+            <div class="dcard-stat"><div class="ds-val">₱32,000</div><div class="ds-lbl">Net annual cost</div></div>
+            <div class="dcard-stat"><div class="ds-val">12 / 40</div><div class="ds-lbl">Slots available</div></div>
+            <div class="dcard-stat"><div class="ds-val">3.2 km</div><div class="ds-lbl">From your location</div></div>
+            <div class="dcard-stat"><div class="ds-val">4 ★</div><div class="ds-lbl">ESC rating</div></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</body>
+</html>

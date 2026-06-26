@@ -1,7 +1,9 @@
-import React, { useMemo, useState } from "react";
+import React, { useMemo, useState, useEffect, useRef } from "react";
 import {
   Check,
   ChevronDown,
+  ChevronLeft,
+  ChevronRight,
   ChevronUp,
   Clock3,
   Info,
@@ -14,36 +16,72 @@ import {
   Sparkles,
   Star,
   X,
+  Heart,
+  ShieldCheck,
+  SendHorizontal,
+  Navigation,
+  GripVertical,
+  ExternalLink,
+  LogOut,
+  Award,
+  FileCheck,
+  AlertCircle,
+  RefreshCw,
+  User
 } from "lucide-react";
 
-// --- SYNTHETIC DATA ---
+// --- SYNTHETIC DATA (Expanded to 50 Schools) ---
 const schools = [
-  { id: "SCH001", name: "St. Mary's Academy of Taguig", type: "private_esc", sector: "sectarian", region: "NCR", province: "Metro Manila", municipality: "Taguig City", barangay: "Bagumbayan", postal_code: "1630", lat: 14.5176, lng: 121.0509, tuition: 45000, esc_subsidy: 13000, net_cost: 32000, slots_total: 40, slots_available: 12, distance_km: 3.2, commute_minutes: 15, esc_rating: 4, religious_affiliation: "Sectarian" },
-  { id: "SCH002", name: "Bagumbayan National High School", type: "public", sector: null, region: "NCR", province: "Metro Manila", municipality: "Taguig City", barangay: "Bagumbayan", postal_code: "1630", lat: 14.5211, lng: 121.0576, tuition: 0, esc_subsidy: 0, net_cost: 0, slots_total: 360, slots_available: 22, distance_km: 1.4, commute_minutes: 6, esc_rating: 0, religious_affiliation: "Public" },
-  { id: "SCH003", name: "Senator Renato Cayetano Memorial Science and Technology High School", type: "public", sector: null, region: "NCR", province: "Metro Manila", municipality: "Taguig City", barangay: "Ususan", postal_code: "1639", lat: 14.5382, lng: 121.0675, tuition: 0, esc_subsidy: 0, net_cost: 0, slots_total: 280, slots_available: 9, distance_km: 4.8, commute_minutes: 22, esc_rating: 0, religious_affiliation: "Public" },
-  { id: "SCH004", name: "Pateros Catholic School", type: "private_esc", sector: "sectarian", region: "NCR", province: "Metro Manila", municipality: "Pateros", barangay: "San Roque", postal_code: "1620", lat: 14.5455, lng: 121.0699, tuition: 52000, esc_subsidy: 13000, net_cost: 39000, slots_total: 45, slots_available: 18, distance_km: 5.7, commute_minutes: 28, esc_rating: 5, religious_affiliation: "Sectarian" },
-  { id: "SCH005", name: "Fort Bonifacio Christian Academy", type: "private_esc", sector: "non_sectarian", region: "NCR", province: "Metro Manila", municipality: "Makati City", barangay: "Cembo", postal_code: "1214", lat: 14.5538, lng: 121.0436, tuition: 47000, esc_subsidy: 13000, net_cost: 34000, slots_total: 42, slots_available: 17, distance_km: 7.1, commute_minutes: 31, esc_rating: 4, religious_affiliation: "Non-Sectarian" },
-  { id: "SCH006", name: "Pasig Grace Christian School", type: "private_esc", sector: "sectarian", region: "NCR", province: "Metro Manila", municipality: "Pasig City", barangay: "Maybunga", postal_code: "1607", lat: 14.5752, lng: 121.0837, tuition: 42000, esc_subsidy: 13000, net_cost: 29000, slots_total: 50, slots_available: 15, distance_km: 10.8, commute_minutes: 42, esc_rating: 4, religious_affiliation: "Sectarian" },
-  { id: "SCH007", name: "St. Paul College Pasig", type: "private_no_esc", sector: "sectarian", region: "NCR", province: "Metro Manila", municipality: "Pasig City", barangay: "Ugong", postal_code: "1604", lat: 14.5845, lng: 121.0797, tuition: 118000, esc_subsidy: 0, net_cost: 118000, slots_total: 60, slots_available: 21, distance_km: 11.6, commute_minutes: 45, esc_rating: 0, religious_affiliation: "Sectarian" },
-  { id: "SCH008", name: "Imus National High School", type: "public", sector: null, region: "Region IV-A", province: "Cavite", municipality: "Imus City", barangay: "Poblacion", postal_code: "4103", lat: 14.4297, lng: 120.9367, tuition: 0, esc_subsidy: 0, net_cost: 0, slots_total: 420, slots_available: 44, distance_km: 21.4, commute_minutes: 58, esc_rating: 0, religious_affiliation: "Public" },
-  { id: "SCH009", name: "St. Edward Integrated School", type: "private_esc", sector: "sectarian", region: "Region IV-A", province: "Cavite", municipality: "Imus City", barangay: "Buhay na Tubig", postal_code: "4103", lat: 14.4144, lng: 120.9577, tuition: 62000, esc_subsidy: 11000, net_cost: 51000, slots_total: 55, slots_available: 27, distance_km: 24.6, commute_minutes: 62, esc_rating: 4, religious_affiliation: "Sectarian" },
-  { id: "SCH010", name: "Dasmarinas Integrated High School", type: "public", sector: null, region: "Region IV-A", province: "Cavite", municipality: "Dasmarinas City", barangay: "Zone IV", postal_code: "4114", lat: 14.3294, lng: 120.9366, tuition: 0, esc_subsidy: 0, net_cost: 0, slots_total: 500, slots_available: 63, distance_km: 34.9, commute_minutes: 78, esc_rating: 0, religious_affiliation: "Public" },
-  { id: "SCH011", name: "Cavite Christian School", type: "private_esc", sector: "sectarian", region: "Region IV-A", province: "Cavite", municipality: "Bacoor City", barangay: "Molino III", postal_code: "4102", lat: 14.4117, lng: 120.9742, tuition: 38000, esc_subsidy: 11000, net_cost: 27000, slots_total: 48, slots_available: 8, distance_km: 22.2, commute_minutes: 54, esc_rating: 3, religious_affiliation: "Sectarian" },
-  { id: "SCH012", name: "Southville International School Cavite", type: "private_no_esc", sector: "non_sectarian", region: "Region IV-A", province: "Cavite", municipality: "Bacoor City", barangay: "Habitat", postal_code: "4102", lat: 14.4338, lng: 120.9643, tuition: 142000, esc_subsidy: 0, net_cost: 142000, slots_total: 35, slots_available: 19, distance_km: 20.5, commute_minutes: 49, esc_rating: 0, religious_affiliation: "Non-Sectarian" },
-  { id: "SCH013", name: "San Pedro Relocation Center National High School", type: "public", sector: null, region: "Region IV-A", province: "Laguna", municipality: "San Pedro City", barangay: "Landayan", postal_code: "4023", lat: 14.3588, lng: 121.0536, tuition: 0, esc_subsidy: 0, net_cost: 0, slots_total: 390, slots_available: 17, distance_km: 25.7, commute_minutes: 64, esc_rating: 0, religious_affiliation: "Public" },
-  { id: "SCH014", name: "Binan City Science and Technology High School", type: "public", sector: null, region: "Region IV-A", province: "Laguna", municipality: "Binan City", barangay: "San Antonio", postal_code: "4024", lat: 14.3371, lng: 121.0804, tuition: 0, esc_subsidy: 0, net_cost: 0, slots_total: 260, slots_available: 12, distance_km: 30.6, commute_minutes: 72, esc_rating: 0, religious_affiliation: "Public" },
-  { id: "SCH015", name: "Colegio de San Juan de Letran Calamba", type: "private_esc", sector: "sectarian", region: "Region IV-A", province: "Laguna", municipality: "Calamba City", barangay: "Bucal", postal_code: "4027", lat: 14.1981, lng: 121.1653, tuition: 59000, esc_subsidy: 11000, net_cost: 48000, slots_total: 70, slots_available: 31, distance_km: 53.8, commute_minutes: 96, esc_rating: 5, religious_affiliation: "Sectarian" },
-  { id: "SCH016", name: "Laguna BelAir School", type: "private_no_esc", sector: "non_sectarian", region: "Region IV-A", province: "Laguna", municipality: "Santa Rosa City", barangay: "Don Jose", postal_code: "4026", lat: 14.2825, lng: 121.0894, tuition: 98000, esc_subsidy: 0, net_cost: 98000, slots_total: 45, slots_available: 23, distance_km: 39.8, commute_minutes: 83, esc_rating: 0, religious_affiliation: "Non-Sectarian" },
-  { id: "SCH017", name: "Malolos Integrated School", type: "public", sector: null, region: "Region III", province: "Bulacan", municipality: "Malolos City", barangay: "Guinhawa", postal_code: "3000", lat: 14.8527, lng: 120.816, tuition: 0, esc_subsidy: 0, net_cost: 0, slots_total: 430, slots_available: 51, distance_km: 48.2, commute_minutes: 92, esc_rating: 0, religious_affiliation: "Public" },
-  { id: "SCH018", name: "Meycauayan National High School", type: "public", sector: null, region: "Region III", province: "Bulacan", municipality: "Meycauayan City", barangay: "Calvario", postal_code: "3020", lat: 14.7368, lng: 120.9608, tuition: 0, esc_subsidy: 0, net_cost: 0, slots_total: 470, slots_available: 28, distance_km: 32.7, commute_minutes: 75, esc_rating: 0, religious_affiliation: "Public" },
-  { id: "SCH019", name: "St. Anne's Catholic School of Bulacan", type: "private_esc", sector: "sectarian", region: "Region III", province: "Bulacan", municipality: "Malolos City", barangay: "Catmon", postal_code: "3000", lat: 14.8471, lng: 120.8111, tuition: 41000, esc_subsidy: 9000, net_cost: 32000, slots_total: 52, slots_available: 16, distance_km: 49.1, commute_minutes: 95, esc_rating: 4, religious_affiliation: "Sectarian" },
-  { id: "SCH020", name: "Bulacan Ecumenical School", type: "private_esc", sector: "non_sectarian", region: "Region III", province: "Bulacan", municipality: "Marilao", barangay: "Loma de Gato", postal_code: "3019", lat: 14.7571, lng: 120.9488, tuition: 36000, esc_subsidy: 9000, net_cost: 27000, slots_total: 40, slots_available: 4, distance_km: 35.4, commute_minutes: 81, esc_rating: 3, religious_affiliation: "Non-Sectarian" },
-  { id: "SCH021", name: "Our Lady of Guadalupe School San Jose del Monte", type: "private_no_esc", sector: "sectarian", region: "Region III", province: "Bulacan", municipality: "San Jose del Monte City", barangay: "Tungkong Mangga", postal_code: "3023", lat: 14.8167, lng: 121.0754, tuition: 74000, esc_subsidy: 0, net_cost: 74000, slots_total: 44, slots_available: 11, distance_km: 43.9, commute_minutes: 98, esc_rating: 0, religious_affiliation: "Sectarian" },
-  { id: "SCH022", name: "Angeles City National Trade School", type: "public", sector: null, region: "Region III", province: "Pampanga", municipality: "Angeles City", barangay: "Pulungbulu", postal_code: "2009", lat: 15.1456, lng: 120.5881, tuition: 0, esc_subsidy: 0, net_cost: 0, slots_total: 520, slots_available: 76, distance_km: 91.5, commute_minutes: 132, esc_rating: 0, religious_affiliation: "Public" },
-  { id: "SCH023", name: "San Fernando High School", type: "public", sector: null, region: "Region III", province: "Pampanga", municipality: "City of San Fernando", barangay: "Dolores", postal_code: "2000", lat: 15.0287, lng: 120.6893, tuition: 0, esc_subsidy: 0, net_cost: 0, slots_total: 490, slots_available: 33, distance_km: 78.8, commute_minutes: 118, esc_rating: 0, religious_affiliation: "Public" },
-  { id: "SCH024", name: "Holy Angel Academy", type: "private_esc", sector: "sectarian", region: "Region III", province: "Pampanga", municipality: "Angeles City", barangay: "Sto. Rosario", postal_code: "2009", lat: 15.1344, lng: 120.5906, tuition: 48000, esc_subsidy: 9000, net_cost: 39000, slots_total: 65, slots_available: 26, distance_km: 90.7, commute_minutes: 130, esc_rating: 5, religious_affiliation: "Sectarian" },
-  { id: "SCH025", name: "Pampanga Central Institute", type: "private_esc", sector: "non_sectarian", region: "Region III", province: "Pampanga", municipality: "Mexico", barangay: "San Antonio", postal_code: "2021", lat: 15.0701, lng: 120.7219, tuition: 35000, esc_subsidy: 9000, net_cost: 26000, slots_total: 48, slots_available: 14, distance_km: 82.2, commute_minutes: 124, esc_rating: 4, religious_affiliation: "Non-Sectarian" },
-  { id: "SCH026", name: "Clarkfield Learning Center", type: "private_no_esc", sector: "non_sectarian", region: "Region III", province: "Pampanga", municipality: "Mabalacat City", barangay: "Dau", postal_code: "2010", lat: 15.1842, lng: 120.5939, tuition: 128000, esc_subsidy: 0, net_cost: 128000, slots_total: 38, slots_available: 20, distance_km: 95.8, commute_minutes: 140, esc_rating: 0, religious_affiliation: "Non-Sectarian" },
+  { id: "SCH001", name: "St. Mary's Academy of Taguig", type: "private_esc", sector: "sectarian", region: "NCR", province: "Metro Manila", municipality: "Taguig City", barangay: "Bagumbayan", postal_code: "1630", lat: 14.5176, lng: 121.0509, tuition: 45000, esc_subsidy: 13000, net_cost: 32000, slots_total: 40, slots_available: 12, distance_km: 3.2, commute_minutes: 15, esc_rating: 4, religious_affiliation: "Sectarian", admission_category: "ESC Partner" },
+  { id: "SCH002", name: "Bagumbayan National High School", type: "public", sector: null, region: "NCR", province: "Metro Manila", municipality: "Taguig City", barangay: "Bagumbayan", postal_code: "1630", lat: 14.5211, lng: 121.0576, tuition: 0, esc_subsidy: 0, net_cost: 0, slots_total: 360, slots_available: 22, distance_km: 1.4, commute_minutes: 6, esc_rating: 0, religious_affiliation: "Public", admission_category: "Priority Decongestion" },
+  { id: "SCH003", name: "Senator Renato Cayetano Memorial Science and Technology High School", type: "public", sector: null, region: "NCR", province: "Metro Manila", municipality: "Taguig City", barangay: "Ususan", postal_code: "1639", lat: 14.5382, lng: 121.0675, tuition: 0, esc_subsidy: 0, net_cost: 0, slots_total: 280, slots_available: 9, distance_km: 4.8, commute_minutes: 22, esc_rating: 0, religious_affiliation: "Public", admission_category: "Priority Decongestion" },
+  { id: "SCH004", name: "Pateros Catholic School", type: "private_esc", sector: "sectarian", region: "NCR", province: "Metro Manila", municipality: "Pateros", barangay: "San Roque", postal_code: "1620", lat: 14.5455, lng: 121.0699, tuition: 52000, esc_subsidy: 13000, net_cost: 39000, slots_total: 45, slots_available: 18, distance_km: 5.7, commute_minutes: 28, esc_rating: 5, religious_affiliation: "Sectarian", admission_category: "ESC Partner" },
+  { id: "SCH005", name: "Fort Bonifacio Christian Academy", type: "private_esc", sector: "non_sectarian", region: "NCR", province: "Metro Manila", municipality: "Makati City", barangay: "Cembo", postal_code: "1214", lat: 14.5538, lng: 121.0436, tuition: 47000, esc_subsidy: 13000, net_cost: 34000, slots_total: 42, slots_available: 17, distance_km: 7.1, commute_minutes: 31, esc_rating: 4, religious_affiliation: "Non-Sectarian", admission_category: "ESC Partner" },
+  { id: "SCH006", name: "Pasig Grace Christian School", type: "private_esc", sector: "sectarian", region: "NCR", province: "Metro Manila", municipality: "Pasig City", barangay: "Maybunga", postal_code: "1607", lat: 14.5752, lng: 121.0837, tuition: 42000, esc_subsidy: 13000, net_cost: 29000, slots_total: 50, slots_available: 15, distance_km: 10.8, commute_minutes: 42, esc_rating: 4, religious_affiliation: "Sectarian", admission_category: "ESC Partner" },
+  { id: "SCH007", name: "St. Paul College Pasig", type: "private_no_esc", sector: "sectarian", region: "NCR", province: "Metro Manila", municipality: "Pasig City", barangay: "Ugong", postal_code: "1604", lat: 14.5845, lng: 121.0797, tuition: 118000, esc_subsidy: 0, net_cost: 118000, slots_total: 60, slots_available: 21, distance_km: 11.6, commute_minutes: 45, esc_rating: 0, religious_affiliation: "Sectarian", admission_category: "Highly Selective" },
+  { id: "SCH008", name: "Imus National High School", type: "public", sector: null, region: "Region IV-A", province: "Cavite", municipality: "Imus City", barangay: "Poblacion", postal_code: "4103", lat: 14.4297, lng: 120.9367, tuition: 0, esc_subsidy: 0, net_cost: 0, slots_total: 420, slots_available: 44, distance_km: 21.4, commute_minutes: 58, esc_rating: 0, religious_affiliation: "Public", admission_category: "Priority Decongestion" },
+  { id: "SCH009", name: "St. Edward Integrated School", type: "private_esc", sector: "sectarian", region: "Region IV-A", province: "Cavite", municipality: "Imus City", barangay: "Buhay na Tubig", postal_code: "4103", lat: 14.4144, lng: 120.9577, tuition: 62000, esc_subsidy: 11000, net_cost: 51000, slots_total: 55, slots_available: 27, distance_km: 24.6, commute_minutes: 62, esc_rating: 4, religious_affiliation: "Sectarian", admission_category: "ESC Partner" },
+  { id: "SCH010", name: "Dasmarinas Integrated High School", type: "public", sector: null, region: "Region IV-A", province: "Cavite", municipality: "Dasmarinas City", barangay: "Zone IV", postal_code: "4114", lat: 14.3294, lng: 120.9366, tuition: 0, esc_subsidy: 0, net_cost: 0, slots_total: 500, slots_available: 63, distance_km: 34.9, commute_minutes: 78, esc_rating: 0, religious_affiliation: "Public", admission_category: "Priority Decongestion" },
+  { id: "SCH011", name: "Cavite Christian School", type: "private_esc", sector: "sectarian", region: "Region IV-A", province: "Cavite", municipality: "Bacoor City", barangay: "Molino III", postal_code: "4102", lat: 14.4117, lng: 120.9742, tuition: 38000, esc_subsidy: 11000, net_cost: 27000, slots_total: 48, slots_available: 8, distance_km: 22.2, commute_minutes: 54, esc_rating: 3, religious_affiliation: "Sectarian", admission_category: "ESC Partner" },
+  { id: "SCH012", name: "Southville International School Cavite", type: "private_no_esc", sector: "non_sectarian", region: "Region IV-A", province: "Cavite", municipality: "Bacoor City", barangay: "Habitat", postal_code: "4102", lat: 14.4338, lng: 120.9643, tuition: 142000, esc_subsidy: 0, net_cost: 142000, slots_total: 35, slots_available: 19, distance_km: 20.5, commute_minutes: 49, esc_rating: 0, religious_affiliation: "Non-Sectarian", admission_category: "Highly Selective" },
+  { id: "SCH013", name: "San Pedro Relocation Center National High School", type: "public", sector: null, region: "Region IV-A", province: "Laguna", municipality: "San Pedro City", barangay: "Landayan", postal_code: "4023", lat: 14.3588, lng: 121.0536, tuition: 0, esc_subsidy: 0, net_cost: 0, slots_total: 390, slots_available: 17, distance_km: 25.7, commute_minutes: 64, esc_rating: 0, religious_affiliation: "Public", admission_category: "Priority Decongestion" },
+  { id: "SCH014", name: "Binan City Science and Technology High School", type: "public", sector: null, region: "Region IV-A", province: "Laguna", municipality: "Binan City", barangay: "San Antonio", postal_code: "4024", lat: 14.3371, lng: 121.0804, tuition: 0, esc_subsidy: 0, net_cost: 0, slots_total: 260, slots_available: 12, distance_km: 30.6, commute_minutes: 72, esc_rating: 0, religious_affiliation: "Public", admission_category: "Priority Decongestion" },
+  { id: "SCH015", name: "Colegio de San Juan de Letran Calamba", type: "private_esc", sector: "sectarian", region: "Region IV-A", province: "Laguna", municipality: "Calamba City", barangay: "Bucal", postal_code: "4027", lat: 14.1981, lng: 121.1653, tuition: 59000, esc_subsidy: 11000, net_cost: 48000, slots_total: 70, slots_available: 31, distance_km: 53.8, commute_minutes: 96, esc_rating: 5, religious_affiliation: "Sectarian", admission_category: "ESC Partner" },
+  { id: "SCH016", name: "Laguna BelAir School", type: "private_no_esc", sector: "non_sectarian", region: "Region IV-A", province: "Laguna", municipality: "Santa Rosa City", barangay: "Don Jose", postal_code: "4026", lat: 14.2825, lng: 121.0894, tuition: 98000, esc_subsidy: 0, net_cost: 98000, slots_total: 45, slots_available: 23, distance_km: 39.8, commute_minutes: 83, esc_rating: 0, religious_affiliation: "Non-Sectarian", admission_category: "Highly Selective" },
+  { id: "SCH017", name: "Malolos Integrated School", type: "public", sector: null, region: "Region III", province: "Bulacan", municipality: "Malolos City", barangay: "Guinhawa", postal_code: "3000", lat: 14.8527, lng: 120.816, tuition: 0, esc_subsidy: 0, net_cost: 0, slots_total: 430, slots_available: 51, distance_km: 48.2, commute_minutes: 92, esc_rating: 0, religious_affiliation: "Public", admission_category: "Priority Decongestion" },
+  { id: "SCH018", name: "Meycauayan National High School", type: "public", sector: null, region: "Region III", province: "Bulacan", municipality: "Meycauayan City", barangay: "Calvario", postal_code: "3020", lat: 14.7368, lng: 120.9608, tuition: 0, esc_subsidy: 0, net_cost: 0, slots_total: 470, slots_available: 28, distance_km: 32.7, commute_minutes: 75, esc_rating: 0, religious_affiliation: "Public", admission_category: "Priority Decongestion" },
+  { id: "SCH019", name: "St. Anne's Catholic School of Bulacan", type: "private_esc", sector: "sectarian", region: "Region III", province: "Bulacan", municipality: "Malolos City", barangay: "Catmon", postal_code: "3000", lat: 14.8471, lng: 120.8111, tuition: 41000, esc_subsidy: 9000, net_cost: 32000, slots_total: 52, slots_available: 16, distance_km: 49.1, commute_minutes: 95, esc_rating: 4, religious_affiliation: "Sectarian", admission_category: "ESC Partner" },
+  { id: "SCH020", name: "Bulacan Ecumenical School", type: "private_esc", sector: "non_sectarian", region: "Region III", province: "Bulacan", municipality: "Marilao", barangay: "Loma de Gato", postal_code: "3019", lat: 14.7571, lng: 120.9488, tuition: 36000, esc_subsidy: 9000, net_cost: 27000, slots_total: 40, slots_available: 4, distance_km: 35.4, commute_minutes: 81, esc_rating: 3, religious_affiliation: "Non-Sectarian", admission_category: "ESC Partner" },
+  { id: "SCH021", name: "Our Lady of Guadalupe School San Jose del Monte", type: "private_no_esc", sector: "sectarian", region: "Region III", province: "Bulacan", municipality: "San Jose del Monte City", barangay: "Tungkong Mangga", postal_code: "3023", lat: 14.8167, lng: 121.0754, tuition: 74000, esc_subsidy: 0, net_cost: 74000, slots_total: 44, slots_available: 11, distance_km: 43.9, commute_minutes: 98, esc_rating: 0, religious_affiliation: "Sectarian", admission_category: "Highly Selective" },
+  { id: "SCH022", name: "Angeles City National Trade School", type: "public", sector: null, region: "Region III", province: "Pampanga", municipality: "Angeles City", barangay: "Pulungbulu", postal_code: "2009", lat: 15.1456, lng: 120.5881, tuition: 0, esc_subsidy: 0, net_cost: 0, slots_total: 520, slots_available: 76, distance_km: 91.5, commute_minutes: 132, esc_rating: 0, religious_affiliation: "Public", admission_category: "Priority Decongestion" },
+  { id: "SCH023", name: "San Fernando High School", type: "public", sector: null, region: "Region III", province: "Pampanga", municipality: "City of San Fernando", barangay: "Dolores", postal_code: "2000", lat: 15.0287, lng: 120.6893, tuition: 0, esc_subsidy: 0, net_cost: 0, slots_total: 490, slots_available: 33, distance_km: 78.8, commute_minutes: 118, esc_rating: 0, religious_affiliation: "Public", admission_category: "Priority Decongestion" },
+  { id: "SCH024", name: "Holy Angel Academy", type: "private_esc", sector: "sectarian", region: "Region III", province: "Pampanga", municipality: "Angeles City", barangay: "Sto. Rosario", postal_code: "2009", lat: 15.1344, lng: 120.5906, tuition: 48000, esc_subsidy: 9000, net_cost: 39000, slots_total: 65, slots_available: 26, distance_km: 90.7, commute_minutes: 130, esc_rating: 5, religious_affiliation: "Sectarian", admission_category: "ESC Partner" },
+  { id: "SCH025", name: "Pampanga Central Institute", type: "private_esc", sector: "non_sectarian", region: "Region III", province: "Pampanga", municipality: "Mexico", barangay: "San Antonio", postal_code: "2021", lat: 15.0701, lng: 120.7219, tuition: 35000, esc_subsidy: 9000, net_cost: 26000, slots_total: 48, slots_available: 14, distance_km: 82.2, commute_minutes: 124, esc_rating: 4, religious_affiliation: "Non-Sectarian", admission_category: "ESC Partner" },
+  { id: "SCH026", name: "Clarkfield Learning Center", type: "private_no_esc", sector: "non_sectarian", region: "Region III", province: "Pampanga", municipality: "Mabalacat City", barangay: "Dau", postal_code: "2010", lat: 15.1842, lng: 120.5939, tuition: 128000, esc_subsidy: 0, net_cost: 128000, slots_total: 38, slots_available: 20, distance_km: 95.8, commute_minutes: 140, esc_rating: 0, religious_affiliation: "Non-Sectarian", admission_category: "Highly Selective" },
+  { id: "SCH027", name: "Rizal High School", type: "public", sector: null, region: "NCR", province: "Metro Manila", municipality: "Pasig City", barangay: "Caniogan", postal_code: "1606", lat: 14.5670, lng: 121.0773, tuition: 0, esc_subsidy: 0, net_cost: 0, slots_total: 1200, slots_available: 45, distance_km: 12.1, commute_minutes: 48, esc_rating: 0, religious_affiliation: "Public", admission_category: "Priority Decongestion" },
+  { id: "SCH028", name: "Makati Science High School", type: "public", sector: null, region: "NCR", province: "Metro Manila", municipality: "Makati City", barangay: "Cembo", postal_code: "1214", lat: 14.5582, lng: 121.0543, tuition: 0, esc_subsidy: 0, net_cost: 0, slots_total: 300, slots_available: 5, distance_km: 6.5, commute_minutes: 25, esc_rating: 0, religious_affiliation: "Public", admission_category: "Highly Selective" },
+  { id: "SCH029", name: "Pitogo High School", type: "public", sector: null, region: "NCR", province: "Metro Manila", municipality: "Makati City", barangay: "Pitogo", postal_code: "1213", lat: 14.5555, lng: 121.0478, tuition: 0, esc_subsidy: 0, net_cost: 0, slots_total: 400, slots_available: 50, distance_km: 6.8, commute_minutes: 28, esc_rating: 0, religious_affiliation: "Public", admission_category: "Open Admission" },
+  { id: "SCH030", name: "Ateneo de Manila Junior High School", type: "private_no_esc", sector: "sectarian", region: "NCR", province: "Metro Manila", municipality: "Quezon City", barangay: "Loyola Heights", postal_code: "1108", lat: 14.6394, lng: 121.0781, tuition: 180000, esc_subsidy: 0, net_cost: 180000, slots_total: 400, slots_available: 15, distance_km: 14.5, commute_minutes: 55, esc_rating: 0, religious_affiliation: "Sectarian", admission_category: "Highly Selective" },
+  { id: "SCH031", name: "Miriam College Middle School", type: "private_no_esc", sector: "sectarian", region: "NCR", province: "Metro Manila", municipality: "Quezon City", barangay: "UP Campus", postal_code: "1101", lat: 14.6465, lng: 121.0754, tuition: 165000, esc_subsidy: 0, net_cost: 165000, slots_total: 250, slots_available: 20, distance_km: 15.2, commute_minutes: 58, esc_rating: 0, religious_affiliation: "Sectarian", admission_category: "Highly Selective" },
+  { id: "SCH032", name: "Quezon City Science High School", type: "public", sector: null, region: "NCR", province: "Metro Manila", municipality: "Quezon City", barangay: "Bago Bantay", postal_code: "1105", lat: 14.6542, lng: 121.0298, tuition: 0, esc_subsidy: 0, net_cost: 0, slots_total: 350, slots_available: 0, distance_km: 17.1, commute_minutes: 65, esc_rating: 0, religious_affiliation: "Public", admission_category: "Highly Selective" },
+  { id: "SCH033", name: "San Francisco High School", type: "public", sector: null, region: "NCR", province: "Metro Manila", municipality: "Quezon City", barangay: "Bago Bantay", postal_code: "1105", lat: 14.6552, lng: 121.0312, tuition: 0, esc_subsidy: 0, net_cost: 0, slots_total: 800, slots_available: 120, distance_km: 17.3, commute_minutes: 66, esc_rating: 0, religious_affiliation: "Public", admission_category: "Priority Decongestion" },
+  { id: "SCH034", name: "St. Bridget School", type: "private_esc", sector: "sectarian", region: "NCR", province: "Metro Manila", municipality: "Quezon City", barangay: "Loyola Heights", postal_code: "1108", lat: 14.6321, lng: 121.0715, tuition: 85000, esc_subsidy: 13000, net_cost: 72000, slots_total: 120, slots_available: 35, distance_km: 14.0, commute_minutes: 52, esc_rating: 4, religious_affiliation: "Sectarian", admission_category: "ESC Partner" },
+  { id: "SCH035", name: "Manila Science High School", type: "public", sector: null, region: "NCR", province: "Metro Manila", municipality: "Manila", barangay: "Ermita", postal_code: "1000", lat: 14.5866, lng: 120.9856, tuition: 0, esc_subsidy: 0, net_cost: 0, slots_total: 250, slots_available: 10, distance_km: 10.5, commute_minutes: 40, esc_rating: 0, religious_affiliation: "Public", admission_category: "Highly Selective" },
+  { id: "SCH036", name: "Araullo High School", type: "public", sector: null, region: "NCR", province: "Metro Manila", municipality: "Manila", barangay: "Ermita", postal_code: "1000", lat: 14.5821, lng: 120.9835, tuition: 0, esc_subsidy: 0, net_cost: 0, slots_total: 900, slots_available: 85, distance_km: 10.2, commute_minutes: 38, esc_rating: 0, religious_affiliation: "Public", admission_category: "Priority Decongestion" },
+  { id: "SCH037", name: "St. Scholastica's College Manila", type: "private_no_esc", sector: "sectarian", region: "NCR", province: "Metro Manila", municipality: "Manila", barangay: "Malate", postal_code: "1004", lat: 14.5636, lng: 120.9947, tuition: 135000, esc_subsidy: 0, net_cost: 135000, slots_total: 200, slots_available: 40, distance_km: 8.5, commute_minutes: 35, esc_rating: 0, religious_affiliation: "Sectarian", admission_category: "Highly Selective" },
+  { id: "SCH038", name: "De La Salle Santiago Zobel School", type: "private_no_esc", sector: "sectarian", region: "NCR", province: "Metro Manila", municipality: "Muntinlupa", barangay: "Ayala Alabang", postal_code: "1780", lat: 14.4239, lng: 121.0189, tuition: 195000, esc_subsidy: 0, net_cost: 195000, slots_total: 300, slots_available: 25, distance_km: 18.5, commute_minutes: 60, esc_rating: 0, religious_affiliation: "Sectarian", admission_category: "Highly Selective" },
+  { id: "SCH039", name: "Muntinlupa National High School", type: "public", sector: null, region: "NCR", province: "Metro Manila", municipality: "Muntinlupa", barangay: "Poblacion", postal_code: "1776", lat: 14.3812, lng: 121.0335, tuition: 0, esc_subsidy: 0, net_cost: 0, slots_total: 1500, slots_available: 210, distance_km: 21.0, commute_minutes: 65, esc_rating: 0, religious_affiliation: "Public", admission_category: "Priority Decongestion" },
+  { id: "SCH040", name: "San Beda College Alabang", type: "private_no_esc", sector: "sectarian", region: "NCR", province: "Metro Manila", municipality: "Muntinlupa", barangay: "Alabang", postal_code: "1780", lat: 14.4285, lng: 121.0267, tuition: 155000, esc_subsidy: 0, net_cost: 155000, slots_total: 350, slots_available: 45, distance_km: 17.5, commute_minutes: 55, esc_rating: 0, religious_affiliation: "Sectarian", admission_category: "Highly Selective" },
+  { id: "SCH041", name: "Muntinlupa Science High School", type: "public", sector: null, region: "NCR", province: "Metro Manila", municipality: "Muntinlupa", barangay: "Tunasan", postal_code: "1773", lat: 14.3756, lng: 121.0421, tuition: 0, esc_subsidy: 0, net_cost: 0, slots_total: 200, slots_available: 0, distance_km: 22.5, commute_minutes: 70, esc_rating: 0, religious_affiliation: "Public", admission_category: "Highly Selective" },
+  { id: "SCH042", name: "Carmona National High School", type: "public", sector: null, region: "Region IV-A", province: "Cavite", municipality: "Carmona", barangay: "Maduya", postal_code: "4116", lat: 14.3167, lng: 121.0567, tuition: 0, esc_subsidy: 0, net_cost: 0, slots_total: 600, slots_available: 80, distance_km: 27.5, commute_minutes: 75, esc_rating: 0, religious_affiliation: "Public", admission_category: "Priority Decongestion" },
+  { id: "SCH043", name: "Biñan National High School", type: "public", sector: null, region: "Region IV-A", province: "Laguna", municipality: "Binan City", barangay: "Santo Tomas", postal_code: "4024", lat: 14.3312, lng: 121.0845, tuition: 0, esc_subsidy: 0, net_cost: 0, slots_total: 1100, slots_available: 150, distance_km: 29.8, commute_minutes: 80, esc_rating: 0, religious_affiliation: "Public", admission_category: "Priority Decongestion" },
+  { id: "SCH044", name: "La Consolacion College Biñan", type: "private_esc", sector: "sectarian", region: "Region IV-A", province: "Laguna", municipality: "Binan City", barangay: "Santo Tomas", postal_code: "4024", lat: 14.3298, lng: 121.0855, tuition: 55000, esc_subsidy: 11000, net_cost: 44000, slots_total: 180, slots_available: 40, distance_km: 30.0, commute_minutes: 82, esc_rating: 4, religious_affiliation: "Sectarian", admission_category: "ESC Partner" },
+  { id: "SCH045", name: "Santa Rosa Science and Technology High School", type: "public", sector: null, region: "Region IV-A", province: "Laguna", municipality: "Santa Rosa City", barangay: "Market Area", postal_code: "4026", lat: 14.3111, lng: 121.1111, tuition: 0, esc_subsidy: 0, net_cost: 0, slots_total: 250, slots_available: 12, distance_km: 34.5, commute_minutes: 90, esc_rating: 0, religious_affiliation: "Public", admission_category: "Highly Selective" },
+  { id: "SCH046", name: "Bulacan State University Laboratory High School", type: "public", sector: null, region: "Region III", province: "Bulacan", municipality: "Malolos City", barangay: "Guinhawa", postal_code: "3000", lat: 14.8580, lng: 120.8145, tuition: 0, esc_subsidy: 0, net_cost: 0, slots_total: 300, slots_available: 5, distance_km: 49.0, commute_minutes: 95, esc_rating: 0, religious_affiliation: "Public", admission_category: "Highly Selective" },
+  { id: "SCH047", name: "Marcelo H. Del Pilar National High School", type: "public", sector: null, region: "Region III", province: "Bulacan", municipality: "Malolos City", barangay: "Santa Isabel", postal_code: "3000", lat: 14.8465, lng: 120.8123, tuition: 0, esc_subsidy: 0, net_cost: 0, slots_total: 1800, slots_available: 300, distance_km: 48.5, commute_minutes: 93, esc_rating: 0, religious_affiliation: "Public", admission_category: "Priority Decongestion" },
+  { id: "SCH048", name: "Bocaue National High School", type: "public", sector: null, region: "Region III", province: "Bulacan", municipality: "Bocaue", barangay: "Igulot", postal_code: "3018", lat: 14.7955, lng: 120.9321, tuition: 0, esc_subsidy: 0, net_cost: 0, slots_total: 1200, slots_available: 150, distance_km: 41.2, commute_minutes: 85, esc_rating: 0, religious_affiliation: "Public", admission_category: "Priority Decongestion" },
+  { id: "SCH049", name: "St. Paul College of Bocaue", type: "private_esc", sector: "sectarian", region: "Region III", province: "Bulacan", municipality: "Bocaue", barangay: "Wakas", postal_code: "3018", lat: 14.7988, lng: 120.9255, tuition: 45000, esc_subsidy: 9000, net_cost: 36000, slots_total: 150, slots_available: 35, distance_km: 42.0, commute_minutes: 87, esc_rating: 3, religious_affiliation: "Sectarian", admission_category: "ESC Partner" },
+  { id: "SCH050", name: "Pampanga High School", type: "public", sector: null, region: "Region III", province: "Pampanga", municipality: "City of San Fernando", barangay: "Lourdes", postal_code: "2000", lat: 15.0321, lng: 120.6821, tuition: 0, esc_subsidy: 0, net_cost: 0, slots_total: 2000, slots_available: 450, distance_km: 79.5, commute_minutes: 120, esc_rating: 0, religious_affiliation: "Public", admission_category: "Priority Decongestion" }
 ];
 
 const typeMeta = {
@@ -58,13 +96,16 @@ const municipalityOptions = [
   "Taguig City", "Pateros", "Makati City", "Pasig City", "Imus City", "Bacoor City",
   "Dasmarinas City", "San Pedro City", "Binan City", "Santa Rosa City", "Calamba City",
   "Meycauayan City", "Malolos City", "Marilao", "San Jose del Monte City", "Angeles City",
-  "City of San Fernando", "Mexico", "Mabalacat City",
+  "City of San Fernando", "Mexico", "Mabalacat City", "Quezon City", "Manila", "Muntinlupa",
+  "Carmona", "Bocaue"
 ];
 const barangayOptions = [
   "Bagumbayan", "Ususan", "San Roque", "Cembo", "Maybunga", "Ugong", "Poblacion",
   "Buhay na Tubig", "Zone IV", "Molino III", "Habitat", "Landayan", "San Antonio",
   "Bucal", "Don Jose", "Guinhawa", "Calvario", "Catmon", "Loma de Gato", "Tungkong Mangga",
-  "Pulungbulu", "Dolores", "Sto. Rosario", "Dau",
+  "Pulungbulu", "Dolores", "Sto. Rosario", "Dau", "Caniogan", "Pitogo", "Loyola Heights",
+  "UP Campus", "Bago Bantay", "Ermita", "Malate", "Ayala Alabang", "Tunasan", "Maduya",
+  "Santo Tomas", "Market Area", "Santa Isabel", "Igulot", "Wakas", "Lourdes"
 ];
 
 const pesos = (value) =>
@@ -206,23 +247,49 @@ function Stars({ rating }) {
   );
 }
 
-function ResultCard({ school, selected, onSelect }) {
-  // SYSTEM VALIDATION: Check if subsidy is active [cite: 466]
+function WishlistButton({ school, isInList, onAdd, variant = 'full' }) {
+  const isFull = school.slots_available === 0 && school.type !== 'public';
+  if (variant === 'compact') {
+    return (
+      <button
+        onClick={() => onAdd(school)}
+        disabled={isFull || isInList}
+        title={isFull ? 'No slots available' : 'Add to wishlist'}
+        className={`shrink-0 p-2 rounded-lg transition ${isInList ? 'text-red-500 bg-red-50' : isFull ? 'text-slate-300 bg-slate-50 cursor-not-allowed' : 'text-[#1a4b8c] bg-blue-50 hover:bg-blue-100'}`}
+      >
+        {isInList ? <Heart className="fill-current h-4 w-4" /> : <Plus className="h-4 w-4" />}
+      </button>
+    );
+  }
+  return (
+    <button
+      onClick={() => onAdd(school)}
+      disabled={isInList || isFull}
+      className={`w-full h-11 rounded-xl font-bold text-sm flex items-center justify-center gap-2 transition ${isInList ? 'bg-red-50 text-red-600 border border-red-200' : isFull ? 'bg-slate-100 text-slate-400 cursor-not-allowed' : 'bg-[#1a4b8c] text-white hover:bg-[#143b70]'}`}
+    >
+      {isInList ? 'Added to Wishlist' : isFull ? 'No Slots Available' : 'Add to Wishlist'}
+      {isInList ? <Heart className="fill-current h-4 w-4" /> : !isFull && <Plus className="h-4 w-4" />}
+    </button>
+  );
+}
+
+function ResultCard({ school, selected, onSelect, onAddToWishlist, isInWishlist }) {
   const isEscParticipant = school.esc_subsidy > 0;
 
   return (
-    <button 
-      type="button" 
-      onClick={() => onSelect(school)} 
-      className={`w-full rounded-xl border bg-white p-4 text-left shadow-sm transition hover:-translate-y-0.5 ${selected ? "border-[#1a4b8c] ring-4 ring-[#1a4b8c]/10" : "border-[#e2e4e9]"}`}
-    >
+    <div className={`w-full rounded-xl border bg-white p-4 text-left shadow-sm transition hover:-translate-y-0.5 ${selected ? "border-[#1a4b8c] ring-4 ring-[#1a4b8c]/10" : "border-[#e2e4e9]"}`}>
       <div className="flex items-start justify-between gap-3">
-        <div className="min-w-0">
+        <button type="button" onClick={() => onSelect(school)} className="min-w-0 text-left flex-1 focus:outline-none">
           <h3 className="line-clamp-2 text-sm font-semibold leading-snug text-[#1a1d23]">{school.name}</h3>
           <p className="mt-1 text-xs text-[#6b7280] truncate">{school.municipality}, {school.province}</p>
-        </div>
-        <span className={`shrink-0 rounded-full px-2.5 py-1 text-[11px] font-semibold ${isEscParticipant ? "bg-[#16a34a] text-white" : "bg-[#f59e0b] text-white"}`}>
-          {isEscParticipant ? "ESC" : "Private"}
+        </button>
+        <WishlistButton school={school} isInList={isInWishlist} onAdd={onAddToWishlist} variant="compact" />
+      </div>
+
+      {/* UPDATED: Only rendering the School Type badge now */}
+      <div className="mt-3 flex gap-2">
+        <span className={`rounded-full px-2 py-0.5 text-[10px] font-bold uppercase ${isEscParticipant ? "bg-[#16a34a]/10 text-[#16a34a] border border-[#16a34a]/20" : school.type === 'public' ? "bg-[#1a4b8c]/10 text-[#1a4b8c] border border-[#1a4b8c]/20" : "bg-[#f59e0b]/10 text-[#f59e0b] border border-[#f59e0b]/20"}`}>
+          {isEscParticipant ? "Private with ESC" : school.type === 'public' ? "Public" : "Private No ESC"}
         </span>
       </div>
 
@@ -237,30 +304,27 @@ function ResultCard({ school, selected, onSelect }) {
         </div>
         <div className="min-w-0">
           <p className="text-[11px] uppercase tracking-[0.08em] text-[#9ca3af] truncate">Slots</p>
-          {/* FIXED: Only show number if ESC is active, otherwise show '-' [cite: 551] */}
           <p className="mt-1 text-sm font-semibold text-[#1a1d23] truncate">
-            {isEscParticipant ? school.slots_available : "—"}
+            {isEscParticipant || school.type === 'public' ? school.slots_available : "—"}
           </p>
         </div>
       </div>
 
-      {/* FIXED: Only show progress bar for ESC participants [cite: 420] */}
-      {isEscParticipant && (
+      {(isEscParticipant || school.type === 'public') && (
         <div className="mt-3 h-1.5 overflow-hidden rounded-full bg-[#f0f1f4]">
           <div className={`h-full rounded-full ${slotTone(school)}`} style={{ width: `${pct(school.slots_available, school.slots_total)}%` }} />
         </div>
       )}
-    </button>
+    </div>
   );
 }
 
-function SchoolInfoCard({ school, onClose }) {
+function SchoolInfoCard({ school, onClose, onAddToWishlist, isInWishlist }) {
   if (!school) return null;
   
-  // SYSTEM VALIDATION: A school is an ESC participant ONLY if it has an active subsidy
   const isEscParticipant = school.esc_subsidy > 0;
-  
   const meta = typeMeta[school.type];
+  
   const availablePct = pct(school.slots_available, school.slots_total);
   const point = projectPoint(school);
   
@@ -280,13 +344,12 @@ function SchoolInfoCard({ school, onClose }) {
     >
       <div className="flex items-start justify-between gap-4">
         <div className="min-w-0">
-          <div className="flex items-center gap-2">
-            <span className="h-3 w-3 shrink-0 rounded-full" style={{ backgroundColor: isEscParticipant ? "#22c55e" : "#f59e0b" }} />
-            <span className="text-xs font-semibold uppercase tracking-[0.08em] text-[#6b7280] truncate">
-              {isEscParticipant ? "ESC Participating" : "Private No ESC"}
+          <div className="flex items-center gap-2 mb-1">
+            <span className={`text-[10px] font-bold uppercase tracking-widest px-2 py-0.5 rounded ${meta.badge}`}>
+              {meta.label}
             </span>
           </div>
-          <h3 className="mt-3 text-lg font-semibold leading-tight text-[#1a1d23]">{school.name}</h3>
+          <h3 className="mt-2 text-lg font-semibold leading-tight text-[#1a1d23]">{school.name}</h3>
         </div>
         <button type="button" onClick={onClose} className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full border border-[#e2e4e9] text-[#6b7280] transition hover:bg-[#f8f9fb] focus:outline-none">
           <X className="h-4 w-4" />
@@ -312,19 +375,9 @@ function SchoolInfoCard({ school, onClose }) {
         </div>
       </div>
 
-      {/* FIXED: Slots are only visible for validated ESC participants */}
-      {isEscParticipant ? (
+      {isEscParticipant || school.type === 'public' ? (
         <div className="mt-5 rounded-xl bg-[#f8f9fb] p-4 border border-[#16a34a]/10">
-          <div className="flex items-center justify-between">
-            <span className="text-sm font-semibold text-[#1a1d23]">Available ESC Slots</span>
-            <span className="font-mono text-sm font-semibold text-[#1a1d23]">{school.slots_available} of {school.slots_total}</span>
-          </div>
-          <div className="mt-3 flex items-center gap-3">
-            <div className="h-3 flex-1 overflow-hidden rounded-full bg-white border border-[#e2e4e9]">
-              <div className={`h-full rounded-full ${slotTone(school)}`} style={{ width: `${availablePct}%` }} />
-            </div>
-            <span className="w-10 shrink-0 text-right text-xs font-semibold text-[#6b7280]">{availablePct}%</span>
-          </div>
+          <span className="text-sm font-semibold text-[#1a1d23]">Available {isEscParticipant ? "ESC subsidy slots" : "slots"}: {school.slots_available}</span>
         </div>
       ) : (
         <div className="mt-5 rounded-xl bg-slate-50 p-4 border border-dashed border-slate-200">
@@ -332,15 +385,14 @@ function SchoolInfoCard({ school, onClose }) {
         </div>
       )}
 
-      <div className="mt-4 grid grid-cols-2 gap-3 text-sm">
-        <div><p className="text-xs uppercase tracking-[0.08em] text-[#9ca3af]">ESC Rating</p><div className="mt-1"><Stars rating={school.esc_rating} /></div></div>
-        <div><p className="text-xs uppercase tracking-[0.08em] text-[#9ca3af]">Religious</p><p className="mt-1 font-semibold text-[#1a1d23]">{school.religious_affiliation}</p></div>
+      <div className="mt-4">
+        <WishlistButton school={school} isInList={isInWishlist} onAdd={onAddToWishlist} />
       </div>
     </div>
   );
 }
 
-function PhilippinesMap({ filteredSchools, selectedSchool, hoveredId, onHover, onSelect, comingSoon }) {
+function PhilippinesMap({ filteredSchools, selectedSchool, hoveredId, onHover, onSelect, comingSoon, userLocation }) {
   return (
     <div className="relative h-full w-full overflow-hidden bg-[#e2e8f0]">
       <div className="absolute right-5 top-5 z-10 flex flex-col overflow-hidden rounded-xl border border-[#e2e4e9] bg-white shadow-[0_1px_3px_rgba(0,0,0,0.06)]">
@@ -391,6 +443,16 @@ function PhilippinesMap({ filteredSchools, selectedSchool, hoveredId, onHover, o
         <g transform={`translate(${project(14.54, 120.78).x}, ${project(14.54, 120.78).y}) rotate(-45)`}><text fill="#94a3b8" fontSize="16" fontWeight="bold" letterSpacing="0.2em" opacity="0.6">MANILA BAY</text></g>
         <g transform={`translate(${project(14.36, 121.16).x}, ${project(14.36, 121.16).y}) rotate(15)`}><text fill="#94a3b8" fontSize="16" fontWeight="bold" letterSpacing="0.2em" opacity="0.6">LAGUNA DE BAY</text></g>
 
+        {/* User GPS Location Marker */}
+        {userLocation && (
+          <g transform={`translate(${project(userLocation.lat, userLocation.lng).x} ${project(userLocation.lat, userLocation.lng).y})`}>
+            <circle r="20" fill="#3b82f6" opacity="0.2" className="animate-ping" />
+            <circle r="7" fill="#3b82f6" stroke="#ffffff" strokeWidth="2" filter="url(#shadow)" />
+            <rect x="12" y="-10" width="85" height="20" rx="4" fill="#ffffff" filter="url(#shadow)" />
+            <text x="18" y="4" fill="#1e293b" fontSize="10" fontWeight="bold">You are here</text>
+          </g>
+        )}
+
         {filteredSchools.map((school) => {
           const { x, y } = projectPoint(school);
           const isSelected = selectedSchool?.id === school.id;
@@ -429,7 +491,7 @@ function PhilippinesMap({ filteredSchools, selectedSchool, hoveredId, onHover, o
         })}
       </svg>
 
-      <div className="absolute bottom-5 right-5 z-10 w-56 rounded-xl border border-[#e2e4e9] bg-white/95 p-4 shadow-[0_1px_3px_rgba(0,0,0,0.06)] backdrop-blur">
+      <div className="absolute bottom-5 left-5 z-10 w-56 rounded-xl border border-[#e2e4e9] bg-white/95 p-4 shadow-[0_1px_3px_rgba(0,0,0,0.06)] backdrop-blur">
         <div className="mb-3 flex items-center gap-2">
           <Layers className="h-4 w-4 text-[#1a4b8c]" />
           <span className="text-sm font-semibold text-[#1a1d23]">School Options</span>
@@ -449,8 +511,6 @@ function PhilippinesMap({ filteredSchools, selectedSchool, hoveredId, onHover, o
         </div>
       </div>
 
-      <SchoolInfoCard school={selectedSchool} onClose={() => onSelect(null)} />
-
       {comingSoon && (
         <div className="absolute inset-0 z-30 flex items-center justify-center bg-[#f8f9fb]/82 p-8 backdrop-blur-sm">
           <div className="w-full max-w-md rounded-[20px] border border-[#e2e4e9] bg-white p-7 text-center shadow-[0_18px_48px_rgba(26,29,35,0.16),0_4px_12px_rgba(0,0,0,0.08)]">
@@ -469,329 +529,1278 @@ function PhilippinesMap({ filteredSchools, selectedSchool, hoveredId, onHover, o
   );
 }
 
+function getDocList(category, answers) {
+  const incomeDoc = {
+    local: 'Income Tax Return (ITR), Certificate of Employment, or recent Payslip',
+    abroad: 'Certificate of Employment, Employment Contract, or recent Payslip',
+    business: 'Notarized Affidavit (business income)',
+    unemployed: 'Certificate of Tax Exemption or Barangay Certificate of Indigency',
+  };
+  const segDoc = {
+    '4ps': 'Copy of 4Ps ID (DSWD)',
+    gidca: 'Barangay Certification of GIDCA residency',
+    ip: 'Certificate of Indigenous People Membership — NCIP',
+    pwd: 'PWD ID issued by LGU',
+    special: 'Medical or psychological assessment',
+    cbms: 'CBMS poverty assessment document',
+  };
+  const base = [
+    'Valid ID (National ID, Birth Certificate, or Passport)',
+    'Accomplished ESC Application Form (Annex D)',
+  ];
+  const affidavit = `Affidavit of Family's Financial Capacity (Annex F) — ${incomeDoc[answers.employment] || 'income proof document'}`;
+  if (category === 'A') {
+    const extra = (answers.segs || []).filter(s => s !== 'none' && segDoc[s]).map(s => segDoc[s]);
+    return [...base, "SF9 — Learner's Progress Report Card", ...extra];
+  }
+  if (category === 'B') return [...base, "SF9 — Learner's Progress Report Card", affidavit];
+  if (category === 'C') return [...base, 'Certificate of Rating from BEA (ALS A&E / PEPT)', affidavit];
+  if (category === 'D') return [...base, "SF9 — Learner's Progress Report Card", affidavit];
+  return [];
+}
+
+const STORAGE_KEY = 'paaral_v3_account';
+const TEST_EMAIL = '100000000001@deped.gov.ph';
+const TEST_LRN = '100000000001';
+const LEARNER_RECORD = {
+  firstName: 'Juan', mi: 'M', lastName: 'dela Cruz',
+  school: 'Bagumbayan Elementary School', grade: 'Grade 6',
+  municipality: 'Taguig City, Metro Manila',
+  division: 'Division of Taguig-Pateros',
+};
+const catMeta = {
+  A: { label: 'Category A — Social Equity Group', tw: 'bg-[#f5f3ff] border-[#c4b5fd] text-[#5b21b6]', desc: 'Highest priority. Applies to learners from equity-protected groups regardless of income.' },
+  B: { label: 'Category B — Public School Graduate', tw: 'bg-[#eff6ff] border-[#bfdbfe] text-[#1d4ed8]', desc: 'Public school graduate with poor to middle-class household income.' },
+  C: { label: 'Category C — ALS / PEPT Passer', tw: 'bg-[#f0fdfa] border-[#99f6e4] text-[#0f766e]', desc: 'ALS A&E Test or PEPT passer with eligible income.' },
+  D: { label: 'Category D — Private School Graduate', tw: 'bg-[#fffbeb] border-[#fde68a] text-[#b45309]', desc: 'Private school graduate with poor to middle-class household income.' },
+};
+
+// ── APPLICATION STATE MACHINE ─────────────────────────────────────────
+const POST_SUBMISSION_STATES = new Set([
+  'submitted', 'rejected',
+  'docs_pending', 'docs_submitted', 'granted', 'non_esc',
+]);
+
+const VALID_TRANSITIONS = {
+  eligibility:    ['browsing'],
+  browsing:       ['submitted'],
+  submitted:      ['granted', 'rejected', 'docs_pending'],
+  docs_pending:   ['docs_submitted'],
+  docs_submitted: ['granted', 'rejected'],
+  rejected:       ['non_esc', 'browsing'],
+  non_esc:        [],
+  granted:        [],
+};
+
+function useApplicationState({ account, updateAccount, wishlist, hasPublicAlternative, docsReady, surveyComplete }) {
+  const applicationState = account?.applicationState ?? 'eligibility';
+  const isPostSubmission = POST_SUBMISSION_STATES.has(applicationState);
+  const canSubmit = applicationState === 'browsing'
+    && wishlist.length > 0
+    && hasPublicAlternative
+    && docsReady
+    && surveyComplete;
+
+  const advance = (toState, extra = {}) => {
+    const valid = VALID_TRANSITIONS[applicationState] ?? [];
+    if (!valid.includes(toState)) return;
+    updateAccount({ applicationState: toState, ...extra });
+  };
+
+  return { applicationState, isPostSubmission, canSubmit, advance };
+}
+
 export default function PAARALStudentMockup() {
-  const [activeView, setActiveView] = useState("Student View");
-  const [searchTerm, setSearchTerm] = useState("");
-  const [postalCode, setPostalCode] = useState("");
-  const [region, setRegion] = useState("");
-  const [province, setProvince] = useState("");
-  const [municipality, setMunicipality] = useState("");
-  const [barangay, setBarangay] = useState("");
+  // ── ACCOUNT ──────────────────────────────────────────────────
+  const [account, setAccount] = useState(null);
+  const updateAccount = (patch) => {
+    setAccount(prev => {
+      const next = { ...prev, ...patch };
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(next));
+      return next;
+    });
+  };
+  const logout = () => {
+    localStorage.removeItem(STORAGE_KEY);
+    setAccount(null);
+    setAppView('hero');
+    setDrawerOpen(false);
+  };
+
+  // ── APP VIEW ──────────────────────────────────────────────────
+  const [appView, setAppView] = useState('hero');
+  const [browseTab, setBrowseTab] = useState('map');
+  const [drawerOpen, setDrawerOpen] = useState(false);
+  const [drawerTab, setDrawerTab] = useState('choices');
+
+  // ── LOGIN MODAL ───────────────────────────────────────────────
+  const [showLogin, setShowLogin] = useState(false);
+  const [loginEmail, setLoginEmail] = useState('');
+  const [loginLoading, setLoginLoading] = useState(false);
+  const [loginError, setLoginError] = useState('');
+  const [loginConfirmed, setLoginConfirmed] = useState(false);
+
+  // ── ELIGIBILITY QUESTIONNAIRE ─────────────────────────────────
+  const [eligStep, setEligStep] = useState('schoolType');
+  const [eligHistory, setEligHistory] = useState([]);
+  const [eligAnswers, setEligAnswers] = useState({ escIntent: true, schoolType: null, segs: [], income: null, employment: null });
+
+  // ── FILTERS ───────────────────────────────────────────────────
+  const [searchTerm, setSearchTerm] = useState('');
+  const [region, setRegion] = useState('');
+  const [province, setProvince] = useState('');
+  const [municipality, setMunicipality] = useState('');
+  const [barangay, setBarangay] = useState('');
   const [distance, setDistance] = useState([0, 100]);
   const [tuition, setTuition] = useState([0, 250000]);
   const [commuteBuckets, setCommuteBuckets] = useState([]);
-  const [subsidies, setSubsidies] = useState([]);
   const [schoolTypes, setSchoolTypes] = useState([]);
-  const [religious, setReligious] = useState([]);
   const [openSections, setOpenSections] = useState(accordionDefaults);
-  const [selectedSchool, setSelectedSchool] = useState(schools[0]);
+  const [filtersCollapsed, setFiltersCollapsed] = useState(false);
+  const [resultsCollapsed, setResultsCollapsed] = useState(false);
+  const [selectedSchool, setSelectedSchool] = useState(null);
   const [hoveredId, setHoveredId] = useState(null);
+  const [profileSection, setProfileSection] = useState('overview');
+  const profileScrollRef = useRef(null);
+  const overviewRef = useRef(null);
+  const characteristicsRef = useRef(null);
+  const feeRef = useRef(null);
+  const resultsScrollRef = useRef(null);
+  const selectedCardRef = useRef(null);
+
+  const [surveyAnswers, setSurveyAnswers] = useState({ ease: null, helpful: null, concern: null, suggestions: '' });
+
+  // ── DERIVED ───────────────────────────────────────────────────
+  const wishlist = useMemo(() => {
+    if (!account?.wishlistIds) return [];
+    return account.wishlistIds.map(id => schools.find(s => s.id === id)).filter(Boolean);
+  }, [account?.wishlistIds]);
 
   const filteredSchools = useMemo(() => {
-    const query = searchTerm.trim().toLowerCase();
-    return schools.filter((school) => {
-      const queryMatch =
-        !query ||
-        [school.name, school.type, school.region, school.province, school.municipality, school.barangay, school.religious_affiliation]
-          .join(" ").toLowerCase().includes(query);
-      const postalMatch = !postalCode || `${school.postal_code} ${school.municipality} ${school.barangay}`.toLowerCase().includes(postalCode.toLowerCase());
-      const locationMatch = (!region || school.region === region) && (!province || school.province === province) && (!municipality || school.municipality === municipality) && (!barangay || school.barangay === barangay);
-      const distanceMatch = school.distance_km >= distance[0] && school.distance_km <= distance[1];
-      const tuitionMatch = school.tuition >= tuition[0] && school.tuition <= tuition[1];
-      const subsidyMatch = !subsidies.length || subsidies.includes(school.esc_subsidy);
-      const religiousMatch = !religious.length || religious.includes(school.sector) || (religious.includes("public") && school.type === "public");
-
-      return queryMatch && postalMatch && locationMatch && distanceMatch && tuitionMatch && commuteBucketMatches(school, commuteBuckets) && subsidyMatch && schoolTypeMatches(school, schoolTypes) && religiousMatch;
+    return schools.filter(s => {
+      if (searchTerm && !s.name.toLowerCase().includes(searchTerm.toLowerCase()) && !s.municipality.toLowerCase().includes(searchTerm.toLowerCase())) return false;
+      if (region && s.region !== region) return false;
+      if (province && s.province !== province) return false;
+      if (municipality && s.municipality !== municipality) return false;
+      if (barangay && s.barangay !== barangay) return false;
+      if (s.distance_km < distance[0] || s.distance_km > distance[1]) return false;
+      if (s.net_cost < tuition[0] || s.net_cost > tuition[1]) return false;
+      if (!commuteBucketMatches(s, commuteBuckets)) return false;
+      if (!schoolTypeMatches(s, schoolTypes)) return false;
+      return true;
     });
-  }, [searchTerm, postalCode, region, province, municipality, barangay, distance, tuition, commuteBuckets, subsidies, schoolTypes, religious]);
+  }, [searchTerm, region, province, municipality, barangay, distance, tuition, commuteBuckets, schoolTypes]);
 
-  const metrics = useMemo(() => {
-    const escCount = filteredSchools.filter((school) => school.type === "private_esc").length;
-    const avgNet = filteredSchools.length === 0 ? 0 : Math.round(filteredSchools.reduce((sum, school) => sum + school.net_cost, 0) / filteredSchools.length);
-    return { escCount, avgNet };
-  }, [filteredSchools]);
+  const uploadedDocs = account?.uploadedDocs || [];
+  const hasPublicAlternative = wishlist.some(s => s.type === 'public');
+  const requiredDocs = account?.category ? getDocList(account.category, account.eligAnswers || {}) : [];
+  const docsReady = requiredDocs.length > 0 && requiredDocs.every(d => uploadedDocs.includes(d));
+  const surveyComplete = Boolean(surveyAnswers.ease && surveyAnswers.helpful && surveyAnswers.concern);
+  const isInWishlist = (school) => (account?.wishlistIds || []).includes(school.id);
 
-  const toggleArray = (setter, values, value) => {
-    setter(values.includes(value) ? values.filter((item) => item !== value) : [...values, value]);
+  const { applicationState: appState, isPostSubmission, canSubmit, advance } = useApplicationState({
+    account, updateAccount, wishlist, hasPublicAlternative, docsReady, surveyComplete,
+  });
+
+  // ── PROFILE SCROLL SYNC ───────────────────────────────────────
+  useEffect(() => {
+    const container = profileScrollRef.current;
+    if (!container) return;
+    const handleScroll = () => {
+      const sects = [
+        { id: 'overview', ref: overviewRef },
+        { id: 'characteristics', ref: characteristicsRef },
+        { id: 'fee', ref: feeRef },
+      ];
+      for (const { id, ref } of sects.slice().reverse()) {
+        if (ref.current && ref.current.offsetTop <= container.scrollTop + 80) {
+          setProfileSection(id);
+          break;
+        }
+      }
+    };
+    container.addEventListener('scroll', handleScroll);
+    return () => container.removeEventListener('scroll', handleScroll);
+  }, [browseTab, selectedSchool]);
+
+  // ── HELPERS ───────────────────────────────────────────────────
+  const toggleSection = (id) => setOpenSections(o => ({ ...o, [id]: !o[id] }));
+
+  const computeCategory = (answers) => {
+    const { schoolType, segs, income } = answers;
+    const hasSegs = segs && segs.some(s => s !== 'none');
+    if (schoolType === 'public' && hasSegs) return 'A';
+    if (income === 'above') return null;
+    if (schoolType === 'public') return 'B';
+    if (schoolType === 'als') return 'C';
+    if (schoolType === 'private') return 'D';
+    return null;
   };
 
-  const clearAll = () => {
-    setSearchTerm(""); setPostalCode(""); setRegion(""); setProvince(""); setMunicipality(""); setBarangay(""); setDistance([0, 100]); setTuition([0, 250000]); setCommuteBuckets([]); setSubsidies([]); setSchoolTypes([]); setReligious([]); setSelectedSchool(schools[0]);
+  const eligBack = () => {
+    if (eligHistory.length === 0) return;
+    const prev = eligHistory[eligHistory.length - 1];
+    setEligStep(prev.step);
+    setEligAnswers(prev.answers);
+    setEligHistory(h => h.slice(0, -1));
   };
 
-  const selectSchool = (school) => {
+  const eligGo = (step, patch = {}) => {
+    setEligHistory(h => [...h, { step: eligStep, answers: { ...eligAnswers } }]);
+    setEligAnswers(a => ({ ...a, ...patch }));
+    setEligStep(step);
+  };
+
+  const nextEligStep = (step, answers) => {
+    if (step === 'schoolType') return answers.schoolType === 'public' ? 'seg' : 'income';
+    if (step === 'seg') return answers.segs.some(s => s !== 'none') ? 'result' : 'income';
+    if (step === 'income') return answers.income === 'above' ? 'result' : 'employment';
+    return 'result';
+  };
+
+  const completeEligibility = () => {
+    const category = computeCategory(eligAnswers);
+    updateAccount({ category, eligAnswers, applicationState: 'browsing' });
+    setAppView('browse');
+  };
+
+  const addToWishlist = (school) => {
+    if (!account) { setShowLogin(true); return; }
+    if (isPostSubmission) return;
+    const ids = account.wishlistIds || [];
+    if (ids.includes(school.id)) return;
+    updateAccount({ wishlistIds: [...ids, school.id] });
+  };
+
+  const removeFromWishlist = (schoolId) => {
+    if (!account || isPostSubmission) return;
+    updateAccount({ wishlistIds: (account.wishlistIds || []).filter(id => id !== schoolId) });
+  };
+
+  const handleSubmit = () => {
+    if (!canSubmit) return;
+    advance('submitted', { surveyAnswers, uploadedDocs });
+    setDrawerTab('status');
+  };
+
+  const closeLogin = () => {
+    setShowLogin(false);
+    setLoginConfirmed(false);
+    setLoginEmail('');
+    setLoginError('');
+  };
+
+  const handleEmailSubmit = () => {
+    setLoginError('');
+    if (loginEmail.trim().toLowerCase() !== TEST_EMAIL.toLowerCase()) {
+      setLoginError('Email not found. Use 100000000001@deped.gov.ph for this demo.');
+      return;
+    }
+    setLoginLoading(true);
+    setTimeout(() => { setLoginLoading(false); setLoginConfirmed(true); }, 800);
+  };
+
+  const handleCreateAccount = () => {
+    const newAccount = {
+      email: TEST_EMAIL, lrn: TEST_LRN,
+      name: `${LEARNER_RECORD.firstName} ${LEARNER_RECORD.mi}. ${LEARNER_RECORD.lastName}`,
+      category: null, eligAnswers: null,
+      applicationState: 'eligibility',
+      wishlistIds: [],
+      surveyAnswers: { ease: null, helpful: null, concern: null, suggestions: '' },
+      uploadedDocs: [],
+    };
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(newAccount));
+    setAccount(newAccount);
+    closeLogin();
+    setAppView('eligibility');
+  };
+
+
+  const handleMapSelect = (school) => {
     setSelectedSchool(school);
-    if (school) setActiveView("Student View");
+    setResultsCollapsed(false);
+    setTimeout(() => {
+      if (selectedCardRef.current && resultsScrollRef.current) {
+        resultsScrollRef.current.scrollTo({ top: selectedCardRef.current.offsetTop - 16, behavior: 'smooth' });
+      }
+    }, 50);
   };
 
-  const tabs = ["Student View", "School View", "DepEd View"];
-  const comingSoon = activeView === "Student View" ? null : activeView;
+  const scrollToSection = (ref) => {
+    if (profileScrollRef.current && ref.current) {
+      profileScrollRef.current.scrollTo({ top: ref.current.offsetTop, behavior: 'smooth' });
+    }
+  };
 
-  return (
-    <div className="flex h-screen w-screen overflow-hidden bg-white font-['SF_Pro_Text',-apple-system,BlinkMacSystemFont,'Segoe_UI',system-ui,sans-serif] text-[#1a1d23]">
-      <aside className="flex h-full w-[340px] xl:w-[440px] shrink-0 flex-col border-r border-[#e2e4e9] bg-[#f8f9fa] z-20 shadow-[4px_0_24px_rgba(0,0,0,0.02)]">
-        <header className="border-b border-[#e2e4e9] bg-white px-4 py-4 sm:px-6 sm:py-5 z-10">
-          <div className="flex items-center justify-between gap-4">
-            <div className="flex min-w-0 items-center gap-3">
-              <div className="flex h-12 w-[76px] items-center justify-center rounded-xl border border-[#e2e4e9] bg-white px-2 shadow-[0_1px_3px_rgba(0,0,0,0.06)] sm:w-32">
-                <img src="/assets/ecair-logo.png" alt="ECAIR" className="max-h-9 w-full object-contain" />
-              </div>
-              <div className="flex h-12 w-[76px] items-center justify-center rounded-xl border border-[#e2e4e9] bg-white px-2 shadow-[0_1px_3px_rgba(0,0,0,0.06)] sm:w-32">
-                <img src="/assets/deped-logo.png" alt="DepEd" className="max-h-10 w-full object-contain" />
-              </div>
-            </div>
-            <div className="hidden rounded-full border border-[#e2e4e9] bg-[#f8f9fb] px-3 py-1.5 text-xs font-semibold text-[#6b7280] sm:block">
-              Executive Demo
-            </div>
-          </div>
-          <div className="mt-5">
-            <h1 className="font-['SF_Pro_Display',-apple-system,BlinkMacSystemFont,'Segoe_UI',system-ui,sans-serif] text-2xl font-bold tracking-normal text-[#1a1d23] sm:text-3xl">
-              PAARAL
-            </h1>
-            <p className="mt-1 text-[13px] leading-5 text-[#6b7280]">
-              Platform for Analyzing Access and Resource Allocation in Learning
-            </p>
-          </div>
-        </header>
+  const userLocation = { lat: 14.5195, lng: 121.0540 };
 
-        <div className="border-b border-[#e2e4e9] bg-white px-4 py-4 sm:px-6 z-10">
-          <div className="grid grid-cols-3 gap-2">
-            {tabs.map((tab) => (
-              <button
-                key={tab}
-                type="button"
-                title={tab === "Student View" ? "Current view" : "Coming Soon"}
-                onClick={() => setActiveView(tab)}
-                className={`h-10 rounded-full text-[13px] font-semibold transition focus:outline-none ${
-                  activeView === tab
-                    ? "bg-[#1a4b8c] text-white shadow-[0_4px_12px_rgba(26,75,140,0.22)]"
-                    : "border border-[#e2e4e9] bg-white text-[#1a4b8c] hover:bg-[#f8f9fb]"
-                }`}
-              >
-                {tab.replace(" View", "")}
-              </button>
-            ))}
-          </div>
+  const renderStateBadge = (state) => {
+    const map = {
+      eligibility: ['bg-amber-50 text-amber-700 border-amber-200', 'Completing Eligibility'],
+      browsing:    ['bg-blue-50 text-blue-700 border-blue-200', 'Browsing Schools'],
+      submitted:   ['bg-blue-100 text-blue-800 border-blue-300', 'Application Submitted'],
+      rejected:    ['bg-red-50 text-red-700 border-red-200', 'Application Rejected'],
+      docs_pending:['bg-amber-100 text-amber-800 border-amber-300', 'Additional Doc Requested'],
+      docs_submitted:['bg-blue-50 text-blue-700 border-blue-200', 'Documents Under Review'],
+      granted:     ['bg-purple-50 text-purple-700 border-purple-200', 'ESC Granted'],
+      non_esc:     ['bg-slate-100 text-slate-600 border-slate-300', 'Non-ESC Pathway'],
+    };
+    const [tw, label] = map[state] || ['bg-slate-100 text-slate-500 border-slate-200', state];
+    return <span className={`inline-block text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded border ${tw}`}>{label}</span>;
+  };
 
-          <div className="mt-4 flex gap-2">
-            <div className="relative flex-1 min-w-0">
-              <Search className="absolute left-3 top-3.5 h-4 w-4 text-[#9ca3af]" />
-              <input
-                value={searchTerm}
-                onChange={(event) => setSearchTerm(event.target.value)}
-                placeholder="Search for schools or keywords..."
-                className="h-11 w-full rounded-xl border border-[#e2e4e9] bg-white pl-10 pr-3 text-[15px] outline-none transition placeholder:text-[#9ca3af] focus:border-[#1a4b8c] focus:ring-2 focus:ring-[#1a4b8c]/10 truncate"
-              />
-            </div>
+  // ── DRAWER TABS ───────────────────────────────────────────────
+  const drawerTabList = isPostSubmission ? ['status', 'documents', 'choices'] : ['choices', 'documents', 'survey'];
+
+  // ── STATUS TAB CONTENT ────────────────────────────────────────
+  const statusConfigs = {
+    submitted: {
+      icon: <Clock3 className="h-8 w-8 text-blue-500" />,
+      title: 'Application Submitted',
+      desc: 'Your ESC application has been received by DepEd. You will be notified once it has been reviewed.',
+      color: 'bg-blue-50 border-blue-200',
+      demo: [
+        { label: 'Simulate: Granted', next: 'granted', style: 'bg-green-600 text-white' },
+        { label: 'Simulate: Rejected', next: 'rejected', style: 'bg-red-600 text-white' },
+        { label: 'Simulate: Additional Doc Requested', next: 'docs_pending', style: 'bg-[#1a4b8c] text-white' },
+      ],
+    },
+    rejected: {
+      icon: <AlertCircle className="h-8 w-8 text-red-500" />,
+      title: 'Application Not Approved',
+      desc: 'Your ESC application was not approved in this cycle. You may still enroll in a public JHS or apply directly to a non-ESC private school.',
+      color: 'bg-red-50 border-red-200',
+      demo: [],
+    },
+    docs_pending: {
+      icon: <FileCheck className="h-8 w-8 text-amber-500" />,
+      title: 'Additional Document Requested',
+      desc: 'The school committee has reviewed your application and is requesting an additional document. Please check the Documents tab.',
+      color: 'bg-amber-50 border-amber-200',
+      demo: [],
+    },
+    docs_submitted: {
+      icon: <FileCheck className="h-8 w-8 text-blue-500" />,
+      title: 'Additional Document Under Review',
+      desc: 'Your documents have been submitted and are being reviewed by the ESC School Committee.',
+      color: 'bg-blue-50 border-blue-200',
+      demo: [
+        { label: 'Simulate: Granted', next: 'granted', style: 'bg-green-600 text-white' },
+        { label: 'Simulate: Rejected', next: 'rejected', style: 'bg-red-600 text-white' },
+      ],
+    },
+    granted: {
+      icon: <Award className="h-8 w-8 text-purple-500" />,
+      title: 'ESC Subsidy Granted 🎉',
+      desc: 'Congratulations! Your ESC subsidy has been confirmed. Complete your enrollment at your chosen school through the ICTS portal.',
+      color: 'bg-purple-50 border-purple-200',
+      demo: [],
+    },
+    non_esc: {
+      icon: <Info className="h-8 w-8 text-slate-400" />,
+      title: 'Enrolled Without ESC',
+      desc: 'You are continuing enrollment through the standard DepEd pathway.',
+      color: 'bg-slate-50 border-slate-200',
+      demo: [],
+    },
+  };
+
+  // ═══════════════════════════════════════════════════════════════
+  // LOGIN MODAL
+  // ═══════════════════════════════════════════════════════════════
+  const loginModal = showLogin && (
+    <div className="fixed inset-0 z-50 flex items-center justify-center">
+      <div className="absolute inset-0 bg-gradient-to-br from-[#1a0e3e] via-[#2b1260] to-[#7c1c30] opacity-90" onClick={closeLogin} />
+      <div className="relative z-10 w-full max-w-md mx-4 bg-white rounded-[22px] p-8 shadow-2xl">
+        <div className="flex items-center justify-between mb-6">
+          <div>
+            <p className="text-[10px] font-bold uppercase tracking-widest text-slate-500">DepEd ICTS Portal</p>
+            <h2 className="text-xl font-bold text-[#1a1d23] mt-0.5">Sign in with your DepEd email</h2>
+          </div>
+          <button onClick={closeLogin} className="h-9 w-9 flex items-center justify-center rounded-full border border-slate-200 text-slate-400 hover:bg-slate-50">
+            <X className="h-4 w-4" />
+          </button>
+        </div>
+        {!loginConfirmed ? (
+          <>
+            <p className="text-sm text-slate-500 mb-5">Your DepEd email follows the format: <span className="font-mono text-slate-700">LRN@deped.gov.ph</span></p>
+            <input
+              type="email"
+              value={loginEmail}
+              onChange={e => { setLoginEmail(e.target.value); setLoginError(''); }}
+              onKeyDown={e => e.key === 'Enter' && handleEmailSubmit()}
+              placeholder="e.g. 100000000001@deped.gov.ph"
+              className="w-full h-11 px-4 rounded-xl border border-slate-200 text-sm outline-none focus:border-[#1a4b8c] focus:ring-2 focus:ring-[#1a4b8c]/10"
+            />
+            {loginError && <p className="mt-2 text-xs text-red-600">{loginError}</p>}
             <button
-              type="button"
-              onClick={() => setActiveView("Student View")}
-              className="flex h-11 shrink-0 items-center gap-2 rounded-xl bg-[#1a4b8c] px-3 text-sm font-bold text-white transition hover:bg-[#143b70] focus:outline-none sm:px-4"
+              onClick={handleEmailSubmit}
+              disabled={loginLoading || !loginEmail}
+              className="mt-4 w-full h-11 rounded-xl bg-[#1a4b8c] text-white font-semibold text-sm disabled:opacity-50"
             >
-              <Search className="h-4 w-4" />
-              <span className="hidden sm:inline">Search</span>
+              {loginLoading ? 'Verifying…' : 'Continue'}
+            </button>
+            <p className="mt-4 text-xs text-center text-slate-400">Demo: 100000000001@deped.gov.ph</p>
+          </>
+        ) : (
+          <>
+            <div className="rounded-xl bg-green-50 border border-green-200 p-4 mb-5">
+              <p className="text-[10px] font-bold uppercase tracking-widest text-green-600 mb-2">Learner found in LIS</p>
+              <p className="text-base font-bold text-slate-800">{LEARNER_RECORD.firstName} {LEARNER_RECORD.mi}. {LEARNER_RECORD.lastName}</p>
+              <p className="text-xs text-slate-500 mt-1">{LEARNER_RECORD.school} · {LEARNER_RECORD.grade}</p>
+              <p className="text-xs text-slate-500">{LEARNER_RECORD.municipality} · {LEARNER_RECORD.division}</p>
+              <p className="text-xs text-slate-400 mt-1 font-mono">LRN: {TEST_LRN}</p>
+            </div>
+            <p className="text-sm text-slate-600 mb-5">Creating your PAARAL account starts your ESC eligibility assessment.</p>
+            <button onClick={handleCreateAccount} className="w-full h-11 rounded-xl bg-[#1a4b8c] text-white font-semibold text-sm">
+              Create My Account & Start
+            </button>
+            <button onClick={() => { setLoginConfirmed(false); setLoginEmail(''); }} className="mt-2 w-full h-9 text-xs text-slate-400 hover:text-slate-600">
+              ← Use a different email
+            </button>
+          </>
+        )}
+      </div>
+    </div>
+  );
+
+  // ═══════════════════════════════════════════════════════════════
+  // HERO VIEW
+  // ═══════════════════════════════════════════════════════════════
+  if (appView === 'hero') {
+    return (
+      <div className="fixed inset-0 flex flex-col bg-gradient-to-br from-[#1a0e3e] via-[#2b1260] to-[#7c1c30]">
+        <link href="https://fonts.googleapis.com/css2?family=Baskervville&display=swap" rel="stylesheet" />
+        {loginModal}
+        <div className="flex flex-col items-center justify-center flex-1 text-center px-6">
+          <div className="flex items-center gap-4 mb-8">
+            <img src="/assets/deped-logo.png" alt="DepEd" className="h-12" />
+            <img src="/assets/ecair-logo.png" alt="ECAIR" className="h-8" />
+          </div>
+          <div className="font-['Baskervville',serif] text-[clamp(2.5rem,8vw,5.5rem)] font-normal tracking-[0.08em] text-white leading-none mb-3">
+            PROJECT PAARAL
+          </div>
+          <p className="text-white/60 text-sm tracking-widest uppercase mb-2">Educational Service Contracting</p>
+          <span className="px-3 py-0.5 rounded-full bg-white/10 border border-white/20 text-white/70 text-[10px] font-bold uppercase tracking-widest mb-12">BETA</span>
+          <p className="text-white/70 max-w-md text-base leading-relaxed mb-10">
+            Find and apply to Grade 7 ESC-partner schools near you. Browse without an account, or log in to start your ESC application.
+          </p>
+          <div className="flex flex-col sm:flex-row gap-3 w-full max-w-xs">
+            <button onClick={() => setAppView('browse')} className="flex-1 h-12 rounded-xl bg-white text-[#1a0e3e] font-bold text-sm hover:bg-white/90 transition">
+              Browse Schools
+            </button>
+            <button
+              onClick={() => {
+                if (account) {
+                  setAppView(account.applicationState === 'eligibility' ? 'eligibility' : 'browse');
+                } else {
+                  setShowLogin(true);
+                }
+              }}
+              className="flex-1 h-12 rounded-xl border border-white/30 text-white font-semibold text-sm hover:bg-white/10 transition"
+            >
+              {account ? 'My Account →' : 'Log In'}
+            </button>
+          </div>
+          {account && (
+            <p className="mt-5 text-white/40 text-xs">
+              Signed in as {account.name} ·{' '}
+              <button onClick={logout} className="underline hover:text-white/70">Log out</button>
+            </p>
+          )}
+        </div>
+      </div>
+    );
+  }
+
+  // ═══════════════════════════════════════════════════════════════
+  // ELIGIBILITY VIEW
+  // ═══════════════════════════════════════════════════════════════
+  if (appView === 'eligibility') {
+    const catResult = eligStep === 'result' ? computeCategory(eligAnswers) : null;
+    const docList = catResult ? getDocList(catResult, eligAnswers) : [];
+    const stepOrder = ['schoolType', 'seg', 'income', 'employment', 'result'];
+
+    return (
+      <div className="fixed inset-0 flex flex-col bg-[#f8f9fa]">
+        <link href="https://fonts.googleapis.com/css2?family=Baskervville&display=swap" rel="stylesheet" />
+        <div className="h-14 shrink-0 flex items-center justify-between px-6 bg-gradient-to-r from-[#1a0e3e] to-[#2b1260] shadow z-10">
+          <span className="font-['Baskervville',serif] text-white text-lg tracking-widest">PROJECT PAARAL</span>
+          <div className="flex items-center gap-3">
+            <span className="text-white/60 text-xs hidden sm:block">{account?.name}</span>
+            <button onClick={logout} className="text-white/50 hover:text-white text-xs flex items-center gap-1.5">
+              <LogOut className="h-3.5 w-3.5" /> Log out
             </button>
           </div>
         </div>
 
-        <div className="grid grid-cols-3 gap-2 sm:gap-3 px-4 py-5 sm:px-6 z-10">
-          <div className="rounded-2xl border border-[#e2e4e9] bg-white p-2.5 sm:p-3 shadow-sm min-w-0 flex flex-col justify-center">
-            <p className="text-[10px] sm:text-[11px] uppercase tracking-[0.05em] text-[#9ca3af] leading-tight whitespace-nowrap">Options</p>
-            <p className="mt-1 text-lg sm:text-xl font-bold tracking-tight text-[#1a1d23]">{filteredSchools.length}</p>
-          </div>
-          <div className="rounded-2xl border border-[#e2e4e9] bg-white p-2.5 sm:p-3 shadow-sm min-w-0 flex flex-col justify-center">
-            <p className="text-[10px] sm:text-[11px] uppercase tracking-[0.05em] text-[#9ca3af] leading-tight whitespace-nowrap">ESC Slots</p>
-            <p className="mt-1 text-lg sm:text-xl font-bold tracking-tight text-[#449e52]">{metrics.escCount}</p>
-          </div>
-          <div className="rounded-2xl border border-[#e2e4e9] bg-white p-2.5 sm:p-3 shadow-sm min-w-0 flex flex-col justify-center">
-            <p className="text-[10px] sm:text-[11px] uppercase tracking-[0.05em] text-[#9ca3af] leading-tight whitespace-nowrap">Avg Cost</p>
-            <p className="mt-1 text-[15px] sm:text-lg font-bold tracking-tight text-[#1a4b8c] whitespace-nowrap">{pesos(metrics.avgNet)}</p>
+        <div className="flex-1 overflow-y-auto flex items-start justify-center py-12 px-4">
+          <div className="w-full max-w-lg bg-white rounded-[22px] border border-slate-200 shadow-lg p-8">
+            <div className="flex gap-2 mb-6">
+              {stepOrder.map(s => (
+                <div key={s} className={`h-1.5 flex-1 rounded-full transition-colors ${
+                  s === eligStep ? 'bg-[#1a4b8c]' :
+                  eligHistory.some(h => h.step === s) ? 'bg-[#1a4b8c]/40' : 'bg-slate-200'
+                }`} />
+              ))}
+            </div>
+
+            <p className="text-[10px] font-bold uppercase tracking-widest text-slate-500 mb-1">ESC Eligibility Assessment</p>
+
+            {eligStep === 'schoolType' && (
+              <>
+                <h2 className="text-xl font-bold text-slate-800 mb-2">How did you complete Grade 6?</h2>
+                <p className="text-sm text-slate-500 mb-6">This determines your ESC category under E-GASTPE 2026 guidelines.</p>
+                <div className="space-y-3">
+                  {[
+                    { v: 'public', label: 'Public elementary school', sub: 'Any DepEd-operated school' },
+                    { v: 'private', label: 'Private elementary school', sub: 'Non-DepEd institution' },
+                    { v: 'als', label: 'ALS or PEPT', sub: 'Alternative Learning System or Philippine Educational Placement Test' },
+                  ].map(opt => (
+                    <button key={opt.v} onClick={() => eligGo(nextEligStep('schoolType', { ...eligAnswers, schoolType: opt.v }), { schoolType: opt.v })}
+                      className="w-full p-4 rounded-xl border border-slate-200 hover:border-[#1a4b8c] hover:bg-blue-50 text-left transition group">
+                      <p className="font-semibold text-slate-800 text-sm group-hover:text-[#1a4b8c]">{opt.label}</p>
+                      <p className="text-xs text-slate-400 mt-0.5">{opt.sub}</p>
+                    </button>
+                  ))}
+                </div>
+              </>
+            )}
+
+            {eligStep === 'seg' && (
+              <>
+                <h2 className="text-xl font-bold text-slate-800 mb-2">Do you belong to a Social Equity Group?</h2>
+                <p className="text-sm text-slate-500 mb-5">Select all that apply.</p>
+                <div className="space-y-2 mb-6">
+                  {[
+                    { v: '4ps', label: '4Ps / Pantawid Pamilyang Pilipino Program' },
+                    { v: 'gidca', label: 'Geographically Isolated and Disadvantaged Community (GIDCA)' },
+                    { v: 'ip', label: 'Indigenous People (IP)' },
+                    { v: 'pwd', label: 'Person with Disability (PWD)' },
+                    { v: 'special', label: 'Child with Special Needs' },
+                    { v: 'cbms', label: 'CBMS-identified poor or near-poor household' },
+                    { v: 'none', label: 'None of the above' },
+                  ].map(opt => {
+                    const checked = eligAnswers.segs.includes(opt.v);
+                    return (
+                      <button key={opt.v}
+                        onClick={() => {
+                          let segs = eligAnswers.segs;
+                          if (opt.v === 'none') {
+                            segs = checked ? [] : ['none'];
+                          } else {
+                            segs = checked
+                              ? segs.filter(s => s !== opt.v)
+                              : [...segs.filter(s => s !== 'none'), opt.v];
+                          }
+                          setEligAnswers(a => ({ ...a, segs }));
+                        }}
+                        className={`w-full p-3 rounded-xl border text-left text-sm flex items-center gap-3 transition ${checked ? 'border-[#1a4b8c] bg-blue-50 text-[#1a4b8c] font-medium' : 'border-slate-200 text-slate-700 hover:border-slate-300'}`}
+                      >
+                        <span className={`h-5 w-5 shrink-0 rounded-md border flex items-center justify-center ${checked ? 'bg-[#1a4b8c] border-[#1a4b8c]' : 'border-slate-300'}`}>
+                          {checked && <Check className="h-3.5 w-3.5 text-white" strokeWidth={3} />}
+                        </span>
+                        {opt.label}
+                      </button>
+                    );
+                  })}
+                </div>
+                <div className="flex gap-2">
+                  <button onClick={eligBack} className="h-11 px-4 rounded-xl border border-slate-200 text-sm text-slate-600 hover:bg-slate-50">← Back</button>
+                  <button
+                    onClick={() => eligGo(nextEligStep('seg', eligAnswers))}
+                    disabled={eligAnswers.segs.length === 0}
+                    className="flex-1 h-11 rounded-xl bg-[#1a4b8c] text-white font-semibold text-sm disabled:opacity-40"
+                  >
+                    Continue →
+                  </button>
+                </div>
+              </>
+            )}
+
+            {eligStep === 'income' && (
+              <>
+                <h2 className="text-xl font-bold text-slate-800 mb-2">Monthly household income</h2>
+                <p className="text-sm text-slate-500 mb-6">PIDS income classification. Include all household members' income.</p>
+                <div className="space-y-3 mb-6">
+                  {[
+                    { v: 'poor', label: 'Poor', sub: 'Less than ₱10,957/month' },
+                    { v: 'low', label: 'Low income', sub: '₱10,957 – ₱21,194/month' },
+                    { v: 'lower_middle', label: 'Lower middle class', sub: '₱21,194 – ₱43,828/month' },
+                    { v: 'middle', label: 'Middle class', sub: '₱43,828 – ₱76,669/month' },
+                    { v: 'above', label: 'Upper middle income or above', sub: 'More than ₱76,669/month — not eligible for ESC B/C/D' },
+                  ].map(opt => (
+                    <button key={opt.v} onClick={() => eligGo(nextEligStep('income', { ...eligAnswers, income: opt.v }), { income: opt.v })}
+                      className="w-full p-4 rounded-xl border border-slate-200 hover:border-[#1a4b8c] hover:bg-blue-50 text-left transition group">
+                      <p className="font-semibold text-slate-800 text-sm group-hover:text-[#1a4b8c]">{opt.label}</p>
+                      <p className="text-xs text-slate-400 mt-0.5">{opt.sub}</p>
+                    </button>
+                  ))}
+                </div>
+                <button onClick={eligBack} className="h-10 px-4 rounded-xl border border-slate-200 text-sm text-slate-600 hover:bg-slate-50">← Back</button>
+              </>
+            )}
+
+            {eligStep === 'employment' && (
+              <>
+                <h2 className="text-xl font-bold text-slate-800 mb-2">Parent/guardian employment</h2>
+                <p className="text-sm text-slate-500 mb-6">Determines which income document you'll need to submit.</p>
+                <div className="space-y-3 mb-6">
+                  {[
+                    { v: 'local', label: 'Locally employed', sub: 'Salaried employee in the Philippines' },
+                    { v: 'abroad', label: 'OFW / working abroad', sub: 'Overseas Filipino Worker' },
+                    { v: 'business', label: 'Self-employed / business owner', sub: 'Entrepreneur, freelancer, or sole proprietor' },
+                    { v: 'unemployed', label: 'Unemployed / informal livelihood', sub: 'No formal employer or fixed income' },
+                  ].map(opt => (
+                    <button key={opt.v} onClick={() => eligGo(nextEligStep('employment', eligAnswers), { employment: opt.v })}
+                      className="w-full p-4 rounded-xl border border-slate-200 hover:border-[#1a4b8c] hover:bg-blue-50 text-left transition group">
+                      <p className="font-semibold text-slate-800 text-sm group-hover:text-[#1a4b8c]">{opt.label}</p>
+                      <p className="text-xs text-slate-400 mt-0.5">{opt.sub}</p>
+                    </button>
+                  ))}
+                </div>
+                <button onClick={eligBack} className="h-10 px-4 rounded-xl border border-slate-200 text-sm text-slate-600 hover:bg-slate-50">← Back</button>
+              </>
+            )}
+
+            {eligStep === 'result' && (
+              <>
+                <h2 className="text-xl font-bold text-slate-800 mb-4">Your ESC Eligibility Result</h2>
+                {catResult ? (
+                  <>
+                    <div className={`p-4 rounded-xl border mb-5 ${catMeta[catResult].tw}`}>
+                      <p className="font-bold text-sm">{catMeta[catResult].label}</p>
+                      <p className="text-xs mt-1 opacity-80">{catMeta[catResult].desc}</p>
+                    </div>
+                    <div className="mb-5">
+                      <p className="text-[10px] font-bold uppercase tracking-widest text-slate-500 mb-3">Documents you'll need</p>
+                      <ul className="space-y-2">
+                        {docList.map((doc, i) => (
+                          <li key={i} className="flex items-start gap-2 text-sm text-slate-700">
+                            <FileCheck className="h-4 w-4 text-[#1a4b8c] shrink-0 mt-0.5" />
+                            {doc}
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                    <div className="rounded-lg bg-amber-50 border border-amber-200 p-3 mb-5">
+                      <p className="text-xs text-amber-700">Self-assessment only. The ESC School Committee makes the final eligibility determination.</p>
+                    </div>
+                    <button onClick={completeEligibility} className="w-full h-12 rounded-xl bg-[#1a4b8c] text-white font-bold text-sm">
+                      Continue to Browse Schools →
+                    </button>
+                  </>
+                ) : (
+                  <>
+                    <div className="p-4 rounded-xl border border-red-200 bg-red-50 mb-5">
+                      <p className="font-bold text-sm text-red-700">Not eligible for ESC Subsidy</p>
+                      <p className="text-xs text-red-600 mt-1">Households above the middle-class threshold are not eligible for ESC categories B, C, or D. You may still enroll at any private school at full cost.</p>
+                    </div>
+                    <button
+                      onClick={() => { setEligStep('schoolType'); setEligHistory([]); setEligAnswers({ escIntent: true, schoolType: null, segs: [], income: null, employment: null }); }}
+                      className="w-full h-10 rounded-xl border border-slate-200 text-sm text-slate-600 hover:bg-slate-50 mb-2"
+                    >
+                      Start over
+                    </button>
+                    <button onClick={() => { updateAccount({ applicationState: 'browsing' }); setAppView('browse'); }} className="w-full h-10 rounded-xl bg-slate-100 text-slate-700 font-medium text-sm hover:bg-slate-200">
+                      Browse schools without ESC →
+                    </button>
+                  </>
+                )}
+                <button onClick={eligBack} className="mt-2 h-9 px-4 text-xs text-slate-400 hover:text-slate-600">← Back</button>
+              </>
+            )}
           </div>
         </div>
+      </div>
+    );
+  }
 
-        <div className="min-h-0 flex-1 overflow-y-auto px-4 pb-5 sm:px-6 custom-scrollbar">
-          <section className="rounded-2xl border border-[#e2e4e9] bg-white shadow-sm overflow-hidden">
-            <div className="flex items-center justify-between border-b border-[#e2e4e9] px-5 py-4 bg-white sticky top-0 z-10">
-              <div className="flex items-center gap-2">
-                <SlidersHorizontal className="h-[18px] w-[18px] text-[#1a4b8c]" />
-                <h2 className="text-[17px] font-bold text-[#1a1d23]">Criteria</h2>
+  // ═══════════════════════════════════════════════════════════════
+  // BROWSE VIEW
+  // ═══════════════════════════════════════════════════════════════
+
+  // ── DRAWER TAB CONTENT ────────────────────────────────────────
+  const drawerTabContent = {
+    status: () => {
+      const cfg = statusConfigs[appState];
+      if (!cfg) return null;
+      return (
+        <div className="p-5 space-y-4">
+          <div className={`rounded-xl border p-4 ${cfg.color}`}>
+            <div className="flex items-start gap-3">
+              {cfg.icon}
+              <div>
+                <p className="font-bold text-slate-800 text-sm">{cfg.title}</p>
+                <p className="text-xs text-slate-600 mt-1 leading-relaxed">{cfg.desc}</p>
               </div>
-              <button type="button" onClick={clearAll} className="text-sm font-bold text-[#1a4b8c] hover:underline focus:outline-none">
-                Clear all
+            </div>
+          </div>
+
+          {appState === 'rejected' && (
+            <div className="space-y-2">
+              <button onClick={() => { advance('non_esc'); setDrawerTab('status'); }} className="w-full h-11 rounded-xl bg-slate-800 text-white font-semibold text-sm">
+                Continue Non-ESC Enrollment →
+              </button>
+              <button onClick={() => { advance('browsing'); setDrawerTab('choices'); }} className="w-full h-11 rounded-xl border border-slate-200 text-slate-700 font-medium text-sm hover:bg-slate-50">
+                Browse Again
               </button>
             </div>
+          )}
 
-            <div className="px-5">
-              <FilterSection
-                title="Location"
-                id="location"
-                open={openSections.location}
-                onToggle={(id) => setOpenSections((prev) => ({ ...prev, [id]: !prev[id] }))}
-              >
-                <input
-                  value={postalCode}
-                  onChange={(event) => setPostalCode(event.target.value)}
-                  placeholder="Postal code or barangay keyword"
-                  className="h-11 w-full rounded-xl border border-[#e2e4e9] px-4 text-[15px] outline-none transition placeholder:text-[#9ca3af] focus:border-[#1a4b8c] focus:ring-2 focus:ring-[#1a4b8c]/10 mb-3"
-                />
-                <div className="grid grid-cols-2 gap-3">
-                  <SelectField value={region} onChange={setRegion} options={regionOptions} placeholder="Region" />
-                  <SelectField value={province} onChange={setProvince} options={provinceOptions} placeholder="Province" />
-                  <SelectField value={municipality} onChange={setMunicipality} options={municipalityOptions} placeholder="Municipality" />
-                  <SelectField value={barangay} onChange={setBarangay} options={barangayOptions} placeholder="Barangay" />
-                </div>
-              </FilterSection>
+          {appState === 'granted' && (
+            <a href="https://icts.deped.gov.ph" target="_blank" rel="noreferrer"
+              className="flex items-center justify-center gap-2 w-full h-11 rounded-xl bg-[#1a4b8c] text-white font-semibold text-sm">
+              Continue at ICTS Portal <ExternalLink className="h-4 w-4" />
+            </a>
+          )}
 
-              <FilterSection
-                title="Distance"
-                id="distance"
-                open={openSections.distance}
-                onToggle={(id) => setOpenSections((prev) => ({ ...prev, [id]: !prev[id] }))}
-              >
-                <RangePair min={0} max={100} value={distance} onChange={setDistance} format={(value) => `${value} km`} />
-              </FilterSection>
-
-              <FilterSection
-                title="Commute"
-                id="commute"
-                open={openSections.commute}
-                onToggle={(id) => setOpenSections((prev) => ({ ...prev, [id]: !prev[id] }))}
-              >
-                <CheckboxRow
-                  checked={commuteBuckets.includes("under5")}
-                  label="<5 minutes"
-                  sublabel="nearby"
-                  onChange={() => toggleArray(setCommuteBuckets, commuteBuckets, "under5")}
-                />
-                <CheckboxRow
-                  checked={commuteBuckets.includes("15to30")}
-                  label="15-30 minutes"
-                  sublabel="short ride"
-                  onChange={() => toggleArray(setCommuteBuckets, commuteBuckets, "15to30")}
-                />
-                <CheckboxRow
-                  checked={commuteBuckets.includes("over30")}
-                  label="30+ minutes"
-                  sublabel="regional"
-                  onChange={() => toggleArray(setCommuteBuckets, commuteBuckets, "over30")}
-                />
-              </FilterSection>
-
-              <FilterSection
-                title="Tuition Fees"
-                id="tuition"
-                open={openSections.tuition}
-                onToggle={(id) => setOpenSections((prev) => ({ ...prev, [id]: !prev[id] }))}
-              >
-                <RangePair
-                  min={0}
-                  max={250000}
-                  step={5000}
-                  value={tuition}
-                  onChange={setTuition}
-                  format={(value) => pesos(value).replace(".00", "")}
-                />
-              </FilterSection>
-
-              <FilterSection
-                title="ESC Subsidy Amount"
-                id="subsidy"
-                open={openSections.subsidy}
-                onToggle={(id) => setOpenSections((prev) => ({ ...prev, [id]: !prev[id] }))}
-              >
-                {[9000, 11000, 13000].map((amount) => (
-                  <CheckboxRow
-                    key={amount}
-                    checked={subsidies.includes(amount)}
-                    label={pesos(amount)}
-                    sublabel="annual"
-                    onChange={() => toggleArray(setSubsidies, subsidies, amount)}
-                  />
+          {cfg.demo.length > 0 && (
+            <div className="rounded-xl border border-dashed border-slate-300 p-4">
+              <p className="text-[10px] font-bold uppercase tracking-widest text-slate-400 mb-3">Demo Controls</p>
+              <div className="space-y-2">
+                {cfg.demo.map(d => (
+                  <button key={d.next} onClick={() => { advance(d.next); setDrawerTab('status'); }}
+                    className={`w-full h-9 rounded-lg text-xs font-bold uppercase tracking-wide ${d.style}`}>
+                    {d.label}
+                  </button>
                 ))}
-              </FilterSection>
-
-              <FilterSection
-                title="School Type"
-                id="type"
-                open={openSections.type}
-                onToggle={(id) => setOpenSections((prev) => ({ ...prev, [id]: !prev[id] }))}
-              >
-                <div className="space-y-1">
-                  <p className="mb-2 px-2 text-[11px] font-bold uppercase tracking-wider text-[#9ca3af]">Sector</p>
-                  <CheckboxRow
-                    checked={schoolTypes.includes("public")}
-                    label="Public"
-                    onChange={() => toggleArray(setSchoolTypes, schoolTypes, "public")}
-                  />
-                  <CheckboxRow
-                    checked={schoolTypes.includes("private_no_esc")}
-                    label="Private no ESC"
-                    onChange={() => toggleArray(setSchoolTypes, schoolTypes, "private_no_esc")}
-                  />
-                  <CheckboxRow
-                    checked={schoolTypes.includes("private_esc")}
-                    label="Private with ESC"
-                    onChange={() => toggleArray(setSchoolTypes, schoolTypes, "private_esc")}
-                  />
-                </div>
-                <div className="mt-5 space-y-1 pb-1">
-                  <p className="mb-2 px-2 text-[11px] font-bold uppercase tracking-wider text-[#9ca3af]">Religious Affiliation</p>
-                  <CheckboxRow
-                    checked={religious.includes("sectarian")}
-                    label="Sectarian"
-                    onChange={() => toggleArray(setReligious, religious, "sectarian")}
-                  />
-                  <CheckboxRow
-                    checked={religious.includes("non_sectarian")}
-                    label="Non-Sectarian"
-                    onChange={() => toggleArray(setReligious, religious, "non_sectarian")}
-                  />
-                </div>
-              </FilterSection>
+              </div>
             </div>
-          </section>
+          )}
+        </div>
+      );
+    },
 
-          <section className="mt-6">
-            <div className="mb-4 flex items-center justify-between px-1">
-              <h2 className="text-[17px] font-bold text-[#1a1d23]">Results List</h2>
-              <span className="rounded-full bg-[#e2e4e9] px-3 py-1 text-xs font-bold text-[#6b7280]">
-                {filteredSchools.length} schools
+    choices: () => (
+      <div className="p-5 space-y-3">
+        {isPostSubmission && (
+          <div className="rounded-lg bg-slate-50 border border-slate-200 p-3">
+            <p className="text-xs text-slate-500">Your school choices have been submitted and are read-only.</p>
+          </div>
+        )}
+        {wishlist.length === 0 && (
+          <div className="text-center py-12">
+            <Heart className="h-8 w-8 text-slate-200 mx-auto mb-3" />
+            <p className="text-sm text-slate-400">No schools added yet.</p>
+            <p className="text-xs text-slate-300 mt-1">Browse the map and click + to add schools.</p>
+          </div>
+        )}
+        {wishlist.map((school, i) => (
+          <div key={school.id} className="flex items-start gap-3 p-3 rounded-xl border border-slate-200 bg-white">
+            <span className="h-6 w-6 shrink-0 rounded-full bg-[#1a4b8c]/10 text-[#1a4b8c] text-xs font-bold flex items-center justify-center">{i + 1}</span>
+            <div className="flex-1 min-w-0">
+              <p className="text-sm font-semibold text-slate-800 leading-snug">{school.name}</p>
+              <p className="text-xs text-slate-400 mt-0.5">{school.municipality} · {school.type === 'public' ? 'Public' : school.esc_subsidy > 0 ? 'Private ESC' : 'Private'}</p>
+            </div>
+            {!isPostSubmission && (
+              <button onClick={() => removeFromWishlist(school.id)} className="text-slate-300 hover:text-red-400 shrink-0">
+                <X className="h-4 w-4" />
+              </button>
+            )}
+          </div>
+        ))}
+        {!isPostSubmission && !hasPublicAlternative && wishlist.length > 0 && (
+          <div className="rounded-lg bg-amber-50 border border-amber-200 p-3 text-xs text-amber-700">
+            Add at least one public JHS to ensure placement.
+          </div>
+        )}
+      </div>
+    ),
+
+    documents: () => {
+      // Post-submission but no additional docs requested — show review status only
+      if (isPostSubmission && appState !== 'docs_pending') {
+        return (
+          <div className="p-5 space-y-4">
+            <div className="rounded-xl border border-blue-200 bg-blue-50 p-4">
+              <div className="flex items-start gap-3">
+                <FileCheck className="h-5 w-5 text-blue-500 shrink-0 mt-0.5" />
+                <div>
+                  <p className="font-semibold text-blue-800 text-sm">Documents Submitted</p>
+                  <p className="text-xs text-blue-600 mt-1 leading-relaxed">
+                    The school committee is currently reviewing your application documents. You will be notified if additional documents are required.
+                  </p>
+                </div>
+              </div>
+            </div>
+            <p className="text-[10px] font-bold uppercase tracking-widest text-slate-500 mb-2">Submitted Documents</p>
+            <div className="space-y-2">
+              {(account?.uploadedDocs || []).map((doc, i) => (
+                <div key={i} className="flex items-start gap-3 p-3 rounded-xl border border-green-200 bg-green-50">
+                  <div className="h-5 w-5 rounded-full shrink-0 flex items-center justify-center mt-0.5 bg-green-500">
+                    <Check className="h-3 w-3 text-white" strokeWidth={3} />
+                  </div>
+                  <p className="text-xs text-slate-700 leading-snug">{doc}</p>
+                </div>
+              ))}
+            </div>
+          </div>
+        );
+      }
+
+      // docs_pending or pre-submission — show upload interface
+      return (
+        <div className="p-5">
+          {!account?.category ? (
+            <p className="text-sm text-slate-500">Complete your eligibility assessment first to see your required documents.</p>
+          ) : (
+            <>
+              {appState === 'docs_pending' && (
+                <div className="rounded-lg bg-amber-50 border border-amber-200 p-3 mb-4 text-xs text-amber-800 leading-relaxed">
+                  The school committee has requested an additional document. Please upload it below.
+                </div>
+              )}
+              <p className="text-[10px] font-bold uppercase tracking-widest text-slate-500 mb-4">Required Documents — Category {account.category}</p>
+              <div className="space-y-3">
+                {requiredDocs.map((doc, i) => {
+                  const uploaded = uploadedDocs.includes(doc);
+                  return (
+                    <div key={i} className={`flex items-start gap-3 p-3 rounded-xl border ${uploaded ? 'border-green-200 bg-green-50' : 'border-slate-200 bg-white'}`}>
+                      <div className={`h-5 w-5 rounded-full shrink-0 flex items-center justify-center mt-0.5 ${uploaded ? 'bg-green-500' : 'border-2 border-slate-300'}`}>
+                        {uploaded && <Check className="h-3 w-3 text-white" strokeWidth={3} />}
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-xs text-slate-700 leading-snug">{doc}</p>
+                        {!uploaded && (
+                          <button
+                            onClick={() => {
+                              updateAccount({ uploadedDocs: [...uploadedDocs, doc] });
+                            }}
+                            className="mt-1.5 text-[10px] font-bold text-[#1a4b8c] uppercase tracking-wide hover:underline"
+                          >
+                            Simulate Upload ↑
+                          </button>
+                        )}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+              {!docsReady && (
+                <button
+                  onClick={() => { updateAccount({ uploadedDocs: requiredDocs }); }}
+                  className="mt-4 w-full h-9 rounded-xl border border-slate-200 text-xs text-slate-500 hover:bg-slate-50"
+                >
+                  Simulate all uploads (demo)
+                </button>
+              )}
+              {docsReady && (
+                <div className="mt-4 rounded-lg bg-green-50 border border-green-200 p-3 text-xs text-green-700 text-center font-medium">
+                  All documents ready ✓
+                </div>
+              )}
+              {appState === 'docs_pending' && docsReady && (
+                <button onClick={() => { advance('docs_submitted'); setDrawerTab('status'); }} className="mt-3 w-full h-11 rounded-xl bg-[#1a4b8c] text-white font-semibold text-sm">
+                  Submit Additional Document →
+                </button>
+              )}
+            </>
+          )}
+        </div>
+      );
+    },
+
+    survey: () => !isPostSubmission ? (
+      <div className="p-5 space-y-6">
+        <div>
+          <p className="text-[10px] font-bold uppercase tracking-widest text-slate-500 mb-1">Pilot Survey</p>
+          <p className="text-xs text-slate-400">3 required questions before you can submit.</p>
+        </div>
+
+        <div>
+          <p className="text-sm font-semibold text-slate-800 mb-3">1. How easy was it to find schools?</p>
+          <div className="flex gap-2">
+            {[1,2,3,4,5].map(n => (
+              <button key={n} onClick={() => setSurveyAnswers(a => ({ ...a, ease: n }))}
+                className={`flex-1 h-9 rounded-lg border text-sm font-bold transition ${surveyAnswers.ease === n ? 'bg-[#1a4b8c] border-[#1a4b8c] text-white' : 'border-slate-200 text-slate-500 hover:border-slate-300'}`}>
+                {n}
+              </button>
+            ))}
+          </div>
+          <div className="flex justify-between text-[10px] text-slate-400 mt-1 px-0.5">
+            <span>Very hard</span><span>Very easy</span>
+          </div>
+        </div>
+
+        <div>
+          <p className="text-sm font-semibold text-slate-800 mb-3">2. Did this information help you decide?</p>
+          <div className="space-y-2">
+            {['Yes', 'Somewhat', 'No'].map(opt => (
+              <button key={opt} onClick={() => setSurveyAnswers(a => ({ ...a, helpful: opt }))}
+                className={`w-full h-10 rounded-xl border text-sm text-left px-4 transition ${surveyAnswers.helpful === opt ? 'bg-blue-50 border-[#1a4b8c] text-[#1a4b8c] font-semibold' : 'border-slate-200 text-slate-600 hover:border-slate-300'}`}>
+                {opt}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        <div>
+          <p className="text-sm font-semibold text-slate-800 mb-3">3. Biggest concern about enrolling in a private school?</p>
+          <div className="space-y-2">
+            {['Cost', 'Distance', 'School quality', 'Slot availability'].map(opt => (
+              <button key={opt} onClick={() => setSurveyAnswers(a => ({ ...a, concern: opt }))}
+                className={`w-full h-10 rounded-xl border text-sm text-left px-4 transition ${surveyAnswers.concern === opt ? 'bg-blue-50 border-[#1a4b8c] text-[#1a4b8c] font-semibold' : 'border-slate-200 text-slate-600 hover:border-slate-300'}`}>
+                {opt}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        <div className="rounded-xl border border-slate-200 p-4 space-y-2">
+          <p className="text-[10px] font-bold uppercase tracking-widest text-slate-500 mb-2">Submission Checklist</p>
+          {[
+            { done: wishlist.length > 0, label: 'At least one school added' },
+            { done: hasPublicAlternative, label: 'Public JHS included' },
+            { done: docsReady, label: 'Documents uploaded' },
+            { done: surveyComplete, label: 'Survey complete' },
+          ].map(({ done, label }) => (
+            <div key={label} className={`flex items-center gap-2 text-xs ${done ? 'text-green-700' : 'text-slate-400'}`}>
+              <span className={`h-4 w-4 rounded-full flex items-center justify-center shrink-0 ${done ? 'bg-green-500' : 'bg-slate-200'}`}>
+                {done && <Check className="h-2.5 w-2.5 text-white" strokeWidth={3} />}
               </span>
+              {label}
             </div>
-            <div className="space-y-4 pb-8">
-              {filteredSchools.length === 0 ? (
-                <div className="rounded-2xl border border-dashed border-[#d1d5db] bg-white p-6 text-center">
-                  <Info className="mx-auto h-6 w-6 text-[#9ca3af]" />
-                  <p className="mt-2 text-sm font-semibold text-[#1a1d23]">No matching schools</p>
-                  <p className="mt-1 text-xs text-[#6b7280]">Clear filters to widen the options shown to this household.</p>
+          ))}
+        </div>
+
+        <button onClick={handleSubmit} disabled={!canSubmit}
+          className="w-full h-12 rounded-xl bg-[#1a4b8c] text-white font-bold text-sm disabled:opacity-40 disabled:cursor-not-allowed">
+          Submit Application
+        </button>
+      </div>
+    ) : null,
+  };
+
+  // School profile view content (JSX variable, depends on selectedSchool)
+  const profileViewContent = selectedSchool ? (() => {
+    const s = selectedSchool;
+    const escP = s.esc_subsidy > 0;
+    return (
+      <div className="flex flex-col h-full">
+        <div className="sticky top-0 z-10 bg-white border-b border-slate-200 flex">
+          {[
+            { id: 'overview', label: 'Overview', ref: overviewRef },
+            { id: 'characteristics', label: 'Details', ref: characteristicsRef },
+            { id: 'fee', label: 'Fees', ref: feeRef },
+          ].map(({ id, label, ref }) => (
+            <button key={id} onClick={() => scrollToSection(ref)}
+              className={`flex-1 py-3 text-xs font-bold uppercase tracking-widest transition ${profileSection === id ? 'border-b-2 border-[#1a4b8c] text-[#1a4b8c]' : 'text-slate-400 hover:text-slate-600'}`}>
+              {label}
+            </button>
+          ))}
+        </div>
+        <div ref={profileScrollRef} className="flex-1 overflow-y-auto custom-scrollbar">
+          <div ref={overviewRef} className="p-6 border-b border-slate-100">
+            <span className={`text-[10px] font-bold uppercase px-2 py-0.5 rounded ${typeMeta[s.type].badge}`}>{typeMeta[s.type].label}</span>
+            <h2 className="text-lg font-bold text-slate-800 mt-2 leading-tight">{s.name}</h2>
+            <p className="text-sm text-slate-500 mt-1">{s.barangay}, {s.municipality}, {s.province}</p>
+            <div className="mt-4 rounded-xl bg-slate-50 h-40 flex items-center justify-center border border-slate-200">
+              <p className="text-xs text-slate-400">Gallery placeholder</p>
+            </div>
+            <p className="mt-4 text-sm text-slate-600 leading-relaxed">
+              {s.name} is a {typeMeta[s.type].label.toLowerCase()} junior high school located in {s.municipality}.
+              {escP ? ` It participates in the DepEd ESC program, offering a subsidy of ${pesos(s.esc_subsidy)}/year for eligible learners.` : ''}
+            </p>
+          </div>
+          <div ref={characteristicsRef} className="p-6 border-b border-slate-100">
+            <p className="text-[10px] font-bold uppercase tracking-widest text-slate-500 mb-4">School Characteristics</p>
+            <div className="grid grid-cols-2 gap-4">
+              {[
+                { label: 'Region', value: s.region },
+                { label: 'Admission', value: s.admission_category },
+                { label: 'Sector', value: s.religious_affiliation },
+                { label: 'ESC Rating', value: s.esc_rating ? `${s.esc_rating}/5` : 'N/A' },
+                { label: 'Distance', value: `${s.distance_km} km` },
+                { label: 'Commute', value: `~${s.commute_minutes} min` },
+              ].map(({ label, value }) => (
+                <div key={label}>
+                  <p className="text-[11px] uppercase tracking-wide text-slate-400">{label}</p>
+                  <p className="text-sm font-semibold text-slate-800 mt-0.5">{value}</p>
+                </div>
+              ))}
+            </div>
+          </div>
+          <div ref={feeRef} className="p-6">
+            <p className="text-[10px] font-bold uppercase tracking-widest text-slate-500 mb-4">Fee Information</p>
+            <div className="grid grid-cols-3 gap-3 mb-4">
+              {[
+                { label: 'Tuition', value: pesos(s.tuition), cls: 'text-slate-700' },
+                { label: 'ESC Subsidy', value: escP ? `-${pesos(s.esc_subsidy)}` : 'None', cls: escP ? 'text-green-600' : 'text-slate-400' },
+                { label: 'Net Cost', value: pesos(s.net_cost), cls: 'text-[#1a4b8c]' },
+              ].map(({ label, value, cls }) => (
+                <div key={label} className="rounded-xl border border-slate-200 p-3 text-center">
+                  <p className="text-[10px] uppercase tracking-wide text-slate-400">{label}</p>
+                  <p className={`text-sm font-bold mt-1 ${cls}`}>{value}</p>
+                </div>
+              ))}
+            </div>
+            {escP && (
+              <div className="rounded-xl bg-green-50 border border-green-200 p-3 text-xs text-green-700 mb-4">
+                ESC partner — eligible learners get <strong>{pesos(s.esc_subsidy)}</strong>/year subsidy, reducing cost to <strong>{pesos(s.net_cost)}</strong>.
+              </div>
+            )}
+            {(escP || s.type === 'public') && (
+              <div className="mb-4">
+                <div className="flex items-center justify-between text-xs text-slate-500 mb-1">
+                  <span>Available slots: {s.slots_available} of {s.slots_total}</span>
+                  <span>{pct(s.slots_available, s.slots_total)}%</span>
+                </div>
+                <div className="h-2 rounded-full bg-slate-200 overflow-hidden">
+                  <div className={`h-full rounded-full ${slotTone(s)}`} style={{ width: `${pct(s.slots_available, s.slots_total)}%` }} />
+                </div>
+              </div>
+            )}
+            <WishlistButton school={s} isInList={isInWishlist(s)} onAdd={addToWishlist} />
+          </div>
+        </div>
+      </div>
+    );
+  })() : (
+    <div className="flex flex-col items-center justify-center h-full text-center p-8">
+      <MapPin className="h-10 w-10 text-slate-200 mb-4" />
+      <p className="text-slate-400 text-sm">Select a school on the map or from the list to view its profile.</p>
+    </div>
+  );
+
+  // ── MAIN BROWSE RENDER ────────────────────────────────────────
+  return (
+    <div className="fixed inset-0 flex flex-col bg-[#f8f9fa]">
+      <link href="https://fonts.googleapis.com/css2?family=Baskervville&display=swap" rel="stylesheet" />
+      {loginModal}
+
+      {/* Navbar */}
+      <nav className="h-14 shrink-0 flex items-center justify-between px-5 bg-gradient-to-r from-[#1a0e3e] to-[#2b1260] z-20">
+        <button onClick={() => setAppView('hero')} className="font-['Baskervville',serif] text-white text-lg tracking-widest hover:opacity-80 transition">
+          PROJECT PAARAL
+        </button>
+        <div className="flex items-center gap-1">
+          {[{ id: 'map', label: 'Map' }, { id: 'profile', label: 'School Profile' }].map(t => (
+            <button key={t.id} onClick={() => setBrowseTab(t.id)}
+              className={`px-3 h-8 rounded-lg text-xs font-bold uppercase tracking-wider transition ${browseTab === t.id ? 'bg-white/20 text-white' : 'text-white/50 hover:text-white/80'}`}>
+              {t.label}
+            </button>
+          ))}
+        </div>
+        <div className="flex items-center gap-2">
+          {account ? (
+            <button onClick={() => setDrawerOpen(o => !o)}
+              className="flex items-center gap-2 px-3 h-8 rounded-lg bg-white/15 border border-white/25 text-white text-xs font-semibold hover:bg-white/25 transition">
+              <User className="h-3.5 w-3.5" />
+              My Account
+              {wishlist.length > 0 && !isPostSubmission && (
+                <span className="h-4 w-4 rounded-full bg-white text-[#1a0e3e] text-[9px] font-bold flex items-center justify-center">{wishlist.length}</span>
+              )}
+            </button>
+          ) : (
+            <button onClick={() => setShowLogin(true)} className="px-3 h-8 rounded-lg bg-white/15 border border-white/25 text-white text-xs font-semibold hover:bg-white/25 transition">
+              Log In
+            </button>
+          )}
+        </div>
+      </nav>
+
+      {/* Content */}
+      <div className="flex flex-1 min-h-0 relative">
+
+        {/* MAP TAB */}
+        {browseTab === 'map' && (
+          <div className="flex flex-1 min-w-0 min-h-0">
+            {/* Filter sidebar */}
+            <div className={`relative flex shrink-0 flex-col bg-[#f8f9fa] border-r border-[#e2e4e9] transition-all duration-300 ${filtersCollapsed ? 'w-[38px]' : 'w-[270px]'} overflow-y-auto custom-scrollbar`}>
+              <button
+                onClick={() => setFiltersCollapsed(c => !c)}
+                className="absolute right-0 top-5 z-10 flex h-6 w-6 items-center justify-center rounded-l border border-r-0 border-[#e2e4e9] bg-white text-[#6b7280] hover:bg-[#f8f9fb]"
+              >
+                {filtersCollapsed ? <ChevronRight className="h-3.5 w-3.5" /> : <ChevronLeft className="h-3.5 w-3.5" />}
+              </button>
+              {filtersCollapsed ? (
+                <div className="flex w-full flex-1 items-center justify-center py-4">
+                  <span className="text-[10px] font-bold uppercase tracking-widest text-[#6b7280]" style={{ writingMode: 'vertical-rl' }}>Filters</span>
                 </div>
               ) : (
-                filteredSchools.map((school) => (
-                  <ResultCard
-                    key={school.id}
-                    school={school}
-                    selected={selectedSchool?.id === school.id}
-                    onSelect={selectSchool}
-                  />
-                ))
+                <div className="p-4 w-full space-y-1">
+                  <div className="relative mb-4">
+                    <Search className="pointer-events-none absolute left-3 top-2.5 h-4 w-4 text-[#9ca3af]" />
+                    <input value={searchTerm} onChange={e => setSearchTerm(e.target.value)} placeholder="Search schools…"
+                      className="h-9 w-full rounded-lg border border-[#e2e4e9] bg-white pl-9 pr-3 text-sm outline-none focus:border-[#1a4b8c]" />
+                  </div>
+                  <FilterSection title="Location" id="location" open={openSections.location} onToggle={toggleSection}>
+                    <div className="flex flex-col gap-2">
+                      <SelectField value={region} onChange={setRegion} options={regionOptions} placeholder="All Regions" />
+                      <SelectField value={province} onChange={setProvince} options={provinceOptions} placeholder="All Provinces" />
+                      <SelectField value={municipality} onChange={setMunicipality} options={municipalityOptions} placeholder="All Municipalities" />
+                      <SelectField value={barangay} onChange={setBarangay} options={barangayOptions} placeholder="All Barangays" />
+                    </div>
+                  </FilterSection>
+                  <FilterSection title="Distance (km)" id="distance" open={openSections.distance} onToggle={toggleSection}>
+                    <RangePair min={0} max={100} value={distance} onChange={setDistance} format={v => `${v} km`} />
+                  </FilterSection>
+                  <FilterSection title="Net Cost" id="tuition" open={openSections.tuition} onToggle={toggleSection}>
+                    <RangePair min={0} max={250000} step={5000} value={tuition} onChange={setTuition} format={v => v === 0 ? 'Free' : `₱${(v/1000).toFixed(0)}k`} />
+                  </FilterSection>
+                  <FilterSection title="School Type" id="type" open={openSections.type} onToggle={toggleSection}>
+                    {Object.entries(typeMeta).map(([type, meta]) => (
+                      <CheckboxRow key={type} checked={schoolTypes.includes(type)} label={meta.label}
+                        sublabel={`${filteredSchools.filter(s => s.type === type).length}`}
+                        onChange={() => setSchoolTypes(ts => ts.includes(type) ? ts.filter(t => t !== type) : [...ts, type])} />
+                    ))}
+                  </FilterSection>
+                  <FilterSection title="Commute Time" id="commute" open={openSections.commute} onToggle={toggleSection}>
+                    {[{ v: 'under5', l: 'Under 5 min' }, { v: '15to30', l: '15–30 min' }, { v: 'over30', l: 'Over 30 min' }].map(b => (
+                      <CheckboxRow key={b.v} checked={commuteBuckets.includes(b.v)} label={b.l}
+                        onChange={() => setCommuteBuckets(bs => bs.includes(b.v) ? bs.filter(x => x !== b.v) : [...bs, b.v])} />
+                    ))}
+                  </FilterSection>
+                </div>
               )}
             </div>
-          </section>
-        </div>
-      </aside>
 
-      <main className="flex min-w-0 flex-1 flex-col h-full relative">
-        <div className="flex-1 relative min-h-0 bg-[#e9f0f5]">
-          <PhilippinesMap
-            filteredSchools={filteredSchools}
-            selectedSchool={selectedSchool}
-            hoveredId={hoveredId}
-            onHover={setHoveredId}
-            onSelect={selectSchool}
-            comingSoon={comingSoon}
-          />
-        </div>
-      </main>
+            {/* Map */}
+            <div className="relative flex-1 min-w-0">
+              <PhilippinesMap
+                filteredSchools={filteredSchools}
+                selectedSchool={selectedSchool}
+                hoveredId={hoveredId}
+                onHover={setHoveredId}
+                onSelect={handleMapSelect}
+                userLocation={userLocation}
+              />
+              <SchoolInfoCard
+                school={selectedSchool}
+                onClose={() => setSelectedSchool(null)}
+                onAddToWishlist={addToWishlist}
+                isInWishlist={selectedSchool ? isInWishlist(selectedSchool) : false}
+              />
+            </div>
+
+            {/* Results panel */}
+            <div className={`relative flex shrink-0 flex-col border-l border-[#e2e4e9] bg-white transition-all duration-300 ${resultsCollapsed ? 'w-[38px]' : 'w-[300px]'}`}>
+              <button onClick={() => setResultsCollapsed(c => !c)}
+                className="absolute left-0 top-5 z-10 flex h-6 w-6 items-center justify-center rounded-r border border-l-0 border-[#e2e4e9] bg-white text-[#6b7280] hover:bg-[#f8f9fb]">
+                {resultsCollapsed ? <ChevronLeft className="h-3.5 w-3.5" /> : <ChevronRight className="h-3.5 w-3.5" />}
+              </button>
+              {resultsCollapsed ? (
+                <div className="flex w-full flex-1 items-center justify-center py-4">
+                  <span className="text-[10px] font-bold uppercase tracking-widest text-[#6b7280]" style={{ writingMode: 'vertical-rl' }}>Results</span>
+                </div>
+              ) : (
+                <div className="flex flex-col h-full">
+                  <div className="border-b border-[#e2e4e9] p-4 shrink-0">
+                    <p className="text-[10px] font-bold uppercase tracking-widest text-[#6b7280]">{filteredSchools.length} schools found</p>
+                  </div>
+                  <div ref={resultsScrollRef} className="flex-1 overflow-y-auto custom-scrollbar p-3 space-y-3">
+                    {filteredSchools.map(school => (
+                      <div key={school.id} ref={selectedSchool?.id === school.id ? selectedCardRef : null}>
+                        <ResultCard
+                          school={school}
+                          selected={selectedSchool?.id === school.id}
+                          onSelect={setSelectedSchool}
+                          onAddToWishlist={addToWishlist}
+                          isInWishlist={isInWishlist(school)}
+                        />
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+
+        {/* SCHOOL PROFILE TAB */}
+        {browseTab === 'profile' && (
+          <div className="flex flex-1 min-h-0 min-w-0">
+            <div className="w-[300px] shrink-0 border-r border-[#e2e4e9] overflow-y-auto custom-scrollbar bg-[#f8f9fa]">
+              <div className="p-3 border-b border-[#e2e4e9]">
+                <div className="relative">
+                  <Search className="pointer-events-none absolute left-3 top-2.5 h-4 w-4 text-[#9ca3af]" />
+                  <input value={searchTerm} onChange={e => setSearchTerm(e.target.value)} placeholder="Search schools…"
+                    className="h-9 w-full rounded-lg border border-[#e2e4e9] bg-white pl-9 pr-3 text-sm outline-none focus:border-[#1a4b8c]" />
+                </div>
+              </div>
+              <div className="p-3 space-y-2">
+                {filteredSchools.map(school => (
+                  <button key={school.id}
+                    onClick={() => { setSelectedSchool(school); setProfileSection('overview'); setTimeout(() => profileScrollRef.current?.scrollTo({ top: 0 }), 50); }}
+                    className={`w-full text-left p-3 rounded-xl border transition ${selectedSchool?.id === school.id ? 'border-[#1a4b8c] bg-blue-50' : 'border-[#e2e4e9] bg-white hover:border-slate-300'}`}>
+                    <p className="text-sm font-semibold text-slate-800 line-clamp-2 leading-snug">{school.name}</p>
+                    <p className="text-xs text-slate-400 mt-0.5">{school.municipality}</p>
+                  </button>
+                ))}
+              </div>
+            </div>
+            <div className="flex-1 min-w-0 min-h-0 overflow-hidden">
+              {profileViewContent}
+            </div>
+          </div>
+        )}
+
+        {/* Application Drawer */}
+        {drawerOpen && (
+          <div className="absolute inset-0 z-30 flex">
+            <div className="flex-1 bg-black/30" onClick={() => setDrawerOpen(false)} />
+            <div className="w-[360px] bg-white shadow-2xl flex flex-col h-full">
+              <div className="h-14 shrink-0 flex items-center justify-between px-5 border-b border-slate-100">
+                <p className="text-sm font-bold text-slate-800">My Application</p>
+                <button onClick={() => setDrawerOpen(false)} className="h-8 w-8 flex items-center justify-center rounded-full border border-slate-200 text-slate-400 hover:bg-slate-50">
+                  <X className="h-4 w-4" />
+                </button>
+              </div>
+              <div className="flex-1 min-h-0 overflow-hidden flex flex-col">
+                {!account ? (
+                  <div className="flex flex-col items-center justify-center flex-1 p-8 text-center">
+                    <User className="h-10 w-10 text-slate-300 mb-4" />
+                    <p className="text-slate-500 text-sm mb-4">Log in to track your application.</p>
+                    <button onClick={() => { setDrawerOpen(false); setShowLogin(true); }} className="px-5 h-10 rounded-xl bg-[#1a4b8c] text-white text-sm font-semibold">
+                      Log In
+                    </button>
+                  </div>
+                ) : (
+                  <>
+                    <div className="px-5 pt-4 pb-3 border-b border-slate-100 shrink-0">
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <p className="text-sm font-bold text-slate-800">{account.name}</p>
+                          <p className="text-xs text-slate-400 font-mono">LRN: {account.lrn}</p>
+                        </div>
+                        {account.category && (
+                          <span className={`text-[10px] font-bold uppercase px-2 py-0.5 rounded border ${catMeta[account.category]?.tw}`}>
+                            Cat. {account.category}
+                          </span>
+                        )}
+                      </div>
+                      <div className="mt-2">{renderStateBadge(account.applicationState)}</div>
+                    </div>
+                    <div className="flex border-b border-slate-100 shrink-0">
+                      {drawerTabList.map(tab => (
+                        <button key={tab} onClick={() => setDrawerTab(tab)}
+                          className={`flex-1 py-3 text-[10px] font-bold uppercase tracking-wider capitalize transition ${drawerTab === tab ? 'border-b-2 border-[#1a4b8c] text-[#1a4b8c]' : 'text-slate-400 hover:text-slate-600'}`}>
+                          {tab}
+                          {tab === 'choices' && wishlist.length > 0 && (
+                            <span className="ml-1 px-1.5 py-0.5 rounded-full bg-[#1a4b8c] text-white text-[9px]">{wishlist.length}</span>
+                          )}
+                        </button>
+                      ))}
+                    </div>
+                    <div className="flex-1 overflow-y-auto custom-scrollbar">
+                      {drawerTabContent[drawerTab]?.()}
+                    </div>
+                  </>
+                )}
+              </div>
+              {account && (
+                <div className="shrink-0 border-t border-slate-100 px-5 py-3">
+                  <button onClick={logout} className="text-xs text-slate-400 hover:text-slate-600 flex items-center gap-1.5">
+                    <LogOut className="h-3.5 w-3.5" /> Log out
+                  </button>
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+      </div>
     </div>
   );
 }

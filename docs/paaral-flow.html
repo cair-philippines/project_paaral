@@ -1,0 +1,982 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>PAARAL — Account Creation Flow</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Text', 'Segoe UI', sans-serif;
+      background: #12082e;
+    }
+
+    /* ── Screen wrapper ──────────────────────────────────────── */
+    .screen {
+      width: 100%;
+      aspect-ratio: 16 / 9;
+      min-height: 540px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: linear-gradient(135deg,
+        #1a0e3e 0%,
+        #2b1260 30%,
+        #661843 65%,
+        #7c1c30 100%);
+      position: relative;
+    }
+
+    .screen + .screen {
+      border-top: 3px solid #12082e;
+    }
+
+    .screen-label {
+      position: absolute;
+      top: 14px;
+      left: 18px;
+      font-size: 10px;
+      font-weight: 700;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: rgba(255,255,255,0.35);
+      pointer-events: none;
+    }
+
+    /* ── Card ────────────────────────────────────────────────── */
+    .card {
+      background: #ffffff;
+      border-radius: 22px;
+      padding: 40px 44px 44px;
+      width: 440px;
+      box-shadow:
+        0 4px 6px rgba(0,0,0,0.08),
+        0 20px 60px rgba(0,0,0,0.45),
+        0 40px 100px rgba(0,0,0,0.3);
+    }
+
+    .card-title {
+      font-size: 26px;
+      font-weight: 800;
+      color: #111827;
+      text-align: center;
+      letter-spacing: -0.02em;
+      margin-bottom: 6px;
+    }
+
+    .card-sub {
+      font-size: 13.5px;
+      color: #6b7280;
+      text-align: center;
+      margin-bottom: 26px;
+    }
+
+    .card-sub a {
+      color: #2563eb;
+      text-decoration: none;
+      font-weight: 500;
+    }
+
+    /* ── Fields ──────────────────────────────────────────────── */
+    .field {
+      width: 100%;
+      padding: 13px 18px;
+      background: #f3f4f6;
+      border: 1.5px solid transparent;
+      border-radius: 50px;
+      font-size: 14px;
+      color: #111827;
+      outline: none;
+      display: block;
+      margin-bottom: 10px;
+      transition: border-color 0.15s;
+    }
+
+    .field::placeholder { color: #9ca3af; }
+    .field:focus { border-color: #93c5fd; background: #fff; }
+
+    .field-row {
+      display: flex;
+      gap: 8px;
+      margin-bottom: 10px;
+    }
+
+    .field-row .field { margin-bottom: 0; }
+
+    .field-wrap {
+      position: relative;
+      margin-bottom: 10px;
+    }
+
+    .field-wrap .field { margin-bottom: 0; padding-right: 46px; }
+
+    .field-icon {
+      position: absolute;
+      right: 14px;
+      top: 50%;
+      transform: translateY(-50%);
+      width: 22px;
+      height: 22px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 12px;
+      font-weight: 700;
+      pointer-events: none;
+    }
+
+    .field-icon.info  { background: #d1d5db; color: #6b7280; }
+    .field-icon.ok    { background: #22c55e; color: #fff; }
+    .field-icon.err   { background: #ef4444; color: #fff; }
+
+    .field.verified   { background: #f0fdf4; border-color: #86efac; color: #15803d; font-weight: 600; }
+    .field.invalid    { background: #fef2f2; border-color: #fca5a5; color: #b91c1c; font-weight: 600; }
+    .field.prefilled  { background: #f0fdf4; color: #15803d; }
+
+    /* ── Buttons ─────────────────────────────────────────────── */
+    .btn {
+      width: 100%;
+      padding: 15px;
+      font-size: 15px;
+      font-weight: 700;
+      border: none;
+      border-radius: 50px;
+      cursor: pointer;
+      transition: opacity 0.15s;
+    }
+
+    .btn-primary { background: #2563eb; color: #fff; }
+    .btn-primary:hover { opacity: 0.9; }
+    .btn-disabled { background: #d1d5db; color: #9ca3af; cursor: not-allowed; }
+
+    .btn-row {
+      display: flex;
+      gap: 10px;
+      margin-top: 6px;
+    }
+
+    .btn-back {
+      padding: 15px 22px;
+      background: #f3f4f6;
+      color: #374151;
+      font-size: 14px;
+      font-weight: 600;
+      border: none;
+      border-radius: 50px;
+      cursor: pointer;
+      white-space: nowrap;
+    }
+
+    /* ── Banners ─────────────────────────────────────────────── */
+    .banner {
+      border-radius: 12px;
+      padding: 12px 16px;
+      display: flex;
+      align-items: flex-start;
+      gap: 11px;
+      margin-bottom: 14px;
+    }
+
+    .banner.success { background: #f0fdf4; border: 1.5px solid #86efac; }
+    .banner.error   { background: #fef2f2; border: 1.5px solid #fca5a5; }
+    .banner.info    { background: #eff6ff; border: 1.5px solid #bfdbfe; }
+
+    .banner-icon {
+      width: 26px;
+      height: 26px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+      margin-top: 1px;
+    }
+
+    .banner-icon.success { background: #22c55e; }
+    .banner-icon.error   { background: #ef4444; }
+    .banner-icon.info    { background: #3b82f6; }
+
+    .banner-title { font-size: 13.5px; font-weight: 700; }
+    .banner-title.success { color: #15803d; }
+    .banner-title.error   { color: #b91c1c; }
+    .banner-title.info    { color: #1d4ed8; }
+
+    .banner-body { font-size: 12px; margin-top: 2px; }
+    .banner-body.success { color: #16a34a; }
+    .banner-body.error   { color: #dc2626; }
+    .banner-body.info    { color: #2563eb; }
+
+    /* ── Learner info card ───────────────────────────────────── */
+    .info-card {
+      background: #f9fafb;
+      border: 1px solid #e5e7eb;
+      border-radius: 14px;
+      padding: 16px 18px;
+      margin-bottom: 14px;
+    }
+
+    .info-card-label {
+      font-size: 9.5px;
+      font-weight: 700;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: #9ca3af;
+      margin-bottom: 12px;
+    }
+
+    .info-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: baseline;
+      margin-bottom: 8px;
+    }
+
+    .info-row:last-child { margin-bottom: 0; }
+
+    .info-key {
+      font-size: 12px;
+      color: #6b7280;
+      flex-shrink: 0;
+    }
+
+    .info-val {
+      font-size: 12px;
+      font-weight: 600;
+      color: #111827;
+      text-align: right;
+      padding-left: 16px;
+    }
+
+    /* ── ESC Assessment ──────────────────────────────────────── */
+    .progress {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 5px;
+      margin-bottom: 22px;
+    }
+
+    .prog-step {
+      height: 6px;
+      border-radius: 3px;
+      background: #e5e7eb;
+      transition: all 0.2s;
+    }
+
+    .prog-step.done   { width: 28px; background: #22c55e; }
+    .prog-step.active { width: 28px; background: #2563eb; }
+    .prog-step.idle   { width: 8px; }
+
+    .esc-label {
+      font-size: 10px;
+      font-weight: 700;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: #9ca3af;
+      text-align: center;
+      margin-bottom: 8px;
+    }
+
+    .esc-question {
+      font-size: 19px;
+      font-weight: 800;
+      color: #111827;
+      text-align: center;
+      line-height: 1.25;
+      margin-bottom: 8px;
+      letter-spacing: -0.02em;
+    }
+
+    .esc-sub {
+      font-size: 13px;
+      color: #6b7280;
+      text-align: center;
+      line-height: 1.55;
+      margin-bottom: 22px;
+    }
+
+    .option {
+      border: 1.5px solid #e5e7eb;
+      border-radius: 14px;
+      padding: 14px 18px;
+      margin-bottom: 9px;
+      cursor: pointer;
+      transition: all 0.15s;
+    }
+
+    .option:last-of-type { margin-bottom: 0; }
+
+    .option:hover {
+      border-color: #93c5fd;
+      background: #eff6ff;
+    }
+
+    .option.selected {
+      border-color: #2563eb;
+      background: #eff6ff;
+    }
+
+    .option-title {
+      font-size: 13.5px;
+      font-weight: 600;
+      color: #111827;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .option.selected .option-title { color: #1d4ed8; }
+
+    .option-check {
+      width: 18px;
+      height: 18px;
+      border-radius: 50%;
+      border: 2px solid #d1d5db;
+      flex-shrink: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: all 0.15s;
+    }
+
+    .option.selected .option-check {
+      background: #2563eb;
+      border-color: #2563eb;
+    }
+
+    .option-sub {
+      font-size: 12px;
+      color: #6b7280;
+      margin-top: 3px;
+      padding-left: 26px;
+    }
+
+    /* ── Checkbox (multi-select) ─────────────────────────────── */
+    .checkbox {
+      width: 18px;
+      height: 18px;
+      border-radius: 5px;
+      border: 2px solid #d1d5db;
+      flex-shrink: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .option.selected .checkbox { background: #2563eb; border-color: #2563eb; }
+
+    /* ── Result screens ──────────────────────────────────────── */
+    .result-badge {
+      border-radius: 14px;
+      padding: 16px 20px;
+      margin-bottom: 16px;
+      border: 1.5px solid;
+    }
+    .result-badge.cat-a { background: #f5f3ff; border-color: #c4b5fd; color: #5b21b6; }
+    .result-badge.cat-b { background: #eff6ff; border-color: #bfdbfe; color: #1d4ed8; }
+    .result-badge.cat-c { background: #f0fdfa; border-color: #99f6e4; color: #0f766e; }
+    .result-badge.cat-d { background: #fffbeb; border-color: #fde68a; color: #b45309; }
+    .result-badge.ineligible { background: #fef2f2; border-color: #fca5a5; color: #b91c1c; }
+    .result-eyebrow { font-size: 9.5px; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; margin-bottom: 4px; opacity: 0.65; }
+    .result-title   { font-size: 18px; font-weight: 800; margin-bottom: 4px; letter-spacing: -0.02em; }
+    .result-desc    { font-size: 12px; opacity: 0.8; }
+
+    .doc-label { font-size: 9.5px; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; color: #9ca3af; margin-bottom: 8px; }
+    .doc-list  { display: flex; flex-direction: column; gap: 7px; margin-bottom: 14px; }
+    .doc-item  { display: flex; align-items: flex-start; gap: 9px; background: #f9fafb; border-radius: 10px; padding: 9px 12px; }
+    .doc-check { width: 16px; height: 16px; border-radius: 50%; background: #dcfce7; flex-shrink: 0; display: flex; align-items: center; justify-content: center; margin-top: 1px; }
+    .doc-text  { font-size: 11.5px; color: #374151; line-height: 1.4; }
+
+    .result-note {
+      background: #fffbeb;
+      border: 1.5px solid #fde68a;
+      border-radius: 12px;
+      padding: 12px 14px;
+      font-size: 11.5px;
+      color: #92400e;
+      line-height: 1.5;
+      margin-bottom: 16px;
+    }
+
+    .btn-create {
+      width: 100%;
+      padding: 15px;
+      background: #2563eb;
+      color: #fff;
+      font-size: 15px;
+      font-weight: 700;
+      border: none;
+      border-radius: 50px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+    }
+
+    .ineligible-box { background: #fef2f2; border: 1.5px solid #fca5a5; border-radius: 14px; padding: 18px 20px; margin-bottom: 14px; }
+    .ineligible-box p:first-child { font-size: 15px; font-weight: 700; color: #b91c1c; margin-bottom: 6px; }
+    .ineligible-box p:last-child  { font-size: 12.5px; color: #dc2626; line-height: 1.5; }
+
+    .public-note { background: #f9fafb; border: 1px solid #e5e7eb; border-radius: 12px; padding: 13px 16px; font-size: 12.5px; color: #374151; line-height: 1.5; margin-bottom: 14px; }
+
+    /* SVG icons inline */
+    .ico-check { display:inline-block; vertical-align:middle; }
+  </style>
+</head>
+<body>
+
+  <!-- ═══════════════════════════════════════════════════════════
+       SCREEN 1 — Create Account
+  ═══════════════════════════════════════════════════════════ -->
+  <div class="screen">
+    <span class="screen-label">Screen 1 — Create Account</span>
+    <div class="card">
+      <h1 class="card-title">Create Account</h1>
+      <p class="card-sub">Already have an account? <a href="#">Sign in</a></p>
+
+      <input class="field" type="email" placeholder="DepEd Email">
+
+      <div class="field-wrap">
+        <input class="field" type="text" placeholder="Learner Reference Number (LRN)">
+        <div class="field-icon info">i</div>
+      </div>
+
+      <div class="field-row">
+        <input class="field" type="text" placeholder="First Name">
+        <input class="field" type="text" placeholder="Last Name">
+      </div>
+
+      <button class="btn btn-primary" style="margin-top:6px">Sign up</button>
+    </div>
+  </div>
+
+
+  <!-- ═══════════════════════════════════════════════════════════
+       SCREEN 2a — LRN Verified
+  ═══════════════════════════════════════════════════════════ -->
+  <div class="screen">
+    <span class="screen-label">Screen 2a — LRN Verified</span>
+    <div class="card">
+      <h1 class="card-title">Create Account</h1>
+      <p class="card-sub">Already have an account? <a href="#">Sign in</a></p>
+
+      <input class="field" type="email" placeholder="DepEd Email" value="juandelacruz@deped.gov.ph">
+
+      <div class="field-wrap">
+        <input class="field verified" type="text" value="100000000001" readonly>
+        <div class="field-icon ok">
+          <svg width="11" height="11" viewBox="0 0 12 12" fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="1.5 6 4.5 9 10.5 3"/></svg>
+        </div>
+      </div>
+
+      <!-- Success banner -->
+      <div class="banner success">
+        <div class="banner-icon success">
+          <svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="1.5 6 4.5 9 10.5 3"/></svg>
+        </div>
+        <div>
+          <div class="banner-title success">LRN confirmed in DepEd LIS</div>
+          <div class="banner-body success">Learner record found — details auto-filled below</div>
+        </div>
+      </div>
+
+      <!-- Learner details from LIS -->
+      <div class="info-card">
+        <div class="info-card-label">Learner Information from LIS</div>
+        <div class="info-row">
+          <span class="info-key">Full Name</span>
+          <span class="info-val">Juan M. dela Cruz</span>
+        </div>
+        <div class="info-row">
+          <span class="info-key">Current School</span>
+          <span class="info-val">Bagumbayan Elementary School</span>
+        </div>
+        <div class="info-row">
+          <span class="info-key">Grade Level</span>
+          <span class="info-val">Grade 6</span>
+        </div>
+        <div class="info-row">
+          <span class="info-key">Municipality</span>
+          <span class="info-val">Taguig City, Metro Manila</span>
+        </div>
+        <div class="info-row">
+          <span class="info-key">School Division</span>
+          <span class="info-val">Division of Taguig-Pateros</span>
+        </div>
+      </div>
+
+      <div class="field-row">
+        <input class="field prefilled" type="text" value="Juan" readonly>
+        <input class="field prefilled" type="text" value="dela Cruz" readonly>
+      </div>
+
+      <button class="btn btn-primary">Continue &rarr;</button>
+    </div>
+  </div>
+
+
+  <!-- ═══════════════════════════════════════════════════════════
+       SCREEN 2b — LRN Not Found
+  ═══════════════════════════════════════════════════════════ -->
+  <div class="screen">
+    <span class="screen-label">Screen 2b — LRN Not Found</span>
+    <div class="card">
+      <h1 class="card-title">Create Account</h1>
+      <p class="card-sub">Already have an account? <a href="#">Sign in</a></p>
+
+      <input class="field" type="email" placeholder="DepEd Email" value="juandelacruz@deped.gov.ph">
+
+      <div class="field-wrap">
+        <input class="field invalid" type="text" value="200000000001" readonly>
+        <div class="field-icon err">
+          <svg width="10" height="10" viewBox="0 0 12 12" fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round"><line x1="1.5" y1="1.5" x2="10.5" y2="10.5"/><line x1="10.5" y1="1.5" x2="1.5" y2="10.5"/></svg>
+        </div>
+      </div>
+
+      <!-- Error banner -->
+      <div class="banner error">
+        <div class="banner-icon error">
+          <svg width="10" height="10" viewBox="0 0 12 12" fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round"><line x1="1.5" y1="1.5" x2="10.5" y2="10.5"/><line x1="10.5" y1="1.5" x2="1.5" y2="10.5"/></svg>
+        </div>
+        <div>
+          <div class="banner-title error">LRN not found in DepEd LIS</div>
+          <div class="banner-body error">Check with your school's registrar</div>
+        </div>
+      </div>
+
+      <!-- Help text -->
+      <div class="banner info" style="margin-bottom:14px">
+        <div class="banner-icon info" style="font-size:12px;font-weight:700;color:white;">i</div>
+        <div>
+          <div class="banner-title info">Where to find your LRN</div>
+          <div class="banner-body info">Your 12-digit LRN appears on your SF9 Report Card or any official DepEd document. Contact your Grade 6 adviser if you can't locate it.</div>
+        </div>
+      </div>
+
+      <div class="field-row">
+        <input class="field" type="text" placeholder="First Name">
+        <input class="field" type="text" placeholder="Last Name">
+      </div>
+
+      <button class="btn btn-disabled" disabled>Continue &rarr;</button>
+      <p style="text-align:center;font-size:11.5px;color:#9ca3af;margin-top:10px;">LRN verification is required to continue</p>
+    </div>
+  </div>
+
+
+  <!-- ═══════════════════════════════════════════════════════════
+       Q1 — ESC Intent
+  ═══════════════════════════════════════════════════════════ -->
+  <div class="screen">
+    <span class="screen-label">ESC Assessment — Q1: ESC Intent</span>
+    <div class="card" style="width:480px">
+
+      <div class="progress">
+        <div class="prog-step active"></div>
+        <div class="prog-step idle"></div>
+        <div class="prog-step idle"></div>
+        <div class="prog-step idle"></div>
+        <div class="prog-step idle"></div>
+      </div>
+
+      <div class="esc-label">ESC Eligibility — Question 1 of 5</div>
+      <h1 class="esc-question">Are you applying as an<br>ESC beneficiary?</h1>
+      <p class="esc-sub">ESC provides tuition subsidies for eligible learners<br>enrolling in accredited private junior high schools.</p>
+
+      <div class="option selected">
+        <div class="option-title">
+          <span class="option-check">
+            <svg width="9" height="9" viewBox="0 0 10 10" fill="none" stroke="white" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="1.5 5 3.8 7.5 8.5 2"/></svg>
+          </span>
+          Yes, I want to apply for ESC
+        </div>
+        <div class="option-sub">I plan to enroll in a private JHS and want a tuition subsidy</div>
+      </div>
+
+      <div class="option">
+        <div class="option-title">
+          <span class="option-check"></span>
+          No, I am enrolling in a public JHS
+        </div>
+        <div class="option-sub">I will not be applying for ESC</div>
+      </div>
+
+      <div class="btn-row" style="margin-top:18px">
+        <button class="btn-back">&larr; Back</button>
+        <button class="btn btn-primary" style="flex:1;margin-top:0">Continue &rarr;</button>
+      </div>
+
+    </div>
+  </div>
+
+
+  <!-- ═══════════════════════════════════════════════════════════
+       Q2 — School Type
+  ═══════════════════════════════════════════════════════════ -->
+  <div class="screen">
+    <span class="screen-label">ESC Assessment — Q2: School Type</span>
+    <div class="card" style="width:480px">
+
+      <div class="progress">
+        <div class="prog-step done"></div>
+        <div class="prog-step active"></div>
+        <div class="prog-step idle"></div>
+        <div class="prog-step idle"></div>
+        <div class="prog-step idle"></div>
+      </div>
+
+      <div class="esc-label">ESC Eligibility — Question 2 of 5</div>
+      <h1 class="esc-question">How did you complete Grade 6?</h1>
+      <p class="esc-sub">This determines which ESC category applies to you.</p>
+
+      <div class="option selected">
+        <div class="option-title">
+          <span class="option-check">
+            <svg width="9" height="9" viewBox="0 0 10 10" fill="none" stroke="white" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="1.5 5 3.8 7.5 8.5 2"/></svg>
+          </span>
+          Public school graduate
+        </div>
+        <div class="option-sub">Regular Grade 6 from a DepEd government school</div>
+      </div>
+
+      <div class="option">
+        <div class="option-title">
+          <span class="option-check"></span>
+          Private school graduate
+        </div>
+        <div class="option-sub">Regular Grade 6 from a private school</div>
+      </div>
+
+      <div class="option">
+        <div class="option-title">
+          <span class="option-check"></span>
+          ALS A&amp;E Test or PEPT passer
+        </div>
+        <div class="option-sub">Alternative Learning System or Phil. Educational Placement Test</div>
+      </div>
+
+      <div class="btn-row" style="margin-top:18px">
+        <button class="btn-back">&larr; Back</button>
+        <button class="btn btn-primary" style="flex:1;margin-top:0">Continue &rarr;</button>
+      </div>
+
+    </div>
+  </div>
+
+
+  <!-- ═══════════════════════════════════════════════════════════
+       Q3 — Social Equity Group (public path, multi-select)
+  ═══════════════════════════════════════════════════════════ -->
+  <div class="screen">
+    <span class="screen-label">ESC Assessment — Q3: Social Equity Group (public school path only)</span>
+    <div class="card" style="width:480px">
+
+      <div class="progress">
+        <div class="prog-step done"></div>
+        <div class="prog-step done"></div>
+        <div class="prog-step active"></div>
+        <div class="prog-step idle"></div>
+        <div class="prog-step idle"></div>
+      </div>
+
+      <div class="esc-label">ESC Eligibility — Question 3 of 5</div>
+      <h1 class="esc-question">Does your family belong to any of these groups?</h1>
+      <p class="esc-sub">Select all that apply. Membership may qualify you for<br>Category A — the highest priority tier.</p>
+
+      <div class="option selected">
+        <div class="option-title">
+          <span class="checkbox">
+            <svg width="9" height="9" viewBox="0 0 10 10" fill="none" stroke="white" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="1.5 5 3.8 7.5 8.5 2"/></svg>
+          </span>
+          4Ps (Pantawid Pamilyang Pilipino) beneficiary
+        </div>
+      </div>
+
+      <div class="option">
+        <div class="option-title"><span class="checkbox"></span> Living in a GIDCA area</div>
+      </div>
+
+      <div class="option">
+        <div class="option-title"><span class="checkbox"></span> Member of an Indigenous Peoples community</div>
+      </div>
+
+      <div class="option">
+        <div class="option-title"><span class="checkbox"></span> Person with Disability (PWD)</div>
+      </div>
+
+      <div class="option">
+        <div class="option-title"><span class="checkbox"></span> Learner with special needs</div>
+      </div>
+
+      <div class="option">
+        <div class="option-title"><span class="checkbox"></span> Assessed as poor or near-poor under CBMS</div>
+      </div>
+
+      <div class="option">
+        <div class="option-title" style="color:#6b7280"><span class="checkbox"></span> None of the above</div>
+      </div>
+
+      <div class="btn-row" style="margin-top:18px">
+        <button class="btn-back">&larr; Back</button>
+        <button class="btn btn-primary" style="flex:1;margin-top:0">Continue &rarr;</button>
+      </div>
+
+    </div>
+  </div>
+
+
+  <!-- ═══════════════════════════════════════════════════════════
+       Q4 — Household Income
+  ═══════════════════════════════════════════════════════════ -->
+  <div class="screen">
+    <span class="screen-label">ESC Assessment — Q4: Household Income</span>
+    <div class="card" style="width:480px">
+
+      <div class="progress">
+        <div class="prog-step done"></div>
+        <div class="prog-step done"></div>
+        <div class="prog-step done"></div>
+        <div class="prog-step active"></div>
+        <div class="prog-step idle"></div>
+      </div>
+
+      <div class="esc-label">ESC Eligibility — Question 4 of 5</div>
+      <h1 class="esc-question">Approximate monthly household income?</h1>
+      <p class="esc-sub">Based on PIDS income classification.<br>All information is confidential.</p>
+
+      <div class="option">
+        <div class="option-title"><span class="option-check"></span> Less than ₱10,957</div>
+        <div class="option-sub">Poor</div>
+      </div>
+
+      <div class="option selected">
+        <div class="option-title">
+          <span class="option-check">
+            <svg width="9" height="9" viewBox="0 0 10 10" fill="none" stroke="white" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="1.5 5 3.8 7.5 8.5 2"/></svg>
+          </span>
+          ₱10,957 – ₱21,194
+        </div>
+        <div class="option-sub">Low income (but not poor)</div>
+      </div>
+
+      <div class="option">
+        <div class="option-title"><span class="option-check"></span> ₱21,194 – ₱43,828</div>
+        <div class="option-sub">Lower middle class</div>
+      </div>
+
+      <div class="option">
+        <div class="option-title"><span class="option-check"></span> ₱43,828 – ₱76,669</div>
+        <div class="option-sub">Middle class</div>
+      </div>
+
+      <div class="option">
+        <div class="option-title" style="color:#6b7280"><span class="option-check"></span> ₱76,669 and above</div>
+        <div class="option-sub">Upper middle income, high income, or rich</div>
+      </div>
+
+      <div class="btn-row" style="margin-top:18px">
+        <button class="btn-back">&larr; Back</button>
+        <button class="btn btn-primary" style="flex:1;margin-top:0">Continue &rarr;</button>
+      </div>
+
+    </div>
+  </div>
+
+
+  <!-- ═══════════════════════════════════════════════════════════
+       Q5 — Employment Status
+  ═══════════════════════════════════════════════════════════ -->
+  <div class="screen">
+    <span class="screen-label">ESC Assessment — Q5: Employment Status</span>
+    <div class="card" style="width:480px">
+
+      <div class="progress">
+        <div class="prog-step done"></div>
+        <div class="prog-step done"></div>
+        <div class="prog-step done"></div>
+        <div class="prog-step done"></div>
+        <div class="prog-step active"></div>
+      </div>
+
+      <div class="esc-label">ESC Eligibility — Question 5 of 5</div>
+      <h1 class="esc-question">Parent or guardian's employment status?</h1>
+      <p class="esc-sub">Determines which income document you'll need<br>to submit with your application.</p>
+
+      <div class="option selected">
+        <div class="option-title">
+          <span class="option-check">
+            <svg width="9" height="9" viewBox="0 0 10 10" fill="none" stroke="white" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="1.5 5 3.8 7.5 8.5 2"/></svg>
+          </span>
+          Employed locally
+        </div>
+        <div class="option-sub">Works in the Philippines</div>
+      </div>
+
+      <div class="option">
+        <div class="option-title"><span class="option-check"></span> Employed abroad (OFW)</div>
+        <div class="option-sub">Overseas Filipino Worker</div>
+      </div>
+
+      <div class="option">
+        <div class="option-title"><span class="option-check"></span> Self-employed / business owner</div>
+        <div class="option-sub">Operates own business or freelance</div>
+      </div>
+
+      <div class="option">
+        <div class="option-title"><span class="option-check"></span> Unemployed</div>
+        <div class="option-sub">No current employment</div>
+      </div>
+
+      <div class="btn-row" style="margin-top:18px">
+        <button class="btn-back">&larr; Back</button>
+        <button class="btn btn-primary" style="flex:1;margin-top:0">See Results &rarr;</button>
+      </div>
+
+    </div>
+  </div>
+
+
+  <!-- ═══════════════════════════════════════════════════════════
+       RESULT — Category A (public + SEG)
+  ═══════════════════════════════════════════════════════════ -->
+  <div class="screen">
+    <span class="screen-label">ESC Result — Category A (Social Equity Group)</span>
+    <div class="card" style="width:480px">
+
+      <div class="progress">
+        <div class="prog-step done"></div>
+        <div class="prog-step done"></div>
+        <div class="prog-step done"></div>
+        <div class="prog-step done"></div>
+        <div class="prog-step done"></div>
+      </div>
+
+      <div class="result-badge cat-a">
+        <div class="result-eyebrow">Potential eligibility</div>
+        <div class="result-title">Category A — Social Equity Group</div>
+        <div class="result-desc">Highest priority. Applies to learners from equity-protected groups regardless of income.</div>
+      </div>
+
+      <div class="doc-label">Documents to prepare</div>
+      <div class="doc-list">
+        <div class="doc-item">
+          <div class="doc-check"><svg width="8" height="8" viewBox="0 0 10 10" fill="none" stroke="#16a34a" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="1.5 5 3.8 7.5 8.5 2"/></svg></div>
+          <span class="doc-text">ESC Application Form (Annex C)</span>
+        </div>
+        <div class="doc-item">
+          <div class="doc-check"><svg width="8" height="8" viewBox="0 0 10 10" fill="none" stroke="#16a34a" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="1.5 5 3.8 7.5 8.5 2"/></svg></div>
+          <span class="doc-text">Accomplished ESC Application Form (Annex D)</span>
+        </div>
+        <div class="doc-item">
+          <div class="doc-check"><svg width="8" height="8" viewBox="0 0 10 10" fill="none" stroke="#16a34a" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="1.5 5 3.8 7.5 8.5 2"/></svg></div>
+          <span class="doc-text">SF9 — Learner's Progress Report Card</span>
+        </div>
+        <div class="doc-item">
+          <div class="doc-check"><svg width="8" height="8" viewBox="0 0 10 10" fill="none" stroke="#16a34a" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="1.5 5 3.8 7.5 8.5 2"/></svg></div>
+          <span class="doc-text">4Ps Certification or Household ID (DSWD)</span>
+        </div>
+      </div>
+
+      <div class="result-note"><strong>Note:</strong> This is a preliminary self-assessment. The ESC School Committee at your chosen school will verify all documents and make the final determination.</div>
+
+      <button class="btn-create">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+        Create My Account
+      </button>
+
+    </div>
+  </div>
+
+
+  <!-- ═══════════════════════════════════════════════════════════
+       RESULT — Category B (public + no SEG + eligible income)
+  ═══════════════════════════════════════════════════════════ -->
+  <div class="screen">
+    <span class="screen-label">ESC Result — Category B (Public School Graduate, eligible income)</span>
+    <div class="card" style="width:480px">
+
+      <div class="progress">
+        <div class="prog-step done"></div>
+        <div class="prog-step done"></div>
+        <div class="prog-step done"></div>
+        <div class="prog-step done"></div>
+        <div class="prog-step done"></div>
+      </div>
+
+      <div class="result-badge cat-b">
+        <div class="result-eyebrow">Potential eligibility</div>
+        <div class="result-title">Category B — Public School Graduate</div>
+        <div class="result-desc">Public school graduate with poor to middle-class household income.</div>
+      </div>
+
+      <div class="doc-label">Documents to prepare</div>
+      <div class="doc-list">
+        <div class="doc-item">
+          <div class="doc-check"><svg width="8" height="8" viewBox="0 0 10 10" fill="none" stroke="#16a34a" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="1.5 5 3.8 7.5 8.5 2"/></svg></div>
+          <span class="doc-text">ESC Application Form (Annex C)</span>
+        </div>
+        <div class="doc-item">
+          <div class="doc-check"><svg width="8" height="8" viewBox="0 0 10 10" fill="none" stroke="#16a34a" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="1.5 5 3.8 7.5 8.5 2"/></svg></div>
+          <span class="doc-text">Accomplished ESC Application Form (Annex D)</span>
+        </div>
+        <div class="doc-item">
+          <div class="doc-check"><svg width="8" height="8" viewBox="0 0 10 10" fill="none" stroke="#16a34a" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="1.5 5 3.8 7.5 8.5 2"/></svg></div>
+          <span class="doc-text">SF9 — Learner's Progress Report Card</span>
+        </div>
+        <div class="doc-item">
+          <div class="doc-check"><svg width="8" height="8" viewBox="0 0 10 10" fill="none" stroke="#16a34a" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="1.5 5 3.8 7.5 8.5 2"/></svg></div>
+          <span class="doc-text">Affidavit of Family's Financial Capacity (Annex F) — Certificate of Employment with salary</span>
+        </div>
+      </div>
+
+      <div class="result-note"><strong>Note:</strong> This is a preliminary self-assessment. The ESC School Committee at your chosen school will verify all documents and make the final determination.</div>
+
+      <button class="btn-create">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+        Create My Account
+      </button>
+
+    </div>
+  </div>
+
+
+  <!-- ═══════════════════════════════════════════════════════════
+       RESULT — Ineligible (income above threshold)
+  ═══════════════════════════════════════════════════════════ -->
+  <div class="screen">
+    <span class="screen-label">ESC Result — Ineligible (above income threshold)</span>
+    <div class="card" style="width:480px">
+
+      <div class="progress">
+        <div class="prog-step done"></div>
+        <div class="prog-step done"></div>
+        <div class="prog-step done"></div>
+        <div class="prog-step done"></div>
+        <div class="prog-step done"></div>
+      </div>
+
+      <div class="ineligible-box">
+        <p>You may not qualify for ESC.</p>
+        <p>Your household income appears to be above the ESC eligibility threshold (₱76,669/month). ESC Categories B, C, and D cover poor to middle-class income only.</p>
+      </div>
+
+      <div class="public-note">
+        You can still use PAARAL to browse schools and rank your preferences. <strong>Public JHS enrollment is free and guaranteed</strong> — add at least one public school to your choices as a backup.
+      </div>
+
+      <div style="background:#f9fafb;border:1px solid #e5e7eb;border-radius:12px;padding:13px 16px;margin-bottom:16px">
+        <p style="font-size:11.5px;color:#6b7280;line-height:1.5">If you believe this assessment is incorrect, you may still submit your application. The ESC School Committee will make the final determination based on submitted documents.</p>
+      </div>
+
+      <button class="btn-create" style="background:#374151">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+        Continue to Browse Schools
+      </button>
+
+    </div>
+  </div>
+
+</body>
+</html>

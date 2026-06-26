@@ -1,0 +1,643 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>PAARAL — Student View Wireframes</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700;800;900&family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      background: #080808;
+    }
+
+    /* ── Shared ─────────────────────────────────────────────────── */
+    .screen {
+      width: 100%;
+      aspect-ratio: 16 / 9;
+      min-height: 480px;
+      position: relative;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .screen + .screen { border-top: 3px solid #080808; }
+
+    .screen-label {
+      position: absolute;
+      top: 11px; left: 15px;
+      font-size: 9.5px;
+      font-weight: 700;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: rgba(255,255,255,0.28);
+      pointer-events: none;
+      z-index: 100;
+    }
+
+    .screen-label.dark { color: rgba(0,0,0,0.25); }
+
+    /* Gradient used across hero + nav */
+    .grad { background: linear-gradient(108deg, #1a0e3e 0%, #2b1260 25%, #691842 62%, #8c2028 100%); }
+
+    /* ── Navbar ─────────────────────────────────────────────────── */
+    .navbar {
+      height: 72px;
+      flex-shrink: 0;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 36px;
+    }
+
+    .nav-box {
+      border: 1.5px solid rgba(255,255,255,0.5);
+      border-radius: 10px;
+      padding: 8px 22px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      color: rgba(255,255,255,0.85);
+      font-size: 12.5px;
+      font-weight: 600;
+      letter-spacing: 0.07em;
+      text-transform: uppercase;
+    }
+
+    .nav-logo-img  { height: 16px; filter: brightness(0) invert(1); opacity: 0.9; }
+    .nav-deped-img { height: 22px; filter: brightness(0) invert(1); opacity: 0.9; }
+    .nav-divider   { width: 1px; height: 14px; background: rgba(255,255,255,0.35); }
+
+    /* ── Hero ───────────────────────────────────────────────────── */
+    .hero-body {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 0 48px 24px;
+      text-align: center;
+    }
+
+    .hero-logos {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 48px;
+    }
+
+    .hero-ecair  { height: 18px; filter: brightness(0) invert(1); opacity: 0.9; }
+    .hero-deped  { height: 30px; filter: brightness(0) invert(1); opacity: 0.9; }
+    .hero-ldiv   { width: 1.5px; height: 20px; background: rgba(255,255,255,0.3); margin: 0 2px; }
+
+    .hero-title {
+      font-family: 'Playfair Display', Georgia, 'Times New Roman', serif;
+      font-size: clamp(54px, 9vw, 122px);
+      font-weight: 900;
+      color: #fff;
+      line-height: 1;
+      letter-spacing: -0.01em;
+      margin-bottom: 18px;
+    }
+
+    .hero-sub {
+      font-size: clamp(13px, 1.3vw, 18px);
+      color: rgba(255,255,255,0.78);
+      font-weight: 400;
+      letter-spacing: 0.01em;
+      margin-bottom: 50px;
+    }
+
+    .hero-ctas { display: flex; gap: 16px; }
+
+    .cta {
+      border: 1.5px solid rgba(255,255,255,0.6);
+      border-radius: 10px;
+      padding: clamp(13px, 1.3vw, 18px) clamp(26px, 2.8vw, 46px);
+      color: rgba(255,255,255,0.88);
+      font-size: clamp(13px, 1.1vw, 17px);
+      font-weight: 500;
+      background: transparent;
+      cursor: pointer;
+      white-space: nowrap;
+      transition: background 0.15s, color 0.15s;
+      font-family: inherit;
+    }
+
+    .cta.hover {
+      background: rgba(255,255,255,0.88);
+      color: #1a0e3e;
+      font-weight: 600;
+    }
+
+    /* ── Browse split ───────────────────────────────────────────── */
+    .split-body { flex: 1; display: flex; min-height: 0; }
+
+    .split-panel {
+      flex: 0 0 44%;
+      background: #e5e5e5;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .split-map {
+      flex: 1;
+      background: #fff;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      position: relative;
+    }
+
+    .panel-label {
+      font-size: 22px;
+      font-weight: 700;
+      color: #272727;
+    }
+
+    .map-label { margin-bottom: 100px; }
+
+    .map-callout {
+      position: absolute;
+      bottom: 0; left: 0; right: 0;
+      background: #fbbf24;
+      padding: 14px 22px 20px;
+      font-size: 13.5px;
+      color: #1c1c1c;
+      line-height: 1.95;
+    }
+
+    .map-callout .callout-head { font-weight: 700; }
+    .map-callout a { color: #92400e; }
+
+    /* ── School detail sub-nav ──────────────────────────────────── */
+    .detail-nav {
+      background: #fff;
+      height: 52px;
+      display: flex;
+      align-items: center;
+      padding: 0 40px;
+      border-bottom: 1px solid #e5e7eb;
+      flex-shrink: 0;
+    }
+
+    .detail-tabs  { display: flex; gap: 44px; flex: 1; align-items: center; }
+
+    .dtab {
+      font-size: 15px;
+      font-weight: 500;
+      color: #9ca3af;
+      cursor: pointer;
+      padding-bottom: 2px;
+    }
+
+    .dtab.on {
+      font-weight: 700;
+      color: #111827;
+      border-bottom: 2.5px solid #111827;
+    }
+
+    .detail-action {
+      font-size: 15px;
+      font-weight: 600;
+      color: #374151;
+      cursor: pointer;
+    }
+
+    /* ── Gallery ────────────────────────────────────────────────── */
+    .gallery {
+      margin: 18px 28px 0;
+      border-radius: 16px;
+      overflow: hidden;
+      display: flex;
+      gap: 5px;
+      height: 250px;
+      flex-shrink: 0;
+      position: relative;
+    }
+
+    .gallery-main {
+      flex: 0 0 47%;
+      background: linear-gradient(150deg, #64748b 0%, #475569 50%, #334155 100%);
+    }
+
+    .gallery-side { flex: 1; display: flex; flex-direction: column; gap: 5px; }
+
+    .gallery-thumb { flex: 1; }
+    .gallery-thumb:nth-child(1) { background: linear-gradient(135deg, #93c5fd 0%, #60a5fa 50%, #3b82f6 100%); }
+    .gallery-thumb:nth-child(2) { background: linear-gradient(160deg, #d1d5db 0%, #9ca3af 60%, #6b7280 100%); }
+
+    .gallery-next {
+      position: absolute;
+      right: 14px; top: 50%; transform: translateY(-50%);
+      width: 40px; height: 40px;
+      border-radius: 50%;
+      background: rgba(255,255,255,0.95);
+      display: flex; align-items: center; justify-content: center;
+      font-size: 20px; font-weight: 700; color: #374151;
+      box-shadow: 0 2px 10px rgba(0,0,0,0.18);
+      cursor: pointer; z-index: 2;
+    }
+
+    /* ── Content ─────────────────────────────────────────────────── */
+    .content-area {
+      flex: 1;
+      background: #ebebeb;
+      padding: 16px 28px 22px;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      overflow: hidden;
+    }
+
+    .card {
+      background: #fff;
+      border-radius: 16px;
+      padding: clamp(20px, 2vw, 30px) clamp(22px, 2.2vw, 34px);
+      flex-shrink: 0;
+    }
+
+    .card h2 {
+      font-size: clamp(20px, 2.2vw, 30px);
+      font-weight: 800;
+      color: #111827;
+      margin-bottom: 11px;
+      letter-spacing: -0.025em;
+    }
+
+    .card p {
+      font-size: 13.5px;
+      color: #4b5563;
+      line-height: 1.75;
+    }
+
+    /* ── Fee boxes ──────────────────────────────────────────────── */
+    .fee-row {
+      display: flex;
+      gap: 14px;
+      margin-top: 18px;
+    }
+
+    .fee-box {
+      flex: 1;
+      background: #f3f4f6;
+      border-radius: 12px;
+      padding: clamp(18px, 2vw, 28px) 18px clamp(14px, 1.5vw, 22px);
+      text-align: center;
+    }
+
+    .fee-amount {
+      font-size: clamp(22px, 2.8vw, 38px);
+      font-weight: 700;
+      color: #111827;
+      margin-bottom: 7px;
+      letter-spacing: -0.02em;
+    }
+
+    .fee-label { font-size: 13px; color: #6b7280; font-weight: 500; }
+
+    /* ── Facilities ─────────────────────────────────────────────── */
+    .facility-row { display: flex; gap: 10px; margin-top: 16px; }
+
+    .facility-img {
+      flex: 1;
+      border-radius: 10px;
+      overflow: hidden;
+    }
+
+    .facility-fill {
+      width: 100%;
+      padding-bottom: 72%;
+      position: relative;
+    }
+
+    /* ── Create account ─────────────────────────────────────────── */
+    .account-wrap {
+      flex: 1;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 16px;
+    }
+
+    .account-card {
+      background: #fff;
+      border-radius: 24px;
+      padding: clamp(32px, 3.2vw, 50px) clamp(34px, 3.5vw, 54px);
+      width: min(480px, 88%);
+      box-shadow: 0 8px 20px rgba(0,0,0,0.1), 0 28px 72px rgba(0,0,0,0.42);
+    }
+
+    .account-card h2 {
+      font-size: clamp(22px, 2.4vw, 32px);
+      font-weight: 800;
+      color: #111827;
+      text-align: center;
+      letter-spacing: -0.02em;
+      margin-bottom: 6px;
+    }
+
+    .account-sub {
+      font-size: 14px;
+      color: #6b7280;
+      text-align: center;
+      margin-bottom: 26px;
+    }
+
+    .account-sub a { color: #2563eb; font-weight: 500; text-decoration: none; }
+
+    .field {
+      width: 100%;
+      padding: 14px 20px;
+      background: #f3f4f6;
+      border: 1.5px solid transparent;
+      border-radius: 50px;
+      font-size: 14.5px;
+      color: #9ca3af;
+      outline: none;
+      display: block;
+      margin-bottom: 10px;
+      font-family: inherit;
+    }
+
+    .field-wrap { position: relative; margin-bottom: 10px; }
+    .field-wrap .field { padding-right: 46px; margin-bottom: 0; }
+
+    .field-icon {
+      position: absolute; right: 12px; top: 50%; transform: translateY(-50%);
+      width: 24px; height: 24px; border-radius: 50%; background: #d1d5db;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 12px; font-weight: 700; color: #6b7280;
+    }
+
+    .field-row { display: flex; gap: 8px; margin-bottom: 10px; }
+    .field-row .field { margin-bottom: 0; }
+
+    .signup-btn {
+      width: 100%;
+      padding: 16px;
+      background: #2563eb;
+      color: #fff;
+      font-size: 16px;
+      font-weight: 700;
+      border: none;
+      border-radius: 50px;
+      cursor: pointer;
+      margin-top: 8px;
+      font-family: inherit;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- ═══════════════════════════════════════════════════════════
+       SCREEN 1 — Hero (default state)
+  ═══════════════════════════════════════════════════════════ -->
+  <div class="screen grad">
+    <span class="screen-label">Screen 1 — Hero</span>
+    <div class="hero-body">
+      <div class="hero-logos">
+        <img class="hero-ecair" src="../public/assets/ecair-logo.png" alt="ECAIR">
+        <div class="hero-ldiv"></div>
+        <img class="hero-deped" src="../public/assets/deped-logo.png" alt="DepEd">
+      </div>
+      <h1 class="hero-title">PROJECT PAARAL</h1>
+      <p class="hero-sub">Platform for Analyzing Access and Resource Allocation in Learning</p>
+      <div class="hero-ctas">
+        <button class="cta">Browse for schools</button>
+        <button class="cta">Submit an application</button>
+        <button class="cta">About PAARAL</button>
+      </div>
+    </div>
+  </div>
+
+
+  <!-- ═══════════════════════════════════════════════════════════
+       SCREEN 2 — Hero · "Browse for schools" hover
+  ═══════════════════════════════════════════════════════════ -->
+  <div class="screen grad">
+    <span class="screen-label">Screen 2 — Hero · "Browse for schools" hover</span>
+    <div class="hero-body">
+      <div class="hero-logos">
+        <img class="hero-ecair" src="../public/assets/ecair-logo.png" alt="ECAIR">
+        <div class="hero-ldiv"></div>
+        <img class="hero-deped" src="../public/assets/deped-logo.png" alt="DepEd">
+      </div>
+      <h1 class="hero-title">PROJECT PAARAL</h1>
+      <p class="hero-sub">Platform for Analyzing Access and Resource Allocation in Learning</p>
+      <div class="hero-ctas">
+        <button class="cta hover">Browse for schools</button>
+        <button class="cta">Submit an application</button>
+        <button class="cta">About PAARAL</button>
+      </div>
+    </div>
+  </div>
+
+
+  <!-- ═══════════════════════════════════════════════════════════
+       SCREEN 3 — Browse Schools (Redfin split)
+  ═══════════════════════════════════════════════════════════ -->
+  <div class="screen" style="background:#fff">
+    <span class="screen-label dark">Screen 3 — Browse Schools</span>
+    <nav class="navbar grad">
+      <div class="nav-box">
+        <img class="nav-logo-img" src="../public/assets/ecair-logo.png" alt="ECAIR">
+        <div class="nav-divider"></div>
+        <img class="nav-deped-img" src="../public/assets/deped-logo.png" alt="DepEd">
+      </div>
+      <div class="nav-box">Sign In</div>
+    </nav>
+    <div class="split-body">
+      <div class="split-panel">
+        <span class="panel-label">Search Panel</span>
+      </div>
+      <div class="split-map">
+        <span class="panel-label map-label">Map</span>
+        <div class="map-callout">
+          <div class="callout-head">Actions:</div>
+          1. Browse a school<br>
+          2. <a href="#">View school information</a><br>
+          3. Add to "List of Preferred Schools"
+        </div>
+      </div>
+    </div>
+  </div>
+
+
+  <!-- ═══════════════════════════════════════════════════════════
+       SCREEN 4 — School Profile · Overview tab
+  ═══════════════════════════════════════════════════════════ -->
+  <div class="screen" style="background:#ebebeb">
+    <span class="screen-label dark">Screen 4 — School Profile · Overview</span>
+    <nav class="navbar grad">
+      <div class="nav-box">
+        <img class="nav-logo-img" src="../public/assets/ecair-logo.png" alt="ECAIR">
+        <div class="nav-divider"></div>
+        <img class="nav-deped-img" src="../public/assets/deped-logo.png" alt="DepEd">
+      </div>
+      <div class="nav-box">Sign In</div>
+    </nav>
+    <div class="detail-nav">
+      <div class="detail-tabs">
+        <span class="dtab on">Overview</span>
+        <span class="dtab">School Characteristics</span>
+        <span class="dtab">Fee Information</span>
+      </div>
+      <span class="detail-action">Mark Preferred ♡</span>
+    </div>
+    <div class="gallery">
+      <div class="gallery-main"></div>
+      <div class="gallery-side">
+        <div class="gallery-thumb"></div>
+        <div class="gallery-thumb"></div>
+      </div>
+      <div class="gallery-next">›</div>
+    </div>
+    <div class="content-area">
+      <div class="card">
+        <h2>About Bagumbayan National High School</h2>
+        <p>Bagumbayan National High School is a public junior high school in Taguig City, Metro Manila, under the Division of Taguig-Pateros. It serves Grade 7–10 learners and is one of the priority public schools participating in DepEd's JHS enrollment program for the 2026–2027 school year. The school consistently ranks among the top public secondary schools in the district in NAT performance.</p>
+      </div>
+    </div>
+  </div>
+
+
+  <!-- ═══════════════════════════════════════════════════════════
+       SCREEN 5 — School Profile · School Details tab
+  ═══════════════════════════════════════════════════════════ -->
+  <div class="screen" style="background:#ebebeb">
+    <span class="screen-label dark">Screen 5 — School Profile · School Details</span>
+    <nav class="navbar grad">
+      <div class="nav-box">
+        <img class="nav-logo-img" src="../public/assets/ecair-logo.png" alt="ECAIR">
+        <div class="nav-divider"></div>
+        <img class="nav-deped-img" src="../public/assets/deped-logo.png" alt="DepEd">
+      </div>
+      <div class="nav-box">Sign In</div>
+    </nav>
+    <div class="detail-nav">
+      <div class="detail-tabs">
+        <span class="dtab">Overview</span>
+        <span class="dtab on">School Characteristics</span>
+        <span class="dtab">Fee Information</span>
+      </div>
+      <span class="detail-action">Mark Preferred ♡</span>
+    </div>
+    <div class="content-area">
+      <div class="card">
+        <h2>About the School</h2>
+        <p>Bagumbayan National High School is a public junior high school located in Taguig City, Metro Manila, under the Division of Taguig-Pateros. It serves learners from Grades 7 to 10 and is one of the priority institutions in DepEd's ESC program for the 2026–2027 school year. The school maintains a strong academic record and participates in various DepEd programs aimed at improving learner outcomes across NCR.</p>
+      </div>
+      <div class="card">
+        <h2>Admission Requirements</h2>
+        <p>Applicants must present a Grade 6 Report Card (SF9), a PSA birth certificate, a barangay certificate of residency, and two 2×2 ID photos. ESC applicants must additionally provide proof of ESC eligibility — 4Ps household ID for Category A, or an income certificate for Categories B, C, and D. All documents must be submitted to the school registrar on or before the deadline set by the DepEd Division Office.</p>
+      </div>
+    </div>
+  </div>
+
+
+  <!-- ═══════════════════════════════════════════════════════════
+       SCREEN 6 — School Profile · Fee Information tab
+  ═══════════════════════════════════════════════════════════ -->
+  <div class="screen" style="background:#ebebeb">
+    <span class="screen-label dark">Screen 6 — School Profile · Fee Information</span>
+    <nav class="navbar grad">
+      <div class="nav-box">
+        <img class="nav-logo-img" src="../public/assets/ecair-logo.png" alt="ECAIR">
+        <div class="nav-divider"></div>
+        <img class="nav-deped-img" src="../public/assets/deped-logo.png" alt="DepEd">
+      </div>
+      <div class="nav-box">Sign In</div>
+    </nav>
+    <div class="detail-nav">
+      <div class="detail-tabs">
+        <span class="dtab">Overview</span>
+        <span class="dtab">School Characteristics</span>
+        <span class="dtab on">Fee Information</span>
+      </div>
+      <span class="detail-action">Mark Preferred ♡</span>
+    </div>
+    <div class="content-area">
+      <div class="card">
+        <h2>Fee Information</h2>
+        <div class="fee-row">
+          <div class="fee-box">
+            <div class="fee-amount">₱50,000</div>
+            <div class="fee-label">Tuition Fees</div>
+          </div>
+          <div class="fee-box">
+            <div class="fee-amount">₱10,000</div>
+            <div class="fee-label">Miscellaneous Fees</div>
+          </div>
+          <div class="fee-box">
+            <div class="fee-amount">₱13,000</div>
+            <div class="fee-label">ESC Subsidy Available</div>
+          </div>
+        </div>
+      </div>
+      <div class="card">
+        <h2>Facilities</h2>
+        <div class="facility-row">
+          <div class="facility-img"><div class="facility-fill" style="background:linear-gradient(180deg,#bae6fd 0%,#7dd3fc 55%,#38bdf8 100%)"></div></div>
+          <div class="facility-img"><div class="facility-fill" style="background:linear-gradient(180deg,#c7d2fe 0%,#a5b4fc 55%,#818cf8 100%)"></div></div>
+          <div class="facility-img"><div class="facility-fill" style="background:linear-gradient(180deg,#bbf7d0 0%,#86efac 55%,#4ade80 100%)"></div></div>
+          <div class="facility-img"><div class="facility-fill" style="background:linear-gradient(180deg,#fde68a 0%,#fbbf24 55%,#f59e0b 100%)"></div></div>
+          <div class="facility-img"><div class="facility-fill" style="background:linear-gradient(180deg,#fed7aa 0%,#fb923c 55%,#ea580c 100%)"></div></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+
+  <!-- ═══════════════════════════════════════════════════════════
+       SCREEN 7 — Hero · "Submit an application" hover
+  ═══════════════════════════════════════════════════════════ -->
+  <div class="screen grad">
+    <span class="screen-label">Screen 7 — Hero · "Submit an application" hover</span>
+    <div class="hero-body">
+      <div class="hero-logos">
+        <img class="hero-ecair" src="../public/assets/ecair-logo.png" alt="ECAIR">
+        <div class="hero-ldiv"></div>
+        <img class="hero-deped" src="../public/assets/deped-logo.png" alt="DepEd">
+      </div>
+      <h1 class="hero-title">PROJECT PAARAL</h1>
+      <p class="hero-sub">Platform for Analyzing Access and Resource Allocation in Learning</p>
+      <div class="hero-ctas">
+        <button class="cta">Browse for schools</button>
+        <button class="cta hover">Submit an application</button>
+        <button class="cta">About PAARAL</button>
+      </div>
+    </div>
+  </div>
+
+
+  <!-- ═══════════════════════════════════════════════════════════
+       SCREEN 8 — Create Account
+  ═══════════════════════════════════════════════════════════ -->
+  <div class="screen grad">
+    <span class="screen-label">Screen 8 — Create Account</span>
+    <div class="account-wrap">
+      <div class="account-card">
+        <h2>Create Account</h2>
+        <p class="account-sub">Already have an account? <a href="#">Sign in</a></p>
+        <input class="field" type="email" placeholder="DepEd Email">
+        <div class="field-wrap">
+          <input class="field" type="text" placeholder="Learner Reference Number (LRN)">
+          <div class="field-icon">i</div>
+        </div>
+        <div class="field-row">
+          <input class="field" type="text" placeholder="First Name">
+          <input class="field" type="text" placeholder="Last Name">
+        </div>
+        <button class="signup-btn">Sign up</button>
+      </div>
+    </div>
+  </div>
+
+</body>
+</html>
