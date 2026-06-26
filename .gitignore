@@ -23,3 +23,7 @@ dist-ssr
 *.sln
 *.sw?
 .vercel
+
+# Large binary docs — store outside the repo
+docs/*.pdf
+docs/*.pptx
