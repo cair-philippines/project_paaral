@@ -1695,7 +1695,7 @@ export default function PAARALStudentMockup() {
 
       {/* Left panel — filters or school detail */}
       {leftPanel && (
-        <div className="absolute inset-y-0 left-0 z-20 flex w-[360px] flex-col bg-white shadow-2xl">
+        <div className="absolute inset-y-0 left-0 z-40 flex w-[360px] flex-col bg-white shadow-2xl">
           {leftPanel === 'filters' && (
             <>
               {/* Tab bar */}
