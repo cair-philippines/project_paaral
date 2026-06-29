@@ -23,6 +23,8 @@ dist-ssr
 *.sln
 *.sw?
 .vercel
+.env
+.env.local
 
 # Large binary docs — store outside the repo
 docs/*.pdf

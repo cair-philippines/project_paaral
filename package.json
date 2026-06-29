@@ -12,9 +12,11 @@
   "dependencies": {
     "@tailwindcss/vite": "^4.2.4",
     "lucide-react": "^1.11.0",
+    "mapbox-gl": "^3.25.0",
     "react": "^19.2.5",
     "react-dom": "^19.2.5",
-    "vercel": "^54.14.0"
+    "react-map-gl": "^8.1.1",
+    "vercel": "^54.18.2"
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",
