@@ -1609,7 +1609,7 @@ export default function PAARALStudentMockup() {
       />
 
       {/* Top-left floating bar */}
-      <div className="absolute top-4 left-4 z-20 flex items-center gap-2">
+      <div className="absolute top-4 left-4 z-30 flex items-center gap-2">
         <button
           type="button"
           onClick={() => setLeftPanel(p => p === 'filters' ? null : 'filters')}
