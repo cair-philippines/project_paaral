@@ -23,7 +23,6 @@ import {
   SendHorizontal,
   Navigation,
   GripVertical,
-  ExternalLink,
   LogOut,
   Award,
   FileCheck,
@@ -607,30 +606,45 @@ const catMeta = {
 };
 
 // ── APPLICATION STATE MACHINE ─────────────────────────────────────────
-const POST_SUBMISSION_STATES = new Set([
-  'submitted', 'rejected',
-  'docs_pending', 'docs_submitted', 'granted', 'non_esc',
-]);
+// Decoupled model: PAARAL tracks the ESC application track only. School
+// admission/enrollment is an independent, unmodeled track — 'granted' means
+// the ESC certificate is secured, full stop, regardless of enrollment timing.
+const POST_SUBMISSION_STATES = new Set(['submitted', 'granted', 'non_esc']);
 
 const VALID_TRANSITIONS = {
-  eligibility:    ['browsing'],
-  browsing:       ['submitted'],
+  eligibility:  ['submitted'],
+  not_eligible: ['non_esc'],
+  submitted:    ['granted', 'non_esc', 'eligibility'], // 'eligibility' = stop, choose different schools
+  granted:      [],
+  non_esc:      [],
+};
+
+// Per-school ESC status — private schools only. Public schools are never
+// entered into the ESC pursuit; they're just the hasPublicAlternative
+// guaranteed-placement checkbox. 'granted'/'rejected' are both terminal at
+// the school level — no admission dependency either way.
+const ESC_SCHOOL_TRANSITIONS = {
   submitted:      ['granted', 'rejected', 'docs_pending'],
   docs_pending:   ['docs_submitted'],
   docs_submitted: ['granted', 'rejected'],
-  rejected:       ['non_esc', 'browsing'],
-  non_esc:        [],
   granted:        [],
+  rejected:       [],
 };
 
-function useApplicationState({ account, updateAccount, wishlist, hasPublicAlternative, docsReady, surveyComplete }) {
+const REJECTED_STATES = new Set(['rejected']);
+
+function useApplicationState({ account, updateAccount, wishlist, hasPrivateChoice, hasPublicAlternative, docsReady, generalSurveyComplete, escSurveyComplete }) {
   const applicationState = account?.applicationState ?? 'eligibility';
   const isPostSubmission = POST_SUBMISSION_STATES.has(applicationState);
-  const canSubmit = applicationState === 'browsing'
-    && wishlist.length > 0
+  const canSubmitEsc = applicationState === 'eligibility'
+    && hasPrivateChoice
     && hasPublicAlternative
     && docsReady
-    && surveyComplete;
+    && generalSurveyComplete
+    && escSurveyComplete;
+  const canEnrollNonEsc = applicationState === 'not_eligible'
+    && wishlist.length > 0
+    && generalSurveyComplete;
 
   const advance = (toState, extra = {}) => {
     const valid = VALID_TRANSITIONS[applicationState] ?? [];
@@ -638,7 +652,7 @@ function useApplicationState({ account, updateAccount, wishlist, hasPublicAltern
     updateAccount({ applicationState: toState, ...extra });
   };
 
-  return { applicationState, isPostSubmission, canSubmit, advance };
+  return { applicationState, isPostSubmission, canSubmitEsc, canEnrollNonEsc, advance };
 }
 
 export default function PAARALStudentMockup() {
@@ -651,11 +665,17 @@ export default function PAARALStudentMockup() {
       return next;
     });
   };
+  // Mockup-only: logout wipes local account + questionnaire state so each demo
+  // login starts clean. In production, account state is server-persisted and
+  // survives logout — this reset should not carry over.
   const logout = () => {
     localStorage.removeItem(STORAGE_KEY);
     setAccount(null);
     setAppView('hero');
     setDrawerOpen(false);
+    setEligStep('schoolType');
+    setEligHistory([]);
+    setEligAnswers({ escIntent: true, schoolType: null, segs: [], income: null, employment: null });
   };
 
   // ── APP VIEW ──────────────────────────────────────────────────
@@ -728,11 +748,23 @@ export default function PAARALStudentMockup() {
   const hasPublicAlternative = wishlist.some(s => s.type === 'public');
   const requiredDocs = account?.category ? getDocList(account.category, account.eligAnswers || {}) : [];
   const docsReady = requiredDocs.length > 0 && requiredDocs.every(d => uploadedDocs.includes(d));
-  const surveyComplete = Boolean(surveyAnswers.ease && surveyAnswers.helpful && surveyAnswers.concern);
+  const generalSurveyComplete = Boolean(surveyAnswers.ease && surveyAnswers.helpful);
+  const escSurveyComplete = Boolean(surveyAnswers.concern);
   const isInWishlist = (school) => (account?.wishlistIds || []).includes(school.id);
 
-  const { applicationState: appState, isPostSubmission, canSubmit, advance } = useApplicationState({
-    account, updateAccount, wishlist, hasPublicAlternative, docsReady, surveyComplete,
+  // ── PER-SCHOOL ESC STATUS (private schools only — public is out of scope,
+  // it's just the guaranteed-placement safety net, never entered into the pursuit) ──
+  const escStatuses = account?.escStatuses || {};
+  const privateChoices = wishlist.filter(s => s.type !== 'public');
+  const hasPrivateChoice = privateChoices.length > 0;
+  const activeChoice = privateChoices.find(s => ['submitted', 'docs_pending', 'docs_submitted'].includes(escStatuses[s.id]));
+  const lastEngagedIndex = privateChoices.reduce((last, s, i) => (escStatuses[s.id] ? i : last), -1);
+  const lastEngagedChoice = lastEngagedIndex >= 0 ? privateChoices[lastEngagedIndex] : null;
+  const nextChoice = privateChoices[lastEngagedIndex + 1] || null;
+  const grantedChoice = privateChoices.find(s => escStatuses[s.id] === 'granted');
+
+  const { applicationState: appState, isPostSubmission, canSubmitEsc, canEnrollNonEsc, advance } = useApplicationState({
+    account, updateAccount, wishlist, hasPrivateChoice, hasPublicAlternative, docsReady, generalSurveyComplete, escSurveyComplete,
   });
 
   // ── PROFILE SCROLL SYNC ───────────────────────────────────────
@@ -793,7 +825,9 @@ export default function PAARALStudentMockup() {
 
   const completeEligibility = () => {
     const category = computeCategory(eligAnswers);
-    updateAccount({ category, eligAnswers, applicationState: 'browsing' });
+    // 'eligibility' still covers browsing/wishlist-building once a category is assigned —
+    // there's no separate stored state for that sub-phase (see renderStateBadge).
+    updateAccount({ category, eligAnswers, applicationState: category ? 'eligibility' : 'not_eligible' });
     setAppView('browse');
   };
 
@@ -810,10 +844,53 @@ export default function PAARALStudentMockup() {
     updateAccount({ wishlistIds: (account.wishlistIds || []).filter(id => id !== schoolId) });
   };
 
-  const handleSubmit = () => {
-    if (!canSubmit) return;
-    advance('submitted', { surveyAnswers, uploadedDocs });
+  const handleSubmitEsc = () => {
+    if (!canSubmitEsc) return;
+    const rank1 = privateChoices[0];
+    updateAccount({
+      escStatuses: { ...escStatuses, [rank1.id]: 'submitted' },
+      surveyAnswers, uploadedDocs,
+    });
+    advance('submitted');
     setDrawerTab('status');
+  };
+
+  const handleEnrollNonEsc = () => {
+    if (!canEnrollNonEsc) return;
+    const school = wishlist[0];
+    advance('non_esc', { nonEscSchoolId: school.id, surveyAnswers });
+    setDrawerTab('status');
+  };
+
+  // Advance one specific PRIVATE school's ESC status. Only reaching 'granted'
+  // ends the account-level pursuit — 'rejected' re-opens the next-rank prompt.
+  const advanceSchool = (schoolId, toState) => {
+    const current = escStatuses[schoolId];
+    const valid = ESC_SCHOOL_TRANSITIONS[current] ?? [];
+    if (!valid.includes(toState)) return;
+    const nextEscStatuses = { ...escStatuses, [schoolId]: toState };
+    if (toState === 'granted') {
+      advance('granted', { escStatuses: nextEscStatuses });
+    } else {
+      updateAccount({ escStatuses: nextEscStatuses });
+    }
+  };
+
+  // After a rejection, apply to the next-ranked PRIVATE choice — explicit
+  // opt-in, never automatic.
+  const applyToNextRank = () => {
+    if (!nextChoice) return;
+    updateAccount({ escStatuses: { ...escStatuses, [nextChoice.id]: 'submitted' } });
+  };
+
+  const continueWithoutSubsidy = (schoolId) => {
+    advance('non_esc', { nonEscSchoolId: schoolId });
+    setDrawerTab('status');
+  };
+
+  const applyAgainDifferentSchool = () => {
+    advance('eligibility', { wishlistIds: [], escStatuses: {} });
+    setDrawerTab('choices');
   };
 
   const closeLogin = () => {
@@ -840,6 +917,7 @@ export default function PAARALStudentMockup() {
       category: null, eligAnswers: null,
       applicationState: 'eligibility',
       wishlistIds: [],
+      escStatuses: {},
       surveyAnswers: { ease: null, helpful: null, concern: null, suggestions: '' },
       uploadedDocs: [],
     };
@@ -864,14 +942,12 @@ export default function PAARALStudentMockup() {
   const userLocation = { lat: 14.5195, lng: 121.0540 };
 
   const renderStateBadge = (state) => {
+    // Pre-submission (eligibility/not_eligible) shows no status badge at all —
+    // there's no application yet.
+    if (!POST_SUBMISSION_STATES.has(state)) return null;
     const map = {
-      eligibility: ['bg-amber-50 text-amber-700 border-amber-200', 'Completing Eligibility'],
-      browsing:    ['bg-blue-50 text-blue-700 border-blue-200', 'Browsing Schools'],
-      submitted:   ['bg-blue-100 text-blue-800 border-blue-300', 'Application Submitted'],
-      rejected:    ['bg-red-50 text-red-700 border-red-200', 'Application Rejected'],
-      docs_pending:['bg-amber-100 text-amber-800 border-amber-300', 'Additional Doc Requested'],
-      docs_submitted:['bg-blue-50 text-blue-700 border-blue-200', 'Documents Under Review'],
-      granted:     ['bg-purple-50 text-purple-700 border-purple-200', 'ESC Granted'],
+      submitted:   ['bg-blue-100 text-blue-800 border-blue-300', 'ESC Application In Progress'],
+      granted:     ['bg-purple-50 text-purple-700 border-purple-200', 'ESC Certificate Granted'],
       non_esc:     ['bg-slate-100 text-slate-600 border-slate-300', 'Non-ESC Pathway'],
     };
     const [tw, label] = map[state] || ['bg-slate-100 text-slate-500 border-slate-200', state];
@@ -881,12 +957,13 @@ export default function PAARALStudentMockup() {
   // ── DRAWER TABS ───────────────────────────────────────────────
   const drawerTabList = isPostSubmission ? ['status', 'documents', 'choices'] : ['choices', 'documents', 'survey'];
 
-  // ── STATUS TAB CONTENT ────────────────────────────────────────
-  const statusConfigs = {
+  // ── STATUS TAB CONTENT (per-school — the ESC track only; admission/enrollment
+  // is an independent, unmodeled track per the decoupled "Portable Eligibility" model) ──
+  const schoolStatusConfigs = {
     submitted: {
       icon: <Clock3 className="h-8 w-8 text-blue-500" />,
-      title: 'Application Submitted',
-      desc: 'Your ESC application has been received by DepEd. You will be notified once it has been reviewed.',
+      title: 'ESC Application Submitted',
+      desc: name => `Your ESC application to ${name} has been received. You will be notified once it has been reviewed.`,
       color: 'bg-blue-50 border-blue-200',
       demo: [
         { label: 'Simulate: Granted', next: 'granted', style: 'bg-green-600 text-white' },
@@ -896,22 +973,22 @@ export default function PAARALStudentMockup() {
     },
     rejected: {
       icon: <AlertCircle className="h-8 w-8 text-red-500" />,
-      title: 'Application Not Approved',
-      desc: 'Your ESC application was not approved in this cycle. You may still enroll in a public JHS or apply directly to a non-ESC private school.',
+      title: 'ESC Application Not Approved',
+      desc: name => `Your ESC application to ${name} was not approved this cycle.`,
       color: 'bg-red-50 border-red-200',
       demo: [],
     },
     docs_pending: {
       icon: <FileCheck className="h-8 w-8 text-amber-500" />,
       title: 'Additional Document Requested',
-      desc: 'The school committee has reviewed your application and is requesting an additional document. Please check the Documents tab.',
+      desc: name => `${name}'s ESC School Committee has requested an additional document. Please check the Documents tab.`,
       color: 'bg-amber-50 border-amber-200',
       demo: [],
     },
     docs_submitted: {
       icon: <FileCheck className="h-8 w-8 text-blue-500" />,
       title: 'Additional Document Under Review',
-      desc: 'Your documents have been submitted and are being reviewed by the ESC School Committee.',
+      desc: name => `Your documents for ${name} have been submitted and are being reviewed by the ESC School Committee.`,
       color: 'bg-blue-50 border-blue-200',
       demo: [
         { label: 'Simulate: Granted', next: 'granted', style: 'bg-green-600 text-white' },
@@ -920,16 +997,9 @@ export default function PAARALStudentMockup() {
     },
     granted: {
       icon: <Award className="h-8 w-8 text-purple-500" />,
-      title: 'ESC Subsidy Granted 🎉',
-      desc: 'Congratulations! Your ESC subsidy has been confirmed. Complete your enrollment at your chosen school through the ICTS portal.',
+      title: 'ESC Certificate Granted 🎉',
+      desc: name => `Your ESC subsidy for ${name} has been confirmed.`,
       color: 'bg-purple-50 border-purple-200',
-      demo: [],
-    },
-    non_esc: {
-      icon: <Info className="h-8 w-8 text-slate-400" />,
-      title: 'Enrolled Without ESC',
-      desc: 'You are continuing enrollment through the standard DepEd pathway.',
-      color: 'bg-slate-50 border-slate-200',
       demo: [],
     },
   };
@@ -1231,7 +1301,7 @@ export default function PAARALStudentMockup() {
                     >
                       Start over
                     </button>
-                    <button onClick={() => { updateAccount({ applicationState: 'browsing' }); setAppView('browse'); }} className="w-full h-10 rounded-xl bg-slate-100 text-slate-700 font-medium text-sm hover:bg-slate-200">
+                    <button onClick={completeEligibility} className="w-full h-10 rounded-xl bg-slate-100 text-slate-700 font-medium text-sm hover:bg-slate-200">
                       Browse schools without ESC →
                     </button>
                   </>
@@ -1252,53 +1322,116 @@ export default function PAARALStudentMockup() {
   // ── DRAWER TAB CONTENT ────────────────────────────────────────
   const drawerTabContent = {
     status: () => {
-      const cfg = statusConfigs[appState];
-      if (!cfg) return null;
-      return (
-        <div className="p-5 space-y-4">
-          <div className={`rounded-xl border p-4 ${cfg.color}`}>
-            <div className="flex items-start gap-3">
-              {cfg.icon}
-              <div>
-                <p className="font-bold text-slate-800 text-sm">{cfg.title}</p>
-                <p className="text-xs text-slate-600 mt-1 leading-relaxed">{cfg.desc}</p>
+      if (appState === 'granted') {
+        const cfg = schoolStatusConfigs.granted;
+        const name = grantedChoice?.name || 'your chosen school';
+        return (
+          <div className="p-5 space-y-4">
+            <div className={`rounded-xl border p-4 ${cfg.color}`}>
+              <div className="flex items-start gap-3">
+                {cfg.icon}
+                <div>
+                  <p className="font-bold text-slate-800 text-sm">{cfg.title}</p>
+                  <p className="text-xs text-slate-600 mt-1 leading-relaxed">{cfg.desc(name)}</p>
+                  <p className="text-xs text-slate-500 mt-2 leading-relaxed">
+                    Enrollment at {name} is a separate, independent process — you may enroll before or after this approval.
+                  </p>
+                </div>
               </div>
             </div>
           </div>
+        );
+      }
 
-          {appState === 'rejected' && (
-            <div className="space-y-2">
-              <button onClick={() => { advance('non_esc'); setDrawerTab('status'); }} className="w-full h-11 rounded-xl bg-slate-800 text-white font-semibold text-sm">
-                Continue Non-ESC Enrollment →
-              </button>
-              <button onClick={() => { advance('browsing'); setDrawerTab('choices'); }} className="w-full h-11 rounded-xl border border-slate-200 text-slate-700 font-medium text-sm hover:bg-slate-50">
-                Browse Again
-              </button>
-            </div>
-          )}
-
-          {appState === 'granted' && (
-            <a href="https://icts.deped.gov.ph" target="_blank" rel="noreferrer"
-              className="flex items-center justify-center gap-2 w-full h-11 rounded-xl bg-gradient-to-br from-[#1c2260] via-[#5a2d68] to-[#c44820] text-white font-semibold text-sm">
-              Continue at ICTS Portal <ExternalLink className="h-4 w-4" />
-            </a>
-          )}
-
-          {cfg.demo.length > 0 && (
-            <div className="rounded-xl border border-dashed border-slate-300 p-4">
-              <p className="text-[10px] font-bold uppercase tracking-widest text-slate-400 mb-3">Demo Controls</p>
-              <div className="space-y-2">
-                {cfg.demo.map(d => (
-                  <button key={d.next} onClick={() => { advance(d.next); setDrawerTab('status'); }}
-                    className={`w-full h-9 rounded-lg text-xs font-bold uppercase tracking-wide ${d.style}`}>
-                    {d.label}
-                  </button>
-                ))}
+      if (appState === 'non_esc') {
+        const school = wishlist.find(s => s.id === account?.nonEscSchoolId) || schools.find(s => s.id === account?.nonEscSchoolId);
+        const name = school?.name || 'your chosen school';
+        return (
+          <div className="p-5 space-y-4">
+            <div className="rounded-xl border p-4 bg-slate-50 border-slate-200">
+              <div className="flex items-start gap-3">
+                <Info className="h-8 w-8 text-slate-400" />
+                <div>
+                  <p className="font-bold text-slate-800 text-sm">Enrolled - Non-ESC</p>
+                  <p className="text-xs text-slate-600 mt-1 leading-relaxed">
+                    You are proceeding with enrollment at {name} without the ESC subsidy.
+                  </p>
+                </div>
               </div>
             </div>
-          )}
-        </div>
-      );
+          </div>
+        );
+      }
+
+      // appState === 'submitted'
+      if (activeChoice) {
+        const cfg = schoolStatusConfigs[escStatuses[activeChoice.id]];
+        return (
+          <div className="p-5 space-y-4">
+            <div className={`rounded-xl border p-4 ${cfg.color}`}>
+              <div className="flex items-start gap-3">
+                {cfg.icon}
+                <div>
+                  <p className="font-bold text-slate-800 text-sm">{cfg.title}</p>
+                  <p className="text-xs text-slate-600 mt-1 leading-relaxed">{cfg.desc(activeChoice.name)}</p>
+                </div>
+              </div>
+            </div>
+            {cfg.demo.length > 0 && (
+              <div className="rounded-xl border border-dashed border-slate-300 p-4">
+                <p className="text-[10px] font-bold uppercase tracking-widest text-slate-400 mb-3">Demo Controls</p>
+                <div className="space-y-2">
+                  {cfg.demo.map(d => (
+                    <button key={d.next} onClick={() => advanceSchool(activeChoice.id, d.next)}
+                      className={`w-full h-9 rounded-lg text-xs font-bold uppercase tracking-wide ${d.style}`}>
+                      {d.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
+        );
+      }
+
+      if (lastEngagedChoice && REJECTED_STATES.has(escStatuses[lastEngagedChoice.id])) {
+        const cfg = schoolStatusConfigs.rejected;
+        return (
+          <div className="p-5 space-y-4">
+            <div className={`rounded-xl border p-4 ${cfg.color}`}>
+              <div className="flex items-start gap-3">
+                {cfg.icon}
+                <div>
+                  <p className="font-bold text-slate-800 text-sm">{cfg.title}</p>
+                  <p className="text-xs text-slate-600 mt-1 leading-relaxed">{cfg.desc(lastEngagedChoice.name)}</p>
+                </div>
+              </div>
+            </div>
+
+            {nextChoice && (
+              <div className="rounded-xl border border-slate-200 p-4">
+                <p className="text-sm text-slate-700 mb-3">Would you like to apply to your next choice, <span className="font-semibold">{nextChoice.name}</span>?</p>
+                <button onClick={applyToNextRank} className="w-full h-11 rounded-xl bg-gradient-to-br from-[#1c2260] via-[#5a2d68] to-[#c44820] text-white font-semibold text-sm">
+                  Yes, Apply to {nextChoice.name} →
+                </button>
+              </div>
+            )}
+
+            <div className="space-y-2">
+              <button onClick={() => continueWithoutSubsidy(lastEngagedChoice.id)} className="w-full h-11 rounded-xl bg-slate-800 text-white font-semibold text-sm">
+                Continue Enrollment at {lastEngagedChoice.name} (No Subsidy) →
+              </button>
+              {!nextChoice && (
+                <button onClick={applyAgainDifferentSchool} className="w-full h-11 rounded-xl border border-slate-200 text-slate-700 font-medium text-sm hover:bg-slate-50">
+                  Stop and Choose Different Private Schools →
+                </button>
+              )}
+            </div>
+          </div>
+        );
+      }
+
+      return null;
     },
 
     choices: () => (
@@ -1315,20 +1448,28 @@ export default function PAARALStudentMockup() {
             <p className="text-xs text-slate-300 mt-1">Browse the map and click + to add schools.</p>
           </div>
         )}
-        {wishlist.map((school, i) => (
-          <div key={school.id} className="flex items-start gap-3 p-3 rounded-xl border border-slate-200 bg-white">
-            <span className="h-6 w-6 shrink-0 rounded-full bg-[#1c2260]/10 text-[#1c2260] text-xs font-bold flex items-center justify-center">{i + 1}</span>
-            <div className="flex-1 min-w-0">
-              <p className="text-sm font-semibold text-slate-800 leading-snug">{school.name}</p>
-              <p className="text-xs text-slate-400 mt-0.5">{school.municipality} · {school.type === 'public' ? 'Public' : school.esc_subsidy > 0 ? 'Private ESC' : 'Private'}</p>
+        {wishlist.map((school, i) => {
+          const escStatus = escStatuses[school.id];
+          return (
+            <div key={school.id} className="flex items-start gap-3 p-3 rounded-xl border border-slate-200 bg-white">
+              <span className="h-6 w-6 shrink-0 rounded-full bg-[#1c2260]/10 text-[#1c2260] text-xs font-bold flex items-center justify-center">{i + 1}</span>
+              <div className="flex-1 min-w-0">
+                <p className="text-sm font-semibold text-slate-800 leading-snug">{school.name}</p>
+                <p className="text-xs text-slate-400 mt-0.5">{school.municipality} · {school.type === 'public' ? 'Public' : school.esc_subsidy > 0 ? 'Private ESC' : 'Private'}</p>
+                {escStatus && (
+                  <span className={`inline-block mt-1.5 text-[9px] font-bold uppercase tracking-wide px-1.5 py-0.5 rounded border ${schoolStatusConfigs[escStatus]?.color || 'bg-slate-50 text-slate-400 border-slate-200'}`}>
+                    {schoolStatusConfigs[escStatus]?.title || escStatus}
+                  </span>
+                )}
+              </div>
+              {!isPostSubmission && (
+                <button onClick={() => removeFromWishlist(school.id)} className="text-slate-300 hover:text-red-400 shrink-0">
+                  <X className="h-4 w-4" />
+                </button>
+              )}
             </div>
-            {!isPostSubmission && (
-              <button onClick={() => removeFromWishlist(school.id)} className="text-slate-300 hover:text-red-400 shrink-0">
-                <X className="h-4 w-4" />
-              </button>
-            )}
-          </div>
-        ))}
+          );
+        })}
         {!isPostSubmission && !hasPublicAlternative && wishlist.length > 0 && (
           <div className="rounded-lg bg-amber-50 border border-amber-200 p-3 text-xs text-amber-700">
             Add at least one public JHS to ensure placement.
@@ -1338,8 +1479,10 @@ export default function PAARALStudentMockup() {
     ),
 
     documents: () => {
+      const isActiveDocsPending = activeChoice && escStatuses[activeChoice.id] === 'docs_pending';
+
       // Post-submission but no additional docs requested — show review status only
-      if (isPostSubmission && appState !== 'docs_pending') {
+      if (isPostSubmission && !isActiveDocsPending) {
         return (
           <div className="p-5 space-y-4">
             <div className="rounded-xl border border-blue-200 bg-blue-50 p-4">
@@ -1371,13 +1514,15 @@ export default function PAARALStudentMockup() {
       // docs_pending or pre-submission — show upload interface
       return (
         <div className="p-5">
-          {!account?.category ? (
+          {appState === 'not_eligible' ? (
+            <p className="text-sm text-slate-500">You're not eligible for the ESC subsidy, so no ESC documents are required. You can enroll directly through the standard DepEd pathway.</p>
+          ) : !account?.category ? (
             <p className="text-sm text-slate-500">Complete your eligibility assessment first to see your required documents.</p>
           ) : (
             <>
-              {appState === 'docs_pending' && (
+              {isActiveDocsPending && (
                 <div className="rounded-lg bg-amber-50 border border-amber-200 p-3 mb-4 text-xs text-amber-800 leading-relaxed">
-                  The school committee has requested an additional document. Please upload it below.
+                  {activeChoice.name}'s school committee has requested an additional document. Please upload it below.
                 </div>
               )}
               <p className="text-[10px] font-bold uppercase tracking-widest text-slate-500 mb-4">Required Documents — Category {account.category}</p>
@@ -1419,8 +1564,8 @@ export default function PAARALStudentMockup() {
                   All documents ready ✓
                 </div>
               )}
-              {appState === 'docs_pending' && docsReady && (
-                <button onClick={() => { advance('docs_submitted'); setDrawerTab('status'); }} className="mt-3 w-full h-11 rounded-xl bg-gradient-to-br from-[#1c2260] via-[#5a2d68] to-[#c44820] text-white font-semibold text-sm">
+              {isActiveDocsPending && docsReady && (
+                <button onClick={() => { advanceSchool(activeChoice.id, 'docs_submitted'); setDrawerTab('status'); }} className="mt-3 w-full h-11 rounded-xl bg-gradient-to-br from-[#1c2260] via-[#5a2d68] to-[#c44820] text-white font-semibold text-sm">
                   Submit Additional Document →
                 </button>
               )}
@@ -1434,56 +1579,75 @@ export default function PAARALStudentMockup() {
       <div className="p-5 space-y-6">
         <div>
           <p className="text-[10px] font-bold uppercase tracking-widest text-slate-500 mb-1">Pilot Survey</p>
-          <p className="text-xs text-slate-400">3 required questions before you can submit.</p>
+          <p className="text-xs text-slate-400">
+            {appState === 'not_eligible' ? '2 required questions before you can enroll.' : '3 required questions before you can submit.'}
+          </p>
         </div>
 
-        <div>
-          <p className="text-sm font-semibold text-slate-800 mb-3">1. How easy was it to find schools?</p>
-          <div className="flex gap-2">
-            {[1,2,3,4,5].map(n => (
-              <button key={n} onClick={() => setSurveyAnswers(a => ({ ...a, ease: n }))}
-                className={`flex-1 h-9 rounded-lg border text-sm font-bold transition ${surveyAnswers.ease === n ? 'bg-gradient-to-br from-[#1c2260] via-[#5a2d68] to-[#c44820] border-[#1c2260] text-white' : 'border-slate-200 text-slate-500 hover:border-slate-300'}`}>
-                {n}
-              </button>
-            ))}
+        <div className="space-y-5">
+          <p className="text-[10px] font-bold uppercase tracking-widest text-slate-400">Using PAARAL</p>
+
+          <div>
+            <p className="text-sm font-semibold text-slate-800 mb-3">1. How easy was it to find schools?</p>
+            <div className="flex gap-2">
+              {[1,2,3,4,5].map(n => (
+                <button key={n} onClick={() => setSurveyAnswers(a => ({ ...a, ease: n }))}
+                  className={`flex-1 h-9 rounded-lg border text-sm font-bold transition ${surveyAnswers.ease === n ? 'bg-gradient-to-br from-[#1c2260] via-[#5a2d68] to-[#c44820] border-[#1c2260] text-white' : 'border-slate-200 text-slate-500 hover:border-slate-300'}`}>
+                  {n}
+                </button>
+              ))}
+            </div>
+            <div className="flex justify-between text-[10px] text-slate-400 mt-1 px-0.5">
+              <span>Very hard</span><span>Very easy</span>
+            </div>
           </div>
-          <div className="flex justify-between text-[10px] text-slate-400 mt-1 px-0.5">
-            <span>Very hard</span><span>Very easy</span>
+
+          <div>
+            <p className="text-sm font-semibold text-slate-800 mb-3">2. Did this information help you decide where to enroll?</p>
+            <div className="space-y-2">
+              {['Yes', 'Somewhat', 'No'].map(opt => (
+                <button key={opt} onClick={() => setSurveyAnswers(a => ({ ...a, helpful: opt }))}
+                  className={`w-full h-10 rounded-xl border text-sm text-left px-4 transition ${surveyAnswers.helpful === opt ? 'bg-blue-50 border-[#1c2260] text-[#1c2260] font-semibold' : 'border-slate-200 text-slate-600 hover:border-slate-300'}`}>
+                  {opt}
+                </button>
+              ))}
+            </div>
           </div>
         </div>
 
-        <div>
-          <p className="text-sm font-semibold text-slate-800 mb-3">2. Did this information help you decide?</p>
-          <div className="space-y-2">
-            {['Yes', 'Somewhat', 'No'].map(opt => (
-              <button key={opt} onClick={() => setSurveyAnswers(a => ({ ...a, helpful: opt }))}
-                className={`w-full h-10 rounded-xl border text-sm text-left px-4 transition ${surveyAnswers.helpful === opt ? 'bg-blue-50 border-[#1c2260] text-[#1c2260] font-semibold' : 'border-slate-200 text-slate-600 hover:border-slate-300'}`}>
-                {opt}
-              </button>
-            ))}
+        {appState !== 'not_eligible' && (
+          <div className="space-y-3">
+            <p className="text-[10px] font-bold uppercase tracking-widest text-slate-400">About Your ESC Application</p>
+            <div>
+              <p className="text-sm font-semibold text-slate-800 mb-3">3. Biggest concern about enrolling in a private school through ESC?</p>
+              <div className="space-y-2">
+                {['Cost', 'Distance', 'School quality', 'Slot availability'].map(opt => (
+                  <button key={opt} onClick={() => setSurveyAnswers(a => ({ ...a, concern: opt }))}
+                    className={`w-full h-10 rounded-xl border text-sm text-left px-4 transition ${surveyAnswers.concern === opt ? 'bg-blue-50 border-[#1c2260] text-[#1c2260] font-semibold' : 'border-slate-200 text-slate-600 hover:border-slate-300'}`}>
+                    {opt}
+                  </button>
+                ))}
+              </div>
+            </div>
           </div>
-        </div>
-
-        <div>
-          <p className="text-sm font-semibold text-slate-800 mb-3">3. Biggest concern about enrolling in a private school?</p>
-          <div className="space-y-2">
-            {['Cost', 'Distance', 'School quality', 'Slot availability'].map(opt => (
-              <button key={opt} onClick={() => setSurveyAnswers(a => ({ ...a, concern: opt }))}
-                className={`w-full h-10 rounded-xl border text-sm text-left px-4 transition ${surveyAnswers.concern === opt ? 'bg-blue-50 border-[#1c2260] text-[#1c2260] font-semibold' : 'border-slate-200 text-slate-600 hover:border-slate-300'}`}>
-                {opt}
-              </button>
-            ))}
-          </div>
-        </div>
+        )}
 
         <div className="rounded-xl border border-slate-200 p-4 space-y-2">
-          <p className="text-[10px] font-bold uppercase tracking-widest text-slate-500 mb-2">Submission Checklist</p>
-          {[
-            { done: wishlist.length > 0, label: 'At least one school added' },
-            { done: hasPublicAlternative, label: 'Public JHS included' },
-            { done: docsReady, label: 'Documents uploaded' },
-            { done: surveyComplete, label: 'Survey complete' },
-          ].map(({ done, label }) => (
+          <p className="text-[10px] font-bold uppercase tracking-widest text-slate-500 mb-2">
+            {appState === 'not_eligible' ? 'Enrollment Checklist' : 'Submission Checklist'}
+          </p>
+          {(appState === 'not_eligible'
+            ? [
+                { done: wishlist.length > 0, label: 'At least one school added' },
+                { done: generalSurveyComplete, label: 'Survey complete' },
+              ]
+            : [
+                { done: hasPrivateChoice, label: 'At least one private school added' },
+                { done: hasPublicAlternative, label: 'Public JHS included (guaranteed fallback)' },
+                { done: docsReady, label: 'Documents uploaded' },
+                { done: generalSurveyComplete && escSurveyComplete, label: 'Survey complete' },
+              ]
+          ).map(({ done, label }) => (
             <div key={label} className={`flex items-center gap-2 text-xs ${done ? 'text-green-700' : 'text-slate-400'}`}>
               <span className={`h-4 w-4 rounded-full flex items-center justify-center shrink-0 ${done ? 'bg-green-500' : 'bg-slate-200'}`}>
                 {done && <Check className="h-2.5 w-2.5 text-white" strokeWidth={3} />}
@@ -1493,10 +1657,17 @@ export default function PAARALStudentMockup() {
           ))}
         </div>
 
-        <button onClick={handleSubmit} disabled={!canSubmit}
-          className="w-full h-12 rounded-xl bg-gradient-to-br from-[#1c2260] via-[#5a2d68] to-[#c44820] text-white font-bold text-sm disabled:opacity-40 disabled:cursor-not-allowed">
-          Submit Application
-        </button>
+        {appState === 'not_eligible' ? (
+          <button onClick={handleEnrollNonEsc} disabled={!canEnrollNonEsc}
+            className="w-full h-12 rounded-xl bg-gradient-to-br from-[#1c2260] via-[#5a2d68] to-[#c44820] text-white font-bold text-sm disabled:opacity-40 disabled:cursor-not-allowed">
+            Enroll Without ESC
+          </button>
+        ) : (
+          <button onClick={handleSubmitEsc} disabled={!canSubmitEsc}
+            className="w-full h-12 rounded-xl bg-gradient-to-br from-[#1c2260] via-[#5a2d68] to-[#c44820] text-white font-bold text-sm disabled:opacity-40 disabled:cursor-not-allowed">
+            Submit Application
+          </button>
+        )}
       </div>
     ) : null,
   };
@@ -1847,7 +2018,9 @@ export default function PAARALStudentMockup() {
                         </span>
                       )}
                     </div>
-                    <div className="mt-2">{renderStateBadge(account.applicationState)}</div>
+                    {POST_SUBMISSION_STATES.has(account.applicationState) && (
+                      <div className="mt-2">{renderStateBadge(account.applicationState)}</div>
+                    )}
                   </div>
                   <div className="flex shrink-0 border-b border-slate-100">
                     {drawerTabList.map(tab => (
