@@ -1,0 +1,26 @@
+/* Preflight intentionally excluded (Tailwind v4: import theme + utilities
+   only, skip tailwindcss/preflight.css) — MUI's <CssBaseline> in the root
+   layout owns the base element reset instead, so the two resets don't
+   double up. Utility classes (spacing, layout, flat-color design) still
+   work exactly the same. */
+@import "tailwindcss/theme.css";
+@import "tailwindcss/utilities.css";
+
+:root {
+  --background: #ffffff;
+  --foreground: #171717;
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --font-sans: var(--font-geist-sans);
+  --font-mono: var(--font-geist-mono);
+
+  /* Brand palette (2026-08-20 landing redesign) */
+  --color-navy: #101b42; /* hero background */
+  --color-deped-blue: #1a4b8c; /* existing DepEd blue, see SKILLS.md Design System */
+  --color-ph-blue: #0038a8; /* Philippine flag */
+  --color-ph-red: #ce1126; /* Philippine flag */
+  --color-ph-gold: #fcd116; /* Philippine flag */
+}
