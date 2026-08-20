@@ -34,3 +34,10 @@ next-env.d.ts
 # Large binary docs — store outside the repo
 docs/*.pdf
 docs/*.pptx
+
+# Local-only, never pushed to GitHub (Paula's call, 2026-08-20)
+.claude/
+LOG.md
+SKILLS.md
+WORKFLOW.md
+CLAUDE.md
