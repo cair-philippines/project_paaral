@@ -1,9 +1,9 @@
 import type { LucideIcon } from "lucide-react";
 
 const BADGE_COLORS = {
-  blue: "bg-ph-blue",
-  gold: "bg-ph-gold text-navy",
-  navy: "bg-navy",
+  primary: "bg-primary",
+  secondary: "bg-secondary text-primary",
+  accent: "bg-accent",
 } as const;
 
 interface PrepStepCardProps {
@@ -18,7 +18,7 @@ export default function PrepStepCard({
   icon: Icon,
   title,
   description,
-  color = "blue",
+  color = "primary",
 }: PrepStepCardProps) {
   return (
     <div className="flex flex-col items-center gap-3 rounded-2xl bg-white p-6 text-center shadow-sm">
@@ -27,7 +27,7 @@ export default function PrepStepCard({
       >
         <Icon size={26} />
       </div>
-      <p className="font-semibold text-navy">{title}</p>
+      <p className="font-semibold text-primary">{title}</p>
       <p className="text-sm text-slate-500">{description}</p>
     </div>
   );

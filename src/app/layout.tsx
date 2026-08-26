@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import ThemeRegistry from "@/components/templates/ThemeRegistry";
+import { ApplicationStateProvider } from "@/components/templates/ApplicationStateProvider";
 import "./globals.css";
 
 const geistSans = Geist({
@@ -26,7 +27,9 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
       className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
     >
       <body className="min-h-full flex flex-col">
-        <ThemeRegistry>{children}</ThemeRegistry>
+        <ThemeRegistry>
+          <ApplicationStateProvider>{children}</ApplicationStateProvider>
+        </ThemeRegistry>
       </body>
     </html>
   );

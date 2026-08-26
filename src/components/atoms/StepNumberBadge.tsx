@@ -1,7 +1,7 @@
 const COLORS = {
-  blue: "bg-ph-blue",
-  gold: "bg-ph-gold text-navy",
-  red: "bg-ph-red",
+  primary: "bg-primary",
+  secondary: "bg-secondary text-primary",
+  accent: "bg-accent",
 } as const;
 
 interface StepNumberBadgeProps {
@@ -12,7 +12,7 @@ interface StepNumberBadgeProps {
 /** Large circular numbered badge — used in the 3-step guided process section. */
 export default function StepNumberBadge({
   number,
-  color = "blue",
+  color = "primary",
 }: StepNumberBadgeProps) {
   return (
     <div

@@ -6,21 +6,42 @@
 @import "tailwindcss/theme.css";
 @import "tailwindcss/utilities.css";
 
+/* Brand palette (2026-08-24 recolor) — Paula's final palette, replacing the
+   old Philippine-flag tricolor (navy/gold/red) and DepEd blue everywhere.
+   Dark-mode values exist for whenever a toggle is added later; the app
+   itself stays light-only for now (no .dark is applied anywhere yet). */
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  --text: #020315;
+  --background: #fcfcfd;
+  --primary: #19266b;
+  --secondary: #fcca81;
+  --accent: #b23836;
+
+  --linearPrimarySecondary: linear-gradient(var(--primary), var(--secondary));
+  /* 135deg matches the exact Canva export Paula sourced the hero gradient
+     from (linear, 135deg, #18246b -> #b23836 — #18246b is a rounding-level
+     match for --primary). Also used by the site header (see SiteHeader.tsx). */
+  --linearPrimaryAccent: linear-gradient(135deg, var(--primary), var(--accent));
+  --linearSecondaryAccent: linear-gradient(var(--secondary), var(--accent));
+  --radialPrimarySecondary: radial-gradient(circle, var(--primary), var(--secondary));
+  --radialPrimaryAccent: radial-gradient(circle, var(--primary), var(--accent));
+  --radialSecondaryAccent: radial-gradient(circle, var(--secondary), var(--accent));
+}
+
+.dark {
+  --text: #e8e9fd;
+  --background: #020203;
+  --primary: #94a1e6;
+  --secondary: #7c4c03;
+  --accent: #c9514f;
 }
 
 @theme inline {
+  --color-text: var(--text);
   --color-background: var(--background);
-  --color-foreground: var(--foreground);
+  --color-primary: var(--primary);
+  --color-secondary: var(--secondary);
+  --color-accent: var(--accent);
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
-
-  /* Brand palette (2026-08-20 landing redesign) */
-  --color-navy: #101b42; /* hero background */
-  --color-deped-blue: #1a4b8c; /* existing DepEd blue, see SKILLS.md Design System */
-  --color-ph-blue: #0038a8; /* Philippine flag */
-  --color-ph-red: #ce1126; /* Philippine flag */
-  --color-ph-gold: #fcd116; /* Philippine flag */
 }

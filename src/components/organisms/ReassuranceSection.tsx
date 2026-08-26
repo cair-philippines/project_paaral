@@ -8,7 +8,7 @@ export default function ReassuranceSection() {
         subsidized enrollment by presenting your certificate once a school has
         admitted you.
       </p>
-      <div className="mt-6 rounded-xl border-2 border-dashed border-ph-gold/60 bg-white p-5 text-navy">
+      <div className="mt-6 rounded-xl border-2 border-dashed border-secondary/60 bg-white p-5 text-primary">
         <p className="font-semibold">
           You can apply to as many schools as you want.
         </p>
