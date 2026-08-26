@@ -20,15 +20,33 @@ export const VALID_TRANSITIONS: Record<ApplicationState, ApplicationState[]> = {
 
 // Per-school ESC status — private schools only. Public schools are never
 // entered into the ESC pursuit; they're just the hasPublicAlternative
-// guaranteed-placement checkbox. 'granted'/'rejected' are both terminal at
-// the school level — no admission dependency either way.
+// guaranteed-placement checkbox. Up to ESC_SLATE_CAP schools can be in a
+// non-terminal (slate) status at once — 'granted' is an offer, not a win,
+// until explicitly redeemed via redeemChoice(). Redeeming one school moves
+// every other still-open slate school to 'withdrawn'. 'rejected' is a
+// school's own "no"; 'withdrawn' is the student pulling out after redeeming
+// elsewhere — the two are never conflated in the UI.
 export const ESC_SCHOOL_TRANSITIONS: Record<EscSchoolStatus, EscSchoolStatus[]> = {
-  submitted: ["granted", "rejected", "docs_pending"],
-  docs_pending: ["docs_submitted"],
-  docs_submitted: ["granted", "rejected"],
-  granted: [],
+  submitted: ["granted", "rejected", "docs_pending", "withdrawn"],
+  docs_pending: ["docs_submitted", "withdrawn"],
+  docs_submitted: ["granted", "rejected", "withdrawn"],
+  granted: ["redeemed", "withdrawn"],
   rejected: [],
+  redeemed: [],
+  withdrawn: [],
 };
+
+// Statuses that count toward the ESC_SLATE_CAP — "currently in flight" at a
+// school, including an unredeemed grant (still occupies a slate slot until
+// the student acts on it).
+export const ESC_SLATE_STATUSES = new Set<EscSchoolStatus>([
+  "submitted",
+  "docs_pending",
+  "docs_submitted",
+  "granted",
+]);
+
+export const ESC_SLATE_CAP = 3;
 
 export const REJECTED_STATES = new Set<EscSchoolStatus>(["rejected"]);
 
@@ -66,9 +84,21 @@ export const SCHOOL_STATUS_META: Record<EscSchoolStatus, SchoolStatusMeta> = {
     color: "bg-blue-50 border-blue-200",
   },
   granted: {
-    title: "ESC Certificate Granted",
-    desc: (name) => `Your ESC subsidy for ${name} has been confirmed.`,
+    title: "ESC Subsidy Offered",
+    desc: (name) =>
+      `${name} has offered you an ESC subsidy. Redeem it to accept — this will withdraw your other active applications.`,
     color: "bg-purple-50 border-purple-200",
+  },
+  redeemed: {
+    title: "ESC Certificate Redeemed",
+    desc: (name) => `Your ESC subsidy for ${name} has been confirmed.`,
+    color: "bg-green-50 border-green-200",
+  },
+  withdrawn: {
+    title: "Application Withdrawn",
+    desc: (name) =>
+      `Your ESC application to ${name} was withdrawn after you redeemed a subsidy elsewhere.`,
+    color: "bg-slate-50 border-slate-200",
   },
 };
 

@@ -11,6 +11,8 @@ import type {
 import { computeCategory, getDocList } from "@/lib/eligibility";
 import {
   ESC_SCHOOL_TRANSITIONS,
+  ESC_SLATE_CAP,
+  ESC_SLATE_STATUSES,
   POST_SUBMISSION_STATES,
   VALID_TRANSITIONS,
 } from "@/lib/applicationState";
@@ -221,46 +223,77 @@ export function useApplicationState(schools: School[]) {
   const hasPublicAlternative = wishlist.some((s) => s.school_type === "public");
 
   // ── PER-SCHOOL ESC STATUS (private schools only) ────────────────
+  // Parallel/capped model: up to ESC_SLATE_CAP private schools can be "in
+  // the slate" (a non-terminal status) at once. 'granted' is an offer, not
+  // a win — redeemChoice() is the explicit convergence point that picks one
+  // and withdraws the rest. See memory-decisions.md for the full design.
   const escStatuses = account?.escStatuses ?? {};
   const privateChoices = wishlist.filter((s) => s.school_type !== "public");
   const hasPrivateChoice = privateChoices.length > 0;
-  const activeChoice =
-    privateChoices.find((s) =>
-      ["submitted", "docs_pending", "docs_submitted"].includes(
-        escStatuses[s.school_id]
-      )
-    ) ?? null;
-  const lastEngagedIndex = privateChoices.reduce(
-    (last, s, i) => (escStatuses[s.school_id] ? i : last),
-    -1
+  const slateChoices = privateChoices.filter((s) =>
+    ESC_SLATE_STATUSES.has(escStatuses[s.school_id])
   );
-  const lastEngagedChoice =
-    lastEngagedIndex >= 0 ? privateChoices[lastEngagedIndex] : null;
-  const nextChoice = privateChoices[lastEngagedIndex + 1] ?? null;
-  const grantedChoice =
-    privateChoices.find((s) => escStatuses[s.school_id] === "granted") ?? null;
+  const pendingGrants = privateChoices.filter(
+    (s) => escStatuses[s.school_id] === "granted"
+  );
+  const redeemedChoice =
+    privateChoices.find((s) => escStatuses[s.school_id] === "redeemed") ?? null;
+  const rejectedChoices = privateChoices.filter(
+    (s) => escStatuses[s.school_id] === "rejected"
+  );
+  // The next unengaged rank, only surfaced while there's slate room left.
+  const firstUnengaged =
+    privateChoices.find((s) => !escStatuses[s.school_id]) ?? null;
+  const backfillCandidate =
+    applicationState === "submitted" && slateChoices.length < ESC_SLATE_CAP
+      ? firstUnengaged
+      : null;
+  // Every slate school resolved (rejected/withdrawn), nothing granted or
+  // redeemed, and no one left to backfill with — the private track is dead.
+  const isSlateExhausted =
+    applicationState === "submitted" &&
+    slateChoices.length === 0 &&
+    !backfillCandidate;
 
   // Advance one specific PRIVATE school's ESC status. Only reaching
-  // 'granted' ends the account-level pursuit — 'rejected' re-opens the
-  // next-rank prompt.
+  // 'redeemed' ends the account-level pursuit — 'granted' is just an offer.
   const advanceSchool = (schoolId: string, toState: EscSchoolStatus) => {
     const current = escStatuses[schoolId];
     const valid = ESC_SCHOOL_TRANSITIONS[current] ?? [];
     if (!valid.includes(toState)) return;
     const nextEscStatuses = { ...escStatuses, [schoolId]: toState };
-    if (toState === "granted") {
+    if (toState === "redeemed") {
       advance("granted", { escStatuses: nextEscStatuses });
     } else {
       updateAccount({ escStatuses: nextEscStatuses });
     }
   };
 
-  // After a rejection, apply to the next-ranked PRIVATE choice — explicit
-  // opt-in, never automatic.
-  const applyToNextRank = () => {
-    if (!nextChoice) return;
+  // Accept one school's ESC offer. This is the redemption/convergence
+  // point: the chosen school is redeemed, and every other school still
+  // occupying a slate slot (pending review or a competing offer) is
+  // withdrawn — not rejected, since the school never said no.
+  const redeemChoice = (schoolId: string) => {
+    if (escStatuses[schoolId] !== "granted") return;
+    const nextEscStatuses = { ...escStatuses };
+    for (const choice of privateChoices) {
+      const id = choice.school_id;
+      if (id === schoolId) {
+        nextEscStatuses[id] = "redeemed";
+      } else if (ESC_SLATE_STATUSES.has(nextEscStatuses[id])) {
+        nextEscStatuses[id] = "withdrawn";
+      }
+    }
+    advance("granted", { escStatuses: nextEscStatuses });
+  };
+
+  // A slate slot opened up (a rejection) and there's room — explicit
+  // opt-in, never automatic, matching the rest of this app's advance-choice
+  // pattern.
+  const backfillSlate = () => {
+    if (!backfillCandidate) return;
     updateAccount({
-      escStatuses: { ...escStatuses, [nextChoice.school_id]: "submitted" },
+      escStatuses: { ...escStatuses, [backfillCandidate.school_id]: "submitted" },
     });
   };
 
@@ -312,9 +345,11 @@ export function useApplicationState(schools: School[]) {
 
   const handleSubmitEsc = () => {
     if (!canSubmitEsc) return;
-    const rank1 = privateChoices[0];
+    const initialSlate = privateChoices.slice(0, ESC_SLATE_CAP);
+    const nextEscStatuses = { ...escStatuses };
+    for (const s of initialSlate) nextEscStatuses[s.school_id] = "submitted";
     updateAccount({
-      escStatuses: { ...escStatuses, [rank1.school_id]: "submitted" },
+      escStatuses: nextEscStatuses,
       surveyAnswers,
       uploadedDocs,
     });
@@ -356,12 +391,15 @@ export function useApplicationState(schools: School[]) {
     escStatuses,
     privateChoices,
     hasPrivateChoice,
-    activeChoice,
-    lastEngagedChoice,
-    nextChoice,
-    grantedChoice,
+    slateChoices,
+    pendingGrants,
+    redeemedChoice,
+    rejectedChoices,
+    backfillCandidate,
+    isSlateExhausted,
     advanceSchool,
-    applyToNextRank,
+    redeemChoice,
+    backfillSlate,
     continueWithoutSubsidy,
     applyAgainDifferentSchool,
 

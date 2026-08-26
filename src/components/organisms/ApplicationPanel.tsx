@@ -1,6 +1,6 @@
 "use client";
 
-import type { ReactNode } from "react";
+import { useState, type ReactNode } from "react";
 import Button from "@mui/material/Button";
 import ToggleButtonGroup from "@mui/material/ToggleButtonGroup";
 import ToggleButton from "@mui/material/ToggleButton";
@@ -34,10 +34,7 @@ import {
 import { CSS } from "@dnd-kit/utilities";
 import AccountSection from "@/components/molecules/AccountSection";
 import { useApplication } from "@/components/templates/ApplicationStateProvider";
-import {
-  REJECTED_STATES,
-  SCHOOL_STATUS_META,
-} from "@/lib/applicationState";
+import { SCHOOL_STATUS_META } from "@/lib/applicationState";
 import type { EscSchoolStatus } from "@/types/application";
 import type { School } from "@/types/school";
 
@@ -49,6 +46,8 @@ const STATUS_ICON: Record<EscSchoolStatus, React.ReactNode> = {
   docs_pending: <FileCheck className="h-6 w-6 shrink-0 text-amber-500" />,
   docs_submitted: <FileCheck className="h-6 w-6 shrink-0 text-blue-500" />,
   granted: <Award className="h-6 w-6 shrink-0 text-purple-500" />,
+  redeemed: <Check className="h-6 w-6 shrink-0 text-green-500" />,
+  withdrawn: <X className="h-6 w-6 shrink-0 text-slate-400" />,
 };
 
 // UI-only demo controls (deliberately not part of the ported hook/lib —
@@ -118,12 +117,14 @@ export default function ApplicationPanel() {
     reorderWishlist,
     hasPublicAlternative,
     hasPrivateChoice,
-    activeChoice,
-    lastEngagedChoice,
-    nextChoice,
-    grantedChoice,
+    privateChoices,
+    redeemedChoice,
+    rejectedChoices,
+    backfillCandidate,
+    isSlateExhausted,
     advanceSchool,
-    applyToNextRank,
+    redeemChoice,
+    backfillSlate,
     continueWithoutSubsidy,
     applyAgainDifferentSchool,
     requiredDocs,
@@ -141,7 +142,20 @@ export default function ApplicationPanel() {
     handleEnrollNonEsc,
   } = app;
 
+  // Which rejected school is picked for "Continue Enrollment (No Subsidy)"
+  // once the private-school slate is fully exhausted — only meaningful when
+  // more than one school ended in 'rejected', otherwise it's the only one.
+  const [nonEscPickId, setNonEscPickId] = useState<string | null>(null);
+
   if (!account) return null;
+
+  const docsPendingChoices = privateChoices.filter(
+    (s) => escStatuses[s.school_id] === "docs_pending"
+  );
+  const selectedNonEscChoice =
+    rejectedChoices.find((s) => s.school_id === nonEscPickId) ??
+    rejectedChoices[0] ??
+    null;
 
   const tabList: PanelTab[] = isPostSubmission
     ? ["status", "documents", "choices"]
@@ -173,12 +187,12 @@ export default function ApplicationPanel() {
         <div className="space-y-4">
           {applicationState === "granted" &&
             (() => {
-              const cfg = SCHOOL_STATUS_META.granted;
-              const name = grantedChoice?.school_name || "your chosen school";
+              const cfg = SCHOOL_STATUS_META.redeemed;
+              const name = redeemedChoice?.school_name || "your chosen school";
               return (
                 <div className={`rounded-xl border p-4 ${cfg.color}`}>
                   <div className="flex items-start gap-3">
-                    {STATUS_ICON.granted}
+                    {STATUS_ICON.redeemed}
                     <div>
                       <p className="text-sm font-bold text-slate-800">
                         {cfg.title}
@@ -221,113 +235,144 @@ export default function ApplicationPanel() {
               );
             })()}
 
-          {applicationState === "submitted" && activeChoice && (
+          {applicationState === "submitted" && (
             <>
-              {(() => {
-                const status = escStatuses[activeChoice.school_id];
-                const cfg = SCHOOL_STATUS_META[status];
-                const demo = DEMO_TRANSITIONS[status] ?? [];
-                return (
-                  <>
-                    <div className={`rounded-xl border p-4 ${cfg.color}`}>
+              {privateChoices
+                .filter((school) => Boolean(escStatuses[school.school_id]))
+                .map((school) => {
+                  const status = escStatuses[school.school_id];
+                  const cfg = SCHOOL_STATUS_META[status];
+                  const demo = DEMO_TRANSITIONS[status] ?? [];
+                  return (
+                    <div
+                      key={school.school_id}
+                      className={`rounded-xl border p-4 ${cfg.color}`}
+                    >
                       <div className="flex items-start gap-3">
                         {STATUS_ICON[status]}
-                        <div>
+                        <div className="min-w-0 flex-1">
+                          <p className="text-xs font-semibold text-slate-500">
+                            {school.school_name}
+                          </p>
                           <p className="text-sm font-bold text-slate-800">
                             {cfg.title}
                           </p>
                           <p className="mt-1 text-xs leading-relaxed text-slate-600">
-                            {cfg.desc(activeChoice.school_name)}
+                            {cfg.desc(school.school_name)}
                           </p>
                         </div>
                       </div>
-                    </div>
-                    {demo.length > 0 && (
-                      <div className="rounded-xl border border-dashed border-slate-300 p-4">
-                        <p className={`${SECTION_LABEL} mb-3 text-slate-400`}>
-                          Demo Controls
-                        </p>
-                        <div className="space-y-2">
-                          {demo.map((d) => (
-                            <button
-                              key={d.next}
-                              type="button"
-                              onClick={() =>
-                                advanceSchool(activeChoice.school_id, d.next)
-                              }
-                              className={`w-full rounded-lg py-2.5 text-xs font-bold uppercase tracking-wide text-white ${d.className}`}
-                            >
-                              {d.label}
-                            </button>
-                          ))}
+                      {status === "granted" && (
+                        <Button
+                          fullWidth
+                          variant="contained"
+                          sx={{ minHeight: 48, mt: 3 }}
+                          onClick={() => redeemChoice(school.school_id)}
+                        >
+                          Redeem This Offer
+                        </Button>
+                      )}
+                      {demo.length > 0 && (
+                        <div className="mt-3 rounded-xl border border-dashed border-slate-300 p-4">
+                          <p className={`${SECTION_LABEL} mb-3 text-slate-400`}>
+                            Demo Controls
+                          </p>
+                          <div className="space-y-2">
+                            {demo.map((d) => (
+                              <button
+                                key={d.next}
+                                type="button"
+                                onClick={() =>
+                                  advanceSchool(school.school_id, d.next)
+                                }
+                                className={`w-full rounded-lg py-2.5 text-xs font-bold uppercase tracking-wide text-white ${d.className}`}
+                              >
+                                {d.label}
+                              </button>
+                            ))}
+                          </div>
                         </div>
-                      </div>
-                    )}
-                  </>
-                );
-              })()}
-            </>
-          )}
-
-          {applicationState === "submitted" &&
-            !activeChoice &&
-            lastEngagedChoice &&
-            REJECTED_STATES.has(escStatuses[lastEngagedChoice.school_id]) && (
-              <>
-                <div className="rounded-xl border border-red-200 bg-red-50 p-4">
-                  <div className="flex items-start gap-3">
-                    {STATUS_ICON.rejected}
-                    <div>
-                      <p className="text-sm font-bold text-slate-800">
-                        {SCHOOL_STATUS_META.rejected.title}
-                      </p>
-                      <p className="mt-1 text-xs leading-relaxed text-slate-600">
-                        {SCHOOL_STATUS_META.rejected.desc(
-                          lastEngagedChoice.school_name
-                        )}
-                      </p>
+                      )}
                     </div>
-                  </div>
-                </div>
+                  );
+                })}
 
-                {nextChoice && (
-                  <div className="rounded-xl border border-slate-200 p-4">
-                    <p className="mb-3 text-sm text-slate-700">
-                      Would you like to apply to your next choice,{" "}
-                      <span className="font-semibold">
-                        {nextChoice.school_name}
-                      </span>
-                      ?
-                    </p>
-                    <Button
-                      fullWidth
-                      variant="contained"
-                      sx={{ minHeight: 48 }}
-                      onClick={applyToNextRank}
-                    >
-                      Yes, Apply to {nextChoice.school_name}
-                    </Button>
-                  </div>
-                )}
-
-                <div className="space-y-2">
+              {backfillCandidate && (
+                <div className="rounded-xl border border-slate-200 p-4">
+                  <p className="mb-3 text-sm text-slate-700">
+                    One of your schools said no. Would you like to add your
+                    next choice,{" "}
+                    <span className="font-semibold">
+                      {backfillCandidate.school_name}
+                    </span>
+                    , to your active applications?
+                  </p>
                   <Button
                     fullWidth
                     variant="contained"
-                    color="inherit"
-                    sx={{
-                      minHeight: 48,
-                      bgcolor: "#1e293b",
-                      color: "white",
-                      "&:hover": { bgcolor: "#0f172a" },
-                    }}
-                    onClick={() =>
-                      continueWithoutSubsidy(lastEngagedChoice.school_id)
-                    }
+                    sx={{ minHeight: 48 }}
+                    onClick={backfillSlate}
                   >
-                    Continue Enrollment (No Subsidy)
+                    Yes, Add {backfillCandidate.school_name}
                   </Button>
-                  {!nextChoice && (
+                </div>
+              )}
+
+              {isSlateExhausted && (
+                <div className="space-y-3 rounded-xl border border-slate-200 p-4">
+                  <p className="text-sm text-slate-700">
+                    None of your private school choices worked out this
+                    time. What would you like to do next?
+                  </p>
+
+                  {rejectedChoices.length > 1 && (
+                    <div>
+                      <p className="mb-2 text-xs font-semibold text-slate-500">
+                        Which school would you like to enroll at without a
+                        subsidy?
+                      </p>
+                      <ToggleButtonGroup
+                        fullWidth
+                        exclusive
+                        orientation="vertical"
+                        value={selectedNonEscChoice?.school_id ?? null}
+                        onChange={(_, value) =>
+                          value !== null && setNonEscPickId(value)
+                        }
+                      >
+                        {rejectedChoices.map((s) => (
+                          <ToggleButton
+                            key={s.school_id}
+                            value={s.school_id}
+                            sx={{ minHeight: 44, justifyContent: "flex-start" }}
+                          >
+                            {s.school_name}
+                          </ToggleButton>
+                        ))}
+                      </ToggleButtonGroup>
+                    </div>
+                  )}
+
+                  <div className="space-y-2">
+                    {selectedNonEscChoice && (
+                      <Button
+                        fullWidth
+                        variant="contained"
+                        color="inherit"
+                        sx={{
+                          minHeight: 48,
+                          bgcolor: "#1e293b",
+                          color: "white",
+                          "&:hover": { bgcolor: "#0f172a" },
+                        }}
+                        onClick={() =>
+                          continueWithoutSubsidy(selectedNonEscChoice.school_id)
+                        }
+                      >
+                        Continue Enrollment at {selectedNonEscChoice.school_name}{" "}
+                        (No Subsidy)
+                      </Button>
+                    )}
                     <Button
                       fullWidth
                       variant="outlined"
@@ -336,10 +381,11 @@ export default function ApplicationPanel() {
                     >
                       Stop and Choose Different Private Schools
                     </Button>
-                  )}
+                  </div>
                 </div>
-              </>
-            )}
+              )}
+            </>
+          )}
         </div>
       ),
     },
@@ -410,8 +456,7 @@ export default function ApplicationPanel() {
           docsReady={docsReady}
           uploadDoc={uploadDoc}
           simulateAllUploads={simulateAllUploads}
-          activeChoice={activeChoice}
-          escStatuses={escStatuses}
+          docsPendingChoices={docsPendingChoices}
           advanceSchool={advanceSchool}
         />
       ),
@@ -795,8 +840,7 @@ function DocumentsTab({
   docsReady,
   uploadDoc,
   simulateAllUploads,
-  activeChoice,
-  escStatuses,
+  docsPendingChoices,
   advanceSchool,
 }: {
   applicationState: string;
@@ -807,15 +851,12 @@ function DocumentsTab({
   docsReady: boolean;
   uploadDoc: (doc: string) => void;
   simulateAllUploads: () => void;
-  activeChoice: { school_id: string } | null;
-  escStatuses: Record<string, EscSchoolStatus>;
+  docsPendingChoices: School[];
   advanceSchool: (schoolId: string, toState: EscSchoolStatus) => void;
 }) {
-  const isActiveDocsPending =
-    Boolean(activeChoice) &&
-    escStatuses[activeChoice!.school_id] === "docs_pending";
+  const hasDocsPending = docsPendingChoices.length > 0;
 
-  if (isPostSubmission && !isActiveDocsPending) {
+  if (isPostSubmission && !hasDocsPending) {
     return (
       <div className="space-y-4">
         <div className="rounded-xl border border-blue-200 bg-blue-50 p-4">
@@ -868,10 +909,11 @@ function DocumentsTab({
         </p>
       ) : (
         <>
-          {isActiveDocsPending && (
+          {hasDocsPending && (
             <div className="mb-4 rounded-lg border border-amber-200 bg-amber-50 p-3 text-xs leading-relaxed text-amber-800">
-              The school committee has requested an additional document.
-              Please add it below.
+              {docsPendingChoices.length === 1
+                ? `${docsPendingChoices[0].school_name}'s ESC School Committee has requested an additional document. Please add it below.`
+                : "Some of your schools' ESC Committees have requested additional documents. Please add them below."}
             </div>
           )}
           <p className={`${SECTION_LABEL} mb-4`}>
@@ -923,17 +965,22 @@ function DocumentsTab({
               All documents ready
             </div>
           )}
-          {isActiveDocsPending && docsReady && (
-            <Button
-              fullWidth
-              variant="contained"
-              sx={{ minHeight: 48, mt: 2 }}
-              onClick={() =>
-                advanceSchool(activeChoice!.school_id, "docs_submitted")
-              }
-            >
-              Submit Additional Document
-            </Button>
+          {hasDocsPending && docsReady && (
+            <div className="mt-2 space-y-2">
+              {docsPendingChoices.map((school) => (
+                <Button
+                  key={school.school_id}
+                  fullWidth
+                  variant="contained"
+                  sx={{ minHeight: 48 }}
+                  onClick={() =>
+                    advanceSchool(school.school_id, "docs_submitted")
+                  }
+                >
+                  Submit Additional Document to {school.school_name}
+                </Button>
+              ))}
+            </div>
           )}
         </>
       )}

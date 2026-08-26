@@ -40,13 +40,18 @@ export interface EligHistoryEntry {
 }
 
 /** Per-private-school ESC lifecycle. Public schools never enter this —
- * they're only the `hasPublicAlternative` guaranteed-placement checkbox. */
+ * they're only the `hasPublicAlternative` guaranteed-placement checkbox.
+ * Up to `ESC_SLATE_CAP` private schools can be in a non-terminal status at
+ * once (the "slate") — 'granted' is an offer, not a win, until the student
+ * redeems it. Redeeming one school withdraws every other slate school. */
 export type EscSchoolStatus =
   | "submitted"
   | "docs_pending"
   | "docs_submitted"
   | "granted"
-  | "rejected";
+  | "rejected"
+  | "redeemed"
+  | "withdrawn";
 
 /** Account-level ESC application state. Decoupled model — this tracks the
  * ESC application track only; school admission/enrollment is a separate,
