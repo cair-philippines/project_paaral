@@ -17,11 +17,20 @@ import { useApplication } from "@/components/templates/ApplicationStateProvider"
  * and a guaranteed-contrast light button is safer for a first-time,
  * possibly low-vision user than a button that could nearly disappear.
  */
+// `behavior: "smooth"` here (rather than relying on the global scroll-smooth
+// CSS via `behavior: "auto"`) is deliberate — calling scrollIntoView with an
+// implicit/CSS-driven smooth behavior synchronously inside a click handler
+// was found to silently no-op in testing. Explicit "instant" is the only
+// behavior confirmed reliable in that exact context.
+function scrollToSection(id: string) {
+  document.getElementById(id)?.scrollIntoView({ behavior: "instant", block: "start" });
+}
+
 export default function HeroSection() {
   const { account, openLoginModal } = useApplication();
 
   return (
-    <section className="relative bg-[image:var(--linearPrimaryAccent)] px-6 py-16 text-center md:px-12 md:py-24">
+    <section className="relative flex min-h-svh flex-col items-center justify-center bg-[image:var(--linearPrimaryAccent)] px-6 py-16 text-center md:px-12 md:py-24">
       <div className="absolute right-6 top-6 md:right-12 md:top-8">
         {account ? (
           <Button
@@ -58,25 +67,52 @@ export default function HeroSection() {
         Apply with confidence.
       </h1>
       <p className="mx-auto mt-4 max-w-xl text-white/80">
-        Check your Educational Service Contracting (ESC) eligibility and
-        browse participating schools — no fixed order required. Apply for
-        ESC and school admission independently, at your own pace.
+        PAARAL is a platform built for the Educational Service Contracting
+        (ESC) program of the Department of Education. It helps Grade 6
+        learners find ESC-participating schools and apply for a subsidy,
+        and shows where school slots remain insufficient.
       </p>
       <div className="mt-8 flex flex-col items-center gap-6">
-        <Button
-          component={Link}
-          href="/browse"
-          variant="contained"
-          size="large"
-          sx={{
-            bgcolor: "var(--background)",
-            color: "var(--primary)",
-            fontWeight: 700,
-            "&:hover": { bgcolor: "var(--background)", opacity: 0.9 },
-          }}
-        >
-          Browse Schools
-        </Button>
+        <div className="flex flex-col items-center gap-3 sm:flex-row sm:gap-4">
+          <Button
+            component={Link}
+            href="/browse"
+            variant="contained"
+            size="large"
+            sx={{
+              bgcolor: "var(--background)",
+              color: "var(--primary)",
+              fontWeight: 700,
+              "&:hover": { bgcolor: "var(--background)", opacity: 0.9 },
+            }}
+          >
+            Browse Schools
+          </Button>
+          <Button
+            onClick={() => scrollToSection("about-esc")}
+            variant="outlined"
+            size="large"
+            sx={{
+              borderColor: "rgba(255,255,255,0.4)",
+              color: "white",
+              "&:hover": { borderColor: "white" },
+            }}
+          >
+            Know More About ESC
+          </Button>
+          <Button
+            onClick={() => scrollToSection("about-paaral")}
+            variant="outlined"
+            size="large"
+            sx={{
+              borderColor: "rgba(255,255,255,0.4)",
+              color: "white",
+              "&:hover": { borderColor: "white" },
+            }}
+          >
+            Know More About PAARAL
+          </Button>
+        </div>
         <DeadlinePanel />
       </div>
     </section>
