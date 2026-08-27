@@ -16,7 +16,7 @@ import type {
 const STEP_ORDER = ["schoolType", "seg", "income", "employment", "result"] as const;
 
 const OPTION_CARD =
-  "w-full rounded-xl border border-slate-200 p-4 text-left transition hover:border-primary hover:bg-primary/5";
+  "w-full rounded-xl border border-slate-200 bg-white p-4 text-left shadow-sm transition hover:border-primary hover:bg-primary/5";
 
 export default function EligibilityPage() {
   const router = useRouter();
@@ -35,7 +35,7 @@ export default function EligibilityPage() {
 
   if (!account) {
     return (
-      <div className="flex min-h-screen flex-col bg-slate-50">
+      <div className="flex min-h-screen flex-col bg-background">
         <SiteHeader />
         <div className="flex flex-1 flex-col items-center justify-center gap-4 p-8 text-center">
           <p className="text-sm text-slate-500">
@@ -174,10 +174,10 @@ export default function EligibilityPage() {
                         }
                         patchEligAnswers({ segs });
                       }}
-                      className={`flex w-full items-center gap-3 rounded-xl border p-3 text-left text-sm transition ${
+                      className={`flex w-full items-center gap-3 rounded-xl border p-3 text-left text-sm shadow-sm transition ${
                         checked
                           ? "border-primary bg-primary/5 font-medium text-primary"
-                          : "border-slate-200 text-slate-700 hover:border-slate-300"
+                          : "border-slate-200 bg-white text-slate-700 hover:border-slate-300"
                       }`}
                     >
                       <span

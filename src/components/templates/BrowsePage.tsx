@@ -40,7 +40,7 @@ export default function BrowsePage() {
   return (
     <div className="flex h-screen flex-col overflow-hidden">
       <SiteHeader />
-      <div className="relative flex-1 overflow-hidden bg-[#f8f9fa]">
+      <div className="relative flex-1 overflow-hidden bg-background">
         <div className="absolute inset-0">
           {viewMode === "map" && (
             <SchoolMap

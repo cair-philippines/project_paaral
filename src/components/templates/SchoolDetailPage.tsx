@@ -17,7 +17,7 @@ export default function SchoolDetailPage({ school }: SchoolDetailPageProps) {
   return (
     <div className="flex flex-1 flex-col">
       <SiteHeader />
-      <div className="mx-auto flex w-full max-w-4xl flex-1 flex-col gap-6 bg-[#f8f9fa] p-6">
+      <div className="mx-auto flex w-full max-w-4xl flex-1 flex-col gap-6 bg-background p-6">
         <Link
           href="/browse"
           className="flex items-center gap-1 text-sm font-semibold text-primary hover:underline"

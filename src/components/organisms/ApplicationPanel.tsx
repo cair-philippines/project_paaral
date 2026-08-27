@@ -218,7 +218,7 @@ export default function ApplicationPanel() {
               );
               const name = school?.school_name || "your chosen school";
               return (
-                <div className="rounded-xl border border-slate-200 bg-slate-50 p-4">
+                <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4 shadow-sm">
                   <div className="flex items-start gap-3">
                     <Info className="h-6 w-6 shrink-0 text-slate-400" />
                     <div>
@@ -298,7 +298,7 @@ export default function ApplicationPanel() {
                 })}
 
               {backfillCandidate && (
-                <div className="rounded-xl border border-slate-200 p-4">
+                <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
                   <p className="mb-3 text-sm text-slate-700">
                     One of your schools said no. Would you like to add your
                     next choice,{" "}
@@ -319,7 +319,7 @@ export default function ApplicationPanel() {
               )}
 
               {isSlateExhausted && (
-                <div className="space-y-3 rounded-xl border border-slate-200 p-4">
+                <div className="space-y-3 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
                   <p className="text-sm text-slate-700">
                     None of your private school choices worked out this
                     time. What would you like to do next?
@@ -561,7 +561,7 @@ export default function ApplicationPanel() {
             </div>
           )}
 
-          <div className="space-y-2 rounded-xl border border-slate-200 p-4">
+          <div className="space-y-2 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
             <p className={`${SECTION_LABEL} mb-2`}>
               {applicationState === "not_eligible"
                 ? "Enrollment Checklist"
@@ -674,7 +674,7 @@ function WishlistRowContent({
   meta: SchoolStatusMetaLike | null;
 }) {
   return (
-    <div className="flex items-start gap-3 rounded-xl border border-slate-200 bg-white p-3">
+    <div className="flex items-start gap-3 rounded-2xl border border-slate-200 bg-white p-3 shadow-sm">
       <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-primary/10 text-xs font-bold text-primary">
         {rank}
       </span>
@@ -784,7 +784,7 @@ function SortableWishlistRow({
     <div
       ref={setNodeRef}
       style={style}
-      className={`flex items-start gap-2 rounded-xl border border-slate-200 bg-white p-3 ${isDragging ? "z-10 shadow-lg" : ""}`}
+      className={`flex items-start gap-2 rounded-2xl border border-slate-200 bg-white p-3 ${isDragging ? "z-10 shadow-lg" : "shadow-sm"}`}
     >
       <button
         type="button"

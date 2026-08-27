@@ -92,7 +92,7 @@ export default function AccountSidebar({
       </ScrollReveal>
 
       <ScrollReveal delay={0.05}>
-        <section className="rounded-2xl border border-slate-200 bg-slate-50 p-5">
+        <section className="rounded-2xl border border-slate-200 bg-slate-50 p-5 shadow-sm">
           <div className="grid h-10 w-10 place-items-center rounded-xl bg-primary text-white">
             <CircleHelp className="h-5 w-5" />
           </div>
