@@ -12,7 +12,7 @@ import CircularProgress from "@mui/material/CircularProgress";
 import { X, CheckCircle2 } from "lucide-react";
 import { useApplication } from "@/components/templates/ApplicationStateProvider";
 import {
-  validateLoginEmail,
+  verifyLoginEmail,
   type LoginLookupResult,
 } from "@/hooks/useApplicationState";
 import { getSchoolById, getTypeBadge, titleCase } from "@/lib/schools";
@@ -53,20 +53,16 @@ export default function LoginModal({ open, onClose }: LoginModalProps) {
     onClose();
   };
 
-  const handleContinue = () => {
+  const handleContinue = async () => {
     setError("");
-    const result = validateLoginEmail(email);
+    setLoading(true);
+    const result = await verifyLoginEmail(email);
+    setLoading(false);
     if (!result.ok) {
       setError(result.error ?? "Email not found.");
       return;
     }
-    setLoading(true);
-    // Simulated LIS lookup delay, matching the original mockup's convention
-    // for making the "we checked a real registry" step feel real.
-    setTimeout(() => {
-      setLoading(false);
-      setLookup(result);
-    }, 800);
+    setLookup(result);
   };
 
   const handleUseDifferentEmail = () => {

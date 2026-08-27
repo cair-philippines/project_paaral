@@ -16,13 +16,13 @@ import {
   POST_SUBMISSION_STATES,
   VALID_TRANSITIONS,
 } from "@/lib/applicationState";
+import { apiPost } from "@/lib/api";
 import {
   APPLICATION_STORAGE_KEY,
   LEARNER_RECORD,
   TEST_EMAIL,
   TEST_EMAIL_WITH_DRAFT,
   TEST_LRN,
-  TEST_LRN_WITH_DRAFT,
 } from "@/lib/constants";
 
 const DEFAULT_ELIG_ANSWERS: EligAnswers = {
@@ -47,21 +47,39 @@ export interface LoginLookupResult {
   hasDraft?: boolean;
 }
 
-/** Demo stand-in for a DepEd LIS lookup by email. Three outcomes, matching
- * CLAUDE.md's "Demo Credentials" table: a fresh valid learner, a valid
- * learner with a pending draft wishlist, or not-found (anything else). */
-export function validateLoginEmail(email: string): LoginLookupResult {
-  const normalized = email.trim().toLowerCase();
-  if (normalized === TEST_EMAIL.toLowerCase()) {
-    return { ok: true, lrn: TEST_LRN, hasDraft: false };
+/** Real LRN verification, via paaral-student-api's
+ * `/auth/verify-login-email` endpoint (Chunk 15) — replaces the old
+ * hardcoded two-email mock. Same three outcomes as before (fresh
+ * learner, learner with a draft wishlist, not-found), just backed by
+ * a real Postgres lookup now. Only two demo LRNs actually exist in
+ * the seeded dev database, so the demo hint is still added here on
+ * the frontend rather than baked into the backend's (production-shaped)
+ * error message. A network/server failure is reported as its own
+ * distinct error rather than silently looking like "not found". */
+export async function verifyLoginEmail(
+  email: string
+): Promise<LoginLookupResult> {
+  let result: LoginLookupResult;
+  try {
+    result = await apiPost<LoginLookupResult>(
+      "/api/v1/auth/verify-login-email",
+      { email }
+    );
+  } catch {
+    return {
+      ok: false,
+      error:
+        "Couldn't reach the PAARAL server. Check your connection and try again.",
+    };
   }
-  if (normalized === TEST_EMAIL_WITH_DRAFT.toLowerCase()) {
-    return { ok: true, lrn: TEST_LRN_WITH_DRAFT, hasDraft: true };
+
+  if (!result.ok) {
+    return {
+      ok: false,
+      error: `${result.error} Try ${TEST_EMAIL} or ${TEST_EMAIL_WITH_DRAFT} for this demo.`,
+    };
   }
-  return {
-    ok: false,
-    error: `Email not found in the DepEd Learner Information System. Try ${TEST_EMAIL} or ${TEST_EMAIL_WITH_DRAFT} for this demo.`,
-  };
+  return result;
 }
 
 /** Ported from src/App.jsx's v3 decoupled ESC application state machine —
