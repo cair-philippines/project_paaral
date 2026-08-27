@@ -1,5 +1,6 @@
 import { IdCard, ClipboardCheck, Search, ListChecks } from "lucide-react";
 import PrepStepCard from "@/components/molecules/PrepStepCard";
+import ScrollReveal from "@/components/atoms/ScrollReveal";
 
 const STEPS = [
   {
@@ -35,8 +36,10 @@ export default function BeforeYouStartSection() {
         Before You Start
       </h2>
       <div className="mx-auto grid max-w-5xl gap-6 md:grid-cols-4">
-        {STEPS.map((step) => (
-          <PrepStepCard key={step.title} {...step} />
+        {STEPS.map((step, i) => (
+          <ScrollReveal key={step.title} delay={i * 0.06}>
+            <PrepStepCard {...step} />
+          </ScrollReveal>
         ))}
       </div>
     </section>

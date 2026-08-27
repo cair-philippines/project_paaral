@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import Button from "@mui/material/Button";
+import { motion } from "framer-motion";
 import { User } from "lucide-react";
 import TricolorRule from "@/components/atoms/TricolorRule";
 import DeadlinePanel from "@/components/molecules/DeadlinePanel";
@@ -25,6 +26,16 @@ import { useApplication } from "@/components/templates/ApplicationStateProvider"
 function scrollToSection(id: string) {
   document.getElementById(id)?.scrollIntoView({ behavior: "instant", block: "start" });
 }
+
+// Load-in sequence for the hero — headline, subtitle, and buttons fade up
+// one after another. Not scroll-triggered (it's above the fold, always
+// visible on load); deliberately not reduced-motion-aware, per Paula's
+// explicit call to skip that for now on this specific animation.
+const fadeUp = (delay: number) => ({
+  initial: { opacity: 0, y: 16 },
+  animate: { opacity: 1, y: 0 },
+  transition: { duration: 0.4, delay, ease: "easeOut" as const },
+});
 
 export default function HeroSection() {
   const { account, openLoginModal } = useApplication();
@@ -60,61 +71,75 @@ export default function HeroSection() {
           </Button>
         )}
       </div>
-      <TricolorRule className="mx-auto mb-8" />
-      <h1 className="text-4xl font-bold tracking-tight text-white md:text-6xl">
+      <motion.div {...fadeUp(0)}>
+        <TricolorRule className="mx-auto mb-8" />
+      </motion.div>
+      <motion.h1
+        {...fadeUp(0.1)}
+        className="text-4xl font-bold tracking-tight text-white md:text-6xl"
+      >
         Find your ESC school.
         <br />
         Apply with confidence.
-      </h1>
-      <p className="mx-auto mt-4 max-w-xl text-white/80">
+      </motion.h1>
+      <motion.p
+        {...fadeUp(0.2)}
+        className="mx-auto mt-4 max-w-xl text-white/80"
+      >
         PAARAL is a platform built for the Educational Service Contracting
         (ESC) program of the Department of Education. It helps Grade 6
         learners find ESC-participating schools and apply for a subsidy,
         and shows where school slots remain insufficient.
-      </p>
-      <div className="mt-8 flex flex-col items-center gap-6">
+      </motion.p>
+      <motion.div {...fadeUp(0.3)} className="mt-8 flex flex-col items-center gap-6">
         <div className="flex flex-col items-center gap-3 sm:flex-row sm:gap-4">
-          <Button
-            component={Link}
-            href="/browse"
-            variant="contained"
-            size="large"
-            sx={{
-              bgcolor: "var(--background)",
-              color: "var(--primary)",
-              fontWeight: 700,
-              "&:hover": { bgcolor: "var(--background)", opacity: 0.9 },
-            }}
-          >
-            Browse Schools
-          </Button>
-          <Button
-            onClick={() => scrollToSection("about-esc")}
-            variant="outlined"
-            size="large"
-            sx={{
-              borderColor: "rgba(255,255,255,0.4)",
-              color: "white",
-              "&:hover": { borderColor: "white" },
-            }}
-          >
-            Know More About ESC
-          </Button>
-          <Button
-            onClick={() => scrollToSection("about-paaral")}
-            variant="outlined"
-            size="large"
-            sx={{
-              borderColor: "rgba(255,255,255,0.4)",
-              color: "white",
-              "&:hover": { borderColor: "white" },
-            }}
-          >
-            Know More About PAARAL
-          </Button>
+          <motion.div whileHover={{ scale: 1.04 }} whileTap={{ scale: 0.98 }}>
+            <Button
+              component={Link}
+              href="/browse"
+              variant="contained"
+              size="large"
+              sx={{
+                bgcolor: "var(--background)",
+                color: "var(--primary)",
+                fontWeight: 700,
+                "&:hover": { bgcolor: "var(--background)", opacity: 0.9 },
+              }}
+            >
+              Browse Schools
+            </Button>
+          </motion.div>
+          <motion.div whileHover={{ scale: 1.04 }} whileTap={{ scale: 0.98 }}>
+            <Button
+              onClick={() => scrollToSection("about-esc")}
+              variant="outlined"
+              size="large"
+              sx={{
+                borderColor: "rgba(255,255,255,0.4)",
+                color: "white",
+                "&:hover": { borderColor: "white" },
+              }}
+            >
+              Know More About ESC
+            </Button>
+          </motion.div>
+          <motion.div whileHover={{ scale: 1.04 }} whileTap={{ scale: 0.98 }}>
+            <Button
+              onClick={() => scrollToSection("about-paaral")}
+              variant="outlined"
+              size="large"
+              sx={{
+                borderColor: "rgba(255,255,255,0.4)",
+                color: "white",
+                "&:hover": { borderColor: "white" },
+              }}
+            >
+              Know More About PAARAL
+            </Button>
+          </motion.div>
         </div>
         <DeadlinePanel />
-      </div>
+      </motion.div>
     </section>
   );
 }

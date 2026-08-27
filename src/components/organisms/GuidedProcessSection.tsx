@@ -1,4 +1,5 @@
 import GuidedStep from "@/components/molecules/GuidedStep";
+import ScrollReveal from "@/components/atoms/ScrollReveal";
 
 const STEPS = [
   {
@@ -29,7 +30,9 @@ export default function GuidedProcessSection() {
       </h2>
       <div className="flex flex-col gap-6">
         {STEPS.map((step, i) => (
-          <GuidedStep key={step.title} number={i + 1} {...step} />
+          <ScrollReveal key={step.title} delay={i * 0.06}>
+            <GuidedStep number={i + 1} {...step} />
+          </ScrollReveal>
         ))}
       </div>
     </section>

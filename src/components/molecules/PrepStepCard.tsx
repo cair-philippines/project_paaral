@@ -21,7 +21,7 @@ export default function PrepStepCard({
   color = "primary",
 }: PrepStepCardProps) {
   return (
-    <div className="flex flex-col items-center gap-3 rounded-2xl bg-white p-6 text-center shadow-sm">
+    <div className="flex flex-col items-center gap-3 rounded-2xl bg-white p-6 text-center shadow-sm transition-all duration-200 hover:-translate-y-1 hover:shadow-lg">
       <div
         className={`flex h-14 w-14 items-center justify-center rounded-full text-white ${BADGE_COLORS[color]}`}
       >
