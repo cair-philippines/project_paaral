@@ -31,8 +31,8 @@ export default function SchoolDetailPage({ school }: SchoolDetailPageProps) {
             {school.school_name}
           </h1>
           <p className="mt-1 text-sm text-slate-500">
-            {titleCase(school.deped_barangay)},{" "}
-            {titleCase(school.deped_municipality)}
+            {titleCase(school.barangay)},{" "}
+            {titleCase(school.municipality)}
           </p>
           <span
             className={`mt-3 inline-block rounded-full px-2 py-0.5 text-[10px] font-bold uppercase ${badge.className}`}

@@ -1,22 +1,51 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { ChevronLeft, ChevronRight } from "lucide-react";
+import CircularProgress from "@mui/material/CircularProgress";
 import SiteHeader from "@/components/organisms/SiteHeader";
 import FilterSidebar from "@/components/organisms/FilterSidebar";
 import SchoolMap from "@/components/organisms/SchoolMap";
 import SchoolResultCard from "@/components/organisms/SchoolResultCard";
 import ViewToggle, { type BrowseViewMode } from "@/components/molecules/ViewToggle";
 import { useSchoolFilters } from "@/hooks/useSchoolFilters";
-import { getBarangayOptions, getQcSchools } from "@/lib/schools";
+import { getBarangayOptions, fetchSchools } from "@/lib/schools";
 import type { School } from "@/types/school";
-
-const schools = getQcSchools();
-const barangayOptions = getBarangayOptions(schools);
 
 const PANEL_WIDTH = 320;
 
+/** Live school data (Chunk 16, step 7) — fetched once on mount from
+ * `paaral-student-api` (Option A: fetch everything, filter client-side
+ * via `useSchoolFilters`, exactly as when this read the bundled
+ * `qc-schools.json`). See `docs/post-pilot-scaling.md` for why this
+ * approach, and what changes if it stops being a good fit. */
 export default function BrowsePage() {
+  const [schools, setSchools] = useState<School[] | null>(null);
+  const [loadError, setLoadError] = useState<string | null>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+    fetchSchools()
+      .then((data) => {
+        if (!cancelled) setSchools(data);
+      })
+      .catch(() => {
+        if (!cancelled) {
+          setLoadError(
+            "Couldn't load the school list. Please check your connection and try again."
+          );
+        }
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  const barangayOptions = useMemo(
+    () => getBarangayOptions(schools ?? []),
+    [schools]
+  );
+
   const {
     filters,
     feeBounds,
@@ -31,11 +60,35 @@ export default function BrowsePage() {
     setSubsidyRange,
     setNetFeeRange,
     resetFilters,
-  } = useSchoolFilters(schools);
+  } = useSchoolFilters(schools ?? []);
 
   const [viewMode, setViewMode] = useState<BrowseViewMode>("map");
   const [selectedSchool, setSelectedSchool] = useState<School | null>(null);
   const [filtersOpen, setFiltersOpen] = useState(true);
+
+  if (loadError) {
+    return (
+      <div className="flex h-screen flex-col overflow-hidden">
+        <SiteHeader />
+        <div className="flex flex-1 items-center justify-center bg-background p-6">
+          <p className="max-w-sm rounded border border-red-200 bg-red-50 p-4 text-center text-sm text-red-700">
+            {loadError}
+          </p>
+        </div>
+      </div>
+    );
+  }
+
+  if (schools === null) {
+    return (
+      <div className="flex h-screen flex-col overflow-hidden">
+        <SiteHeader />
+        <div className="flex flex-1 items-center justify-center bg-background">
+          <CircularProgress />
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="flex h-screen flex-col overflow-hidden">

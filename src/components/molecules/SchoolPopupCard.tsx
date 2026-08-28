@@ -27,7 +27,7 @@ export default function SchoolPopupCard({ school }: SchoolPopupCardProps) {
         <AddToWishlistButton school={school} variant="compact" />
       </div>
       <p className="text-xs text-slate-500">
-        {titleCase(school.deped_barangay)}, {titleCase(school.deped_municipality)}
+        {titleCase(school.barangay)}, {titleCase(school.municipality)}
       </p>
       <span
         className={`inline-block w-fit rounded-full px-2 py-0.5 text-[10px] font-bold uppercase ${badge.className}`}

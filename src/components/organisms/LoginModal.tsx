@@ -196,7 +196,7 @@ export default function LoginModal({ open, onClose }: LoginModalProps) {
                         </p>
                         <div className="mt-1 flex items-center gap-2">
                           <p className="text-xs text-slate-500">
-                            {titleCase(school!.deped_barangay)}, Quezon City
+                            {titleCase(school!.barangay)}, Quezon City
                           </p>
                           <span
                             className={`rounded-full px-1.5 py-0.5 text-[9px] font-bold uppercase ${badge.className}`}

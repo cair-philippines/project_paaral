@@ -20,11 +20,11 @@ export default function SchoolFactSheet({ school }: SchoolFactSheetProps) {
         <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
           <FactTile
             label="Municipality"
-            value={titleCase(school.deped_municipality) ?? "Not available"}
+            value={titleCase(school.municipality) ?? "Not available"}
           />
           <FactTile
             label="Barangay"
-            value={titleCase(school.deped_barangay) ?? "Not available"}
+            value={titleCase(school.barangay) ?? "Not available"}
           />
           <FactTile
             label="Setting"
@@ -71,24 +71,8 @@ export default function SchoolFactSheet({ school }: SchoolFactSheetProps) {
         </h2>
         <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
           <FactTile
-            label="Fixed Slots"
-            value={school.slot_fixed ?? "Not available"}
-          />
-          <FactTile
-            label="Incentive Slots"
-            value={school.slot_incentive ?? "Not available"}
-          />
-          <FactTile
-            label="Additional Slots"
-            value={school.slot_additional ?? "Not available"}
-          />
-          <FactTile
             label="Total Slots"
             value={school.slot_total ?? "Not available"}
-          />
-          <FactTile
-            label="Slots Billed"
-            value={school.slot_billed ?? "Not available"}
           />
           <FactTile
             label="Slots Unutilized"

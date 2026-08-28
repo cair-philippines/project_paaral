@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import type { School } from "@/types/school";
 import { getFeeRange, getNetFeeRange, getSubsidyRange } from "@/lib/schools";
 
@@ -36,6 +36,21 @@ export function useSchoolFilters(schools: School[]) {
   const [netFeeRange, setNetFeeRange] =
     useState<[number, number]>(netFeeBounds);
 
+  // `schools` arrives asynchronously (fetched from the live API) and
+  // starts empty, so the `useState` initializers above only ever see
+  // `[0, 0]` bounds on first mount - `useState`'s initial value isn't
+  // re-evaluated on later renders. Sync the range state once, the
+  // first time real bounds appear, without touching it again (so a
+  // user's own slider adjustment afterward is never overwritten).
+  const boundsAppliedRef = useRef(false);
+  useEffect(() => {
+    if (boundsAppliedRef.current || schools.length === 0) return;
+    boundsAppliedRef.current = true;
+    setFeeRange(feeBounds);
+    setSubsidyRange(subsidyBounds);
+    setNetFeeRange(netFeeBounds);
+  }, [schools, feeBounds, subsidyBounds, netFeeBounds]);
+
   const filteredSchools = useMemo(() => {
     const query = search.trim().toLowerCase();
     return schools.filter((school) => {
@@ -48,7 +63,7 @@ export function useSchoolFilters(schools: School[]) {
       if (escOnly && !school.is_esc_participating) {
         return false;
       }
-      if (barangay && school.deped_barangay !== barangay) {
+      if (barangay && school.barangay !== barangay) {
         return false;
       }
       if (!inRange(school.esc_total_fees, feeRange)) return false;

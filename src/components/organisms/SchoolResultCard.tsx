@@ -71,7 +71,7 @@ export default function SchoolResultCard({
             {school.school_name}
           </h3>
           <p className="mt-1 truncate text-xs text-slate-500">
-            {titleCase(school.deped_barangay)}, Quezon City
+            {titleCase(school.barangay)}, Quezon City
           </p>
           <span
             className={`mt-2 inline-block rounded-full px-2 py-0.5 text-[10px] font-bold uppercase ${badge.className}`}

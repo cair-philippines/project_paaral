@@ -1,8 +1,83 @@
 import type { School } from "@/types/school";
 import qcSchools from "@/lib/data/qc-schools.json";
+import { apiGet } from "@/lib/api";
 
+/** Build-time-only snapshot, used solely so the static export knows
+ * which `/schools/[school_id]` pages to pre-render (`generateStaticParams`
+ * can't call a live API at build time without making the build itself
+ * depend on the backend being reachable). The live browse/search
+ * experience uses `fetchSchools()` instead — see `docs/post-pilot-scaling.md`
+ * for the tradeoff this snapshot approach accepts. */
 export function getQcSchools(): School[] {
   return qcSchools as School[];
+}
+
+/** Wire shape of `GET /api/v1/schools` — camelCase, matching the
+ * backend's `CamelModel` convention (same as the auth endpoint's
+ * `LoginLookupResult`). Kept separate from `School`, which stays
+ * snake_case to match the many already-existing components built
+ * against the original BigQuery-column-named static JSON - translating
+ * at this one boundary is far less invasive than renaming every field
+ * access across the app. */
+interface ApiSchool {
+  schoolId: string;
+  schoolName: string;
+  latitude: number | null;
+  longitude: number | null;
+  region: string | null;
+  province: string | null;
+  municipality: string | null;
+  barangay: string | null;
+  urbanRural: "U" | "R" | null;
+  lguIncomeClass: string | null;
+  isEscParticipating: boolean;
+  schoolType: "public" | "private";
+  isHuc: boolean | null;
+  escSubsidyAmount: number | null;
+  slotTotal: number | null;
+  slotUnutilized: number | null;
+  escTuition: number | null;
+  escOtherFees: number | null;
+  escMiscFees: number | null;
+  escTotalFees: number | null;
+  escNetFees: number | null;
+  escRatingRank: number | null;
+}
+
+function mapApiSchool(s: ApiSchool): School {
+  return {
+    school_id: s.schoolId,
+    school_name: s.schoolName,
+    latitude: s.latitude,
+    longitude: s.longitude,
+    region: s.region,
+    province: s.province,
+    municipality: s.municipality,
+    barangay: s.barangay,
+    urban_rural: s.urbanRural,
+    lgu_income_class: s.lguIncomeClass,
+    is_esc_participating: s.isEscParticipating,
+    school_type: s.schoolType,
+    is_huc: s.isHuc,
+    esc_subsidy_amount: s.escSubsidyAmount,
+    slot_total: s.slotTotal,
+    slot_unutilized: s.slotUnutilized,
+    esc_tuition: s.escTuition,
+    esc_other_fees: s.escOtherFees,
+    esc_misc_fees: s.escMiscFees,
+    esc_total_fees: s.escTotalFees,
+    esc_net_fees: s.escNetFees,
+    esc_rating_rank: s.escRatingRank,
+  };
+}
+
+/** Live school list from `paaral-student-api` (Chunk 16, step 7) —
+ * the runtime data source for `/browse`, replacing `getQcSchools()`.
+ * Called with no filters; `useSchoolFilters` still does the actual
+ * filtering client-side (Option A, see `docs/post-pilot-scaling.md`). */
+export async function fetchSchools(): Promise<School[]> {
+  const schools = await apiGet<ApiSchool[]>("/api/v1/schools");
+  return schools.map(mapApiSchool);
 }
 
 export function getSchoolById(id: string): School | undefined {
@@ -12,7 +87,7 @@ export function getSchoolById(id: string): School | undefined {
 export function getBarangayOptions(schools: School[]): string[] {
   const barangays = new Set<string>();
   for (const school of schools) {
-    if (school.deped_barangay) barangays.add(school.deped_barangay);
+    if (school.barangay) barangays.add(school.barangay);
   }
   return Array.from(barangays).sort();
 }

@@ -4,10 +4,10 @@ export interface School {
   latitude: number | null;
   longitude: number | null;
 
-  deped_region: string | null;
-  deped_province: string | null;
-  deped_municipality: string | null;
-  deped_barangay: string | null;
+  region: string | null;
+  province: string | null;
+  municipality: string | null;
+  barangay: string | null;
 
   urban_rural: "U" | "R" | null;
   lgu_income_class: string | null;
@@ -17,11 +17,7 @@ export interface School {
   is_huc: boolean | null;
 
   esc_subsidy_amount: number | null;
-  slot_fixed: number | null;
-  slot_incentive: number | null;
-  slot_additional: number | null;
   slot_total: number | null;
-  slot_billed: number | null;
   slot_unutilized: number | null;
 
   esc_tuition: number | null;
