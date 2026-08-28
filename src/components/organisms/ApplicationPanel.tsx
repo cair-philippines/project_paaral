@@ -140,6 +140,8 @@ export default function ApplicationPanel() {
     canEnrollNonEsc,
     handleSubmitEsc,
     handleEnrollNonEsc,
+    isSyncing,
+    syncError,
   } = app;
 
   // Which rejected school is picked for "Continue Enrollment (No Subsidy)"
@@ -267,9 +269,10 @@ export default function ApplicationPanel() {
                           fullWidth
                           variant="contained"
                           sx={{ minHeight: 48, mt: 3 }}
+                          disabled={isSyncing}
                           onClick={() => redeemChoice(school.school_id)}
                         >
-                          Redeem This Offer
+                          {isSyncing ? "Saving…" : "Redeem This Offer"}
                         </Button>
                       )}
                       {demo.length > 0 && (
@@ -282,10 +285,11 @@ export default function ApplicationPanel() {
                               <button
                                 key={d.next}
                                 type="button"
+                                disabled={isSyncing}
                                 onClick={() =>
                                   advanceSchool(school.school_id, d.next)
                                 }
-                                className={`w-full rounded-lg py-2.5 text-xs font-bold uppercase tracking-wide text-white ${d.className}`}
+                                className={`w-full rounded-lg py-2.5 text-xs font-bold uppercase tracking-wide text-white disabled:opacity-50 ${d.className}`}
                               >
                                 {d.label}
                               </button>
@@ -311,9 +315,12 @@ export default function ApplicationPanel() {
                     fullWidth
                     variant="contained"
                     sx={{ minHeight: 48 }}
+                    disabled={isSyncing}
                     onClick={backfillSlate}
                   >
-                    Yes, Add {backfillCandidate.school_name}
+                    {isSyncing
+                      ? "Saving…"
+                      : `Yes, Add ${backfillCandidate.school_name}`}
                   </Button>
                 </div>
               )}
@@ -365,18 +372,21 @@ export default function ApplicationPanel() {
                           color: "white",
                           "&:hover": { bgcolor: "#0f172a" },
                         }}
+                        disabled={isSyncing}
                         onClick={() =>
                           continueWithoutSubsidy(selectedNonEscChoice.school_id)
                         }
                       >
-                        Continue Enrollment at {selectedNonEscChoice.school_name}{" "}
-                        (No Subsidy)
+                        {isSyncing
+                          ? "Saving…"
+                          : `Continue Enrollment at ${selectedNonEscChoice.school_name} (No Subsidy)`}
                       </Button>
                     )}
                     <Button
                       fullWidth
                       variant="outlined"
                       sx={{ minHeight: 48 }}
+                      disabled={isSyncing}
                       onClick={applyAgainDifferentSchool}
                     >
                       Stop and Choose Different Private Schools
@@ -612,20 +622,20 @@ export default function ApplicationPanel() {
               fullWidth
               variant="contained"
               sx={{ minHeight: 48 }}
-              disabled={!canEnrollNonEsc}
+              disabled={!canEnrollNonEsc || isSyncing}
               onClick={handleEnrollNonEsc}
             >
-              Enroll Without ESC
+              {isSyncing ? "Saving…" : "Enroll Without ESC"}
             </Button>
           ) : (
             <Button
               fullWidth
               variant="contained"
               sx={{ minHeight: 48 }}
-              disabled={!canSubmitEsc}
+              disabled={!canSubmitEsc || isSyncing}
               onClick={handleSubmitEsc}
             >
-              Submit Application
+              {isSyncing ? "Saving…" : "Submit Application"}
             </Button>
           )}
         </div>
@@ -635,6 +645,11 @@ export default function ApplicationPanel() {
 
   return (
     <div className="space-y-10">
+      {syncError && (
+        <p className="rounded border border-red-200 bg-red-50 p-3 text-sm text-red-700">
+          {syncError}
+        </p>
+      )}
       {tabList.map((t, i) => {
         const section = sectionFor[t];
         const number = String(i + 1).padStart(2, "0");
