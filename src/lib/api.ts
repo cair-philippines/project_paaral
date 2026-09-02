@@ -7,8 +7,19 @@ async function request<TResponse>(
 ): Promise<TResponse> {
   const res = await fetch(`${API_BASE_URL}${path}`, init);
   if (!res.ok) {
-    throw new Error(`API request to ${path} failed with ${res.status}`);
+    // FastAPI's HTTPException bodies look like {"detail": "..."} with a
+    // plain-language message (e.g. document-upload validation errors) -
+    // surface that to the caller instead of a generic status-code string,
+    // so the UI can show it directly rather than a technical fallback.
+    const detail = await res
+      .json()
+      .then((body: { detail?: string }) => body.detail)
+      .catch(() => undefined);
+    throw new Error(
+      detail ?? `API request to ${path} failed with ${res.status}`
+    );
   }
+  if (res.status === 204) return undefined as TResponse;
   return res.json() as Promise<TResponse>;
 }
 
@@ -53,4 +64,22 @@ export function apiPatch<TResponse>(
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(body),
   });
+}
+
+/** Same contract as `apiPost`, for deleting a resource - no body. */
+export function apiDelete<TResponse = void>(path: string): Promise<TResponse> {
+  return request<TResponse>(path, { method: "DELETE" });
+}
+
+/** Uploads a file as `multipart/form-data` (document uploads, Chunk 18).
+ * No `Content-Type` header is set here - the browser fills in the
+ * multipart boundary itself when the body is a `FormData` instance;
+ * setting it manually would omit the boundary and break parsing. */
+export function apiUpload<TResponse>(
+  path: string,
+  file: File
+): Promise<TResponse> {
+  const formData = new FormData();
+  formData.append("file", file);
+  return request<TResponse>(path, { method: "PUT", body: formData });
 }

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, type ReactNode } from "react";
+import { useRef, useState, type ReactNode } from "react";
 import Button from "@mui/material/Button";
 import ToggleButtonGroup from "@mui/material/ToggleButtonGroup";
 import ToggleButton from "@mui/material/ToggleButton";
@@ -14,6 +14,7 @@ import {
   Heart,
   Check,
   GripVertical,
+  Upload,
 } from "lucide-react";
 import {
   DndContext,
@@ -35,6 +36,10 @@ import { CSS } from "@dnd-kit/utilities";
 import AccountSection from "@/components/molecules/AccountSection";
 import { useApplication } from "@/components/templates/ApplicationStateProvider";
 import { SCHOOL_STATUS_META } from "@/lib/applicationState";
+import {
+  ALLOWED_DOCUMENT_TYPES,
+  MAX_DOCUMENT_SIZE_BYTES,
+} from "@/lib/documents";
 import type { EscSchoolStatus } from "@/types/application";
 import type { School } from "@/types/school";
 
@@ -129,9 +134,12 @@ export default function ApplicationPanel() {
     applyAgainDifferentSchool,
     requiredDocs,
     uploadedDocs,
+    stagedDocs,
     docsReady,
-    uploadDoc,
-    simulateAllUploads,
+    docUploadProgress,
+    stageDoc,
+    removeDoc,
+    submitDocuments,
     surveyAnswers,
     setSurveyAnswers,
     generalSurveyComplete,
@@ -463,9 +471,13 @@ export default function ApplicationPanel() {
           category={account.category}
           requiredDocs={requiredDocs}
           uploadedDocs={uploadedDocs}
+          stagedDocs={stagedDocs}
           docsReady={docsReady}
-          uploadDoc={uploadDoc}
-          simulateAllUploads={simulateAllUploads}
+          docUploadProgress={docUploadProgress}
+          stageDoc={stageDoc}
+          removeDoc={removeDoc}
+          submitDocuments={submitDocuments}
+          isSyncing={isSyncing}
           docsPendingChoices={docsPendingChoices}
           advanceSchool={advanceSchool}
         />
@@ -594,7 +606,7 @@ export default function ApplicationPanel() {
                     done: hasPublicAlternative,
                     label: "Public school included (guaranteed fallback)",
                   },
-                  { done: docsReady, label: "Documents ready" },
+                  { done: docsReady, label: "Documents submitted" },
                   {
                     done: generalSurveyComplete && escSurveyComplete,
                     label: "Survey complete",
@@ -846,15 +858,127 @@ function SortableWishlistRow({
 // this file rather than a new atomic-design component since it's not
 // reused). No longer takes a `setTab` prop — there are no tabs to switch
 // between anymore, every section is always visible on the page. ─────────
+/** One required-document "bin," in one of three states: empty (no
+ * file picked), staged (a file is chosen locally but hasn't been sent
+ * anywhere yet - the student hasn't clicked "Submit Documents"), or
+ * confirmed (actually on GCS). Only "confirmed" counts toward
+ * `docsReady`. Manages its own file input ref and client-side
+ * validation error; staging a file is purely local (no network call),
+ * so there's no "uploading" state here for that action - only
+ * `isPending`, used for the network-backed Remove of an
+ * already-confirmed document. */
+function DocumentRow({
+  doc,
+  uploaded,
+  stagedFile,
+  isSyncing,
+  isPending,
+  onStage,
+  onRemove,
+}: {
+  doc: string;
+  uploaded: boolean;
+  stagedFile: File | null;
+  isSyncing: boolean;
+  isPending: boolean;
+  onStage: (doc: string, file: File) => void;
+  onRemove: (doc: string) => void;
+}) {
+  const inputRef = useRef<HTMLInputElement>(null);
+  const [error, setError] = useState<string | null>(null);
+  const filled = uploaded || Boolean(stagedFile);
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    e.target.value = ""; // lets the same file be chosen again later
+    if (!file) return;
+    if (!ALLOWED_DOCUMENT_TYPES.includes(file.type)) {
+      setError("Please choose a JPG, PNG, or PDF file.");
+      return;
+    }
+    if (file.size > MAX_DOCUMENT_SIZE_BYTES) {
+      setError("This file is too large. Please choose one under 10MB.");
+      return;
+    }
+    setError(null);
+    onStage(doc, file);
+  };
+
+  return (
+    <div
+      className={`flex items-start gap-3 rounded-xl border p-3 ${uploaded ? "border-green-200 bg-green-50" : stagedFile ? "border-primary/40 bg-primary/5" : "border-slate-200 bg-white"}`}
+    >
+      <div
+        className={`mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full ${uploaded ? "bg-green-500" : stagedFile ? "border-2 border-primary" : "border-2 border-slate-300"}`}
+      >
+        {uploaded && <Check className="h-3 w-3 text-white" strokeWidth={3} />}
+      </div>
+      <div className="min-w-0 flex-1">
+        <p className="text-xs leading-snug text-slate-700">{doc}</p>
+        {stagedFile && !uploaded && (
+          <p className="mt-0.5 truncate text-[10px] text-primary">
+            Ready to submit: {stagedFile.name}
+          </p>
+        )}
+        <input
+          ref={inputRef}
+          type="file"
+          accept={ALLOWED_DOCUMENT_TYPES.join(",")}
+          onChange={handleFileChange}
+          className="hidden"
+        />
+        {isPending ? (
+          <p className="mt-1.5 text-[10px] font-bold uppercase tracking-wide text-slate-400">
+            Removing…
+          </p>
+        ) : (
+          <div className="mt-1.5 flex items-center gap-3">
+            <button
+              type="button"
+              disabled={isSyncing}
+              onClick={() => inputRef.current?.click()}
+              className="flex items-center gap-1 text-[10px] font-bold uppercase tracking-wide text-primary hover:underline disabled:opacity-50"
+            >
+              {filled ? (
+                "Replace File"
+              ) : (
+                <>
+                  <Upload className="h-3 w-3" /> Choose File (JPG, PNG, or
+                  PDF, up to 10MB)
+                </>
+              )}
+            </button>
+            {filled && (
+              <button
+                type="button"
+                disabled={isSyncing}
+                onClick={() => onRemove(doc)}
+                className="text-[10px] font-bold uppercase tracking-wide text-red-600 hover:underline disabled:opacity-50"
+              >
+                Remove
+              </button>
+            )}
+          </div>
+        )}
+        {error && <p className="mt-1 text-[10px] text-red-600">{error}</p>}
+      </div>
+    </div>
+  );
+}
+
 function DocumentsTab({
   applicationState,
   isPostSubmission,
   category,
   requiredDocs,
   uploadedDocs,
+  stagedDocs,
   docsReady,
-  uploadDoc,
-  simulateAllUploads,
+  docUploadProgress,
+  stageDoc,
+  removeDoc,
+  submitDocuments,
+  isSyncing,
   docsPendingChoices,
   advanceSchool,
 }: {
@@ -863,13 +987,25 @@ function DocumentsTab({
   category: string | null;
   requiredDocs: string[];
   uploadedDocs: string[];
+  stagedDocs: Record<string, File>;
   docsReady: boolean;
-  uploadDoc: (doc: string) => void;
-  simulateAllUploads: () => void;
+  docUploadProgress: { completed: number; total: number } | null;
+  stageDoc: (doc: string, file: File) => void;
+  removeDoc: (doc: string) => Promise<boolean>;
+  submitDocuments: () => Promise<boolean>;
+  isSyncing: boolean;
   docsPendingChoices: School[];
   advanceSchool: (schoolId: string, toState: EscSchoolStatus) => void;
 }) {
   const hasDocsPending = docsPendingChoices.length > 0;
+  const [pendingDoc, setPendingDoc] = useState<string | null>(null);
+  const stagedCount = Object.keys(stagedDocs).length;
+
+  const handleRemove = async (doc: string) => {
+    setPendingDoc(doc);
+    await removeDoc(doc);
+    setPendingDoc(null);
+  };
 
   if (isPostSubmission && !hasDocsPending) {
     return (
@@ -935,50 +1071,59 @@ function DocumentsTab({
             Required Documents — Category {category}
           </p>
           <div className="space-y-3">
-            {requiredDocs.map((doc) => {
-              const uploaded = uploadedDocs.includes(doc);
-              return (
-                <div
-                  key={doc}
-                  className={`flex items-start gap-3 rounded-xl border p-3 ${uploaded ? "border-green-200 bg-green-50" : "border-slate-200 bg-white"}`}
-                >
-                  <div
-                    className={`mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full ${uploaded ? "bg-green-500" : "border-2 border-slate-300"}`}
-                  >
-                    {uploaded && (
-                      <Check className="h-3 w-3 text-white" strokeWidth={3} />
-                    )}
-                  </div>
-                  <div className="min-w-0 flex-1">
-                    <p className="text-xs leading-snug text-slate-700">{doc}</p>
-                    {!uploaded && (
-                      <button
-                        type="button"
-                        onClick={() => uploadDoc(doc)}
-                        className="mt-1.5 text-[10px] font-bold uppercase tracking-wide text-primary hover:underline"
-                      >
-                        Simulate Upload
-                      </button>
-                    )}
-                  </div>
-                </div>
-              );
-            })}
+            {requiredDocs.map((doc) => (
+              <DocumentRow
+                key={doc}
+                doc={doc}
+                uploaded={uploadedDocs.includes(doc)}
+                stagedFile={stagedDocs[doc] ?? null}
+                isSyncing={isSyncing}
+                isPending={pendingDoc === doc}
+                onStage={stageDoc}
+                onRemove={handleRemove}
+              />
+            ))}
           </div>
-          {!docsReady && requiredDocs.length > 0 && (
+          {docUploadProgress ? (
+            <div className="mt-4">
+              <div className="mb-1 flex items-center justify-between text-[10px] font-bold uppercase tracking-wide text-slate-500">
+                <span>
+                  Uploading document {docUploadProgress.completed + 1} of{" "}
+                  {docUploadProgress.total}
+                </span>
+                <span>
+                  {Math.round(
+                    (docUploadProgress.completed / docUploadProgress.total) *
+                      100
+                  )}
+                  %
+                </span>
+              </div>
+              <div className="h-2 w-full overflow-hidden rounded-full bg-slate-200">
+                <div
+                  className="h-full rounded-full bg-primary transition-all duration-300"
+                  style={{
+                    width: `${(docUploadProgress.completed / docUploadProgress.total) * 100}%`,
+                  }}
+                />
+              </div>
+            </div>
+          ) : stagedCount > 0 ? (
             <Button
               fullWidth
-              variant="outlined"
-              sx={{ minHeight: 44, mt: 2 }}
-              onClick={simulateAllUploads}
+              variant="contained"
+              sx={{ minHeight: 48, mt: 2 }}
+              disabled={isSyncing}
+              onClick={submitDocuments}
             >
-              Simulate all uploads (demo)
+              Submit Documents ({stagedCount})
             </Button>
-          )}
-          {docsReady && (
-            <div className="mt-4 rounded-lg border border-green-200 bg-green-50 p-3 text-center text-xs font-medium text-green-700">
-              All documents ready
-            </div>
+          ) : (
+            docsReady && (
+              <div className="mt-4 rounded-lg border border-green-200 bg-green-50 p-3 text-center text-xs font-medium text-green-700">
+                All documents submitted
+              </div>
+            )
           )}
           {hasDocsPending && docsReady && (
             <div className="mt-2 space-y-2">

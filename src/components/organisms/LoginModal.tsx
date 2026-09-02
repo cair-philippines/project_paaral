@@ -39,6 +39,7 @@ export default function LoginModal({ open, onClose }: LoginModalProps) {
   const [email, setEmail] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
+  const [starting, setStarting] = useState(false);
   const [lookup, setLookup] = useState<LoginLookupResult | null>(null);
 
   const reset = () => {
@@ -70,12 +71,22 @@ export default function LoginModal({ open, onClose }: LoginModalProps) {
     setError("");
   };
 
-  const startApplication = (wishlistIds: string[]) => {
+  const startApplication = async (wishlistIds: string[]) => {
     if (!lookup?.lrn) return;
-    createAccount(lookup.lrn, wishlistIds);
+    setStarting(true);
+    // Waits for createAccount() to finish restoring any saved
+    // wishlist/eligibility/survey/documents (Chunk 22) before
+    // navigating - otherwise the eligibility page could briefly
+    // render with the blank pre-hydration shape.
+    const account = await createAccount(lookup.lrn, wishlistIds);
+    setStarting(false);
     reset();
     onClose();
-    router.push("/eligibility");
+    // `eligAnswers` is only ever set once the questionnaire has actually
+    // been completed (even a "not eligible" result sets it - only
+    // `category` stays null there) - a returning student with one
+    // already on file shouldn't be sent through it again.
+    router.push(account.eligAnswers ? "/browse" : "/eligibility");
   };
 
   const draftSchools = DRAFT_WISHLIST_SCHOOL_IDS.map((id) =>
@@ -212,14 +223,20 @@ export default function LoginModal({ open, onClose }: LoginModalProps) {
                   fullWidth
                   variant="contained"
                   sx={{ minHeight: 48 }}
+                  disabled={starting}
                   onClick={() => startApplication(DRAFT_WISHLIST_SCHOOL_IDS)}
                 >
-                  Continue With My Saved Choices
+                  {starting ? (
+                    <CircularProgress size={20} color="inherit" />
+                  ) : (
+                    "Continue With My Saved Choices"
+                  )}
                 </Button>
                 <Button
                   fullWidth
                   variant="text"
                   sx={{ minHeight: 44, mt: 1 }}
+                  disabled={starting}
                   onClick={() => startApplication([])}
                 >
                   Start Fresh Instead
@@ -236,9 +253,14 @@ export default function LoginModal({ open, onClose }: LoginModalProps) {
                   fullWidth
                   variant="contained"
                   sx={{ minHeight: 48 }}
+                  disabled={starting}
                   onClick={() => startApplication([])}
                 >
-                  Create My Account &amp; Continue
+                  {starting ? (
+                    <CircularProgress size={20} color="inherit" />
+                  ) : (
+                    "Create My Account & Continue"
+                  )}
                 </Button>
               </>
             )}

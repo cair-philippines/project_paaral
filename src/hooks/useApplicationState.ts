@@ -18,10 +18,13 @@ import {
 } from "@/lib/applicationState";
 import { apiPost } from "@/lib/api";
 import {
+  getApplicationState,
   replaceWishlist,
+  submitEligibilityAssessment,
   submitSurvey,
   updateApplicationStatus,
 } from "@/lib/application";
+import { deleteDocument, uploadDocument } from "@/lib/documents";
 import {
   APPLICATION_STORAGE_KEY,
   LEARNER_RECORD,
@@ -176,11 +179,16 @@ export function useApplicationState(schools: School[]) {
       await submitSurvey(account.lrn, answers);
     }, "Couldn't save your survey answers. Check your connection and try again.");
 
-  // `wishlistIds` lets the login modal preload the LRN 100000000002 demo
-  // draft ("Load Draft") — passing none (or "Start Fresh") creates a normal
-  // empty-wishlist account for either demo LRN. Draft state is editable,
-  // not locked, per CLAUDE.md.
-  const createAccount = (lrn: string = TEST_LRN, wishlistIds: string[] = []) => {
+  // `wishlistIds` still lets the login modal preload the LRN 100000000002
+  // demo draft ("Load Draft") - but only as a fallback now (Chunk 22): the
+  // real saved wishlist, fetched below, wins whenever one actually exists,
+  // since a returning account's real data is always more meaningful than a
+  // hardcoded demo shape it happens to match anyway. Draft state is
+  // editable, not locked, per CLAUDE.md.
+  const createAccount = async (
+    lrn: string = TEST_LRN,
+    wishlistIds: string[] = []
+  ) => {
     const newAccount: Account = {
       email: `${lrn}@deped.gov.ph`,
       lrn,
@@ -193,8 +201,35 @@ export function useApplicationState(schools: School[]) {
       surveyAnswers: DEFAULT_SURVEY_ANSWERS,
       uploadedDocs: [],
     };
-    localStorage.setItem(APPLICATION_STORAGE_KEY, JSON.stringify(newAccount));
-    setAccountState(newAccount);
+
+    // Chunk 22: restore whatever this LRN actually has saved server-side
+    // (wishlist, eligibility result, survey answers, confirmed document
+    // uploads) instead of always starting from the blank shape above. A
+    // brand-new account - or a fetch failure, e.g. a dropped connection
+    // mid-login - just falls back to the blank shell rather than blocking
+    // login entirely on this one request.
+    let hydrated = newAccount;
+    try {
+      const saved = await getApplicationState(lrn);
+      hydrated = {
+        ...newAccount,
+        applicationState: saved.applicationState,
+        nonEscSchoolId: saved.nonEscSchoolId,
+        wishlistIds:
+          saved.wishlistIds.length > 0 ? saved.wishlistIds : wishlistIds,
+        escStatuses: saved.escStatuses,
+        category: saved.category,
+        eligAnswers: saved.eligAnswers,
+        uploadedDocs: saved.uploadedDocs,
+      };
+      setSurveyAnswers(saved.surveyAnswers);
+    } catch {
+      setSurveyAnswers(DEFAULT_SURVEY_ANSWERS);
+    }
+
+    localStorage.setItem(APPLICATION_STORAGE_KEY, JSON.stringify(hydrated));
+    setAccountState(hydrated);
+    return hydrated;
   };
 
   // Mockup-only: logout wipes local account + questionnaire state so each
@@ -266,11 +301,22 @@ export function useApplicationState(schools: School[]) {
   const completeEligibility = async () => {
     if (!account) return;
     const category = computeCategory(eligAnswers);
+
+    // Chunk 19: persist the assessment itself before flipping the
+    // account-level status, same "every write confirms before the next
+    // one starts" ordering used elsewhere (e.g. wishlist+survey before
+    // the submitted status in handleSubmitEsc) - a failed save here
+    // must not leave the account showing a category/state it never
+    // actually recorded on the backend.
+    const eligOk = await withSync(async () => {
+      await submitEligibilityAssessment(account.lrn, eligAnswers, category);
+    }, "Couldn't save your eligibility answers. Check your connection and try again.");
+    if (!eligOk) return;
+
     // Bypasses `advance()`'s transition-validity guard on purpose,
     // same as the original: resolving the initial ambiguous
     // "eligibility" state into one of its two sub-branches isn't a
-    // transition in the state-machine sense. `category`/`eligAnswers`
-    // have no backend column yet (Chunk 19) - stay local-only.
+    // transition in the state-machine sense.
     await persistStatus(category ? "eligibility" : "not_eligible", {
       category,
       eligAnswers,
@@ -415,16 +461,98 @@ export function useApplicationState(schools: School[]) {
   const requiredDocs = account?.category
     ? getDocList(account.category, account.eligAnswers ?? DEFAULT_ELIG_ANSWERS)
     : [];
+  // True only once every required document is CONFIRMED on GCS (i.e. in
+  // `uploadedDocs`) - a merely-staged file doesn't count. This is what
+  // `canSubmitEsc` gates on, so an application can never be submitted on
+  // documents that haven't actually reached storage yet (Paula's explicit
+  // direction, 2026-09-02).
   const docsReady =
     requiredDocs.length > 0 && requiredDocs.every((d) => uploadedDocs.includes(d));
 
-  const uploadDoc = (doc: string) => {
-    if (!account || uploadedDocs.includes(doc)) return;
-    updateAccount({ uploadedDocs: [...uploadedDocs, doc] });
+  // Files chosen but not yet sent to the backend - local-only (`File`
+  // objects can't go in `localStorage`), lost on a hard refresh. An
+  // accepted tradeoff: uploading only happens when the student explicitly
+  // clicks "Submit Documents," not the moment a file is chosen, so a
+  // half-finished application never leaves documents sitting in Cloud
+  // Storage. Same staging model applies both before the first submission
+  // and for a later "additional document requested" round - there's no
+  // separate immediate-upload path for either case.
+  const [stagedDocs, setStagedDocs] = useState<Record<string, File>>({});
+  const [docUploadProgress, setDocUploadProgress] = useState<{
+    completed: number;
+    total: number;
+  } | null>(null);
+
+  const stageDoc = (doc: string, file: File) => {
+    setStagedDocs((prev) => ({ ...prev, [doc]: file }));
   };
 
-  const simulateAllUploads = () => {
-    updateAccount({ uploadedDocs: requiredDocs });
+  // Clears one document, whichever state it's in - a merely-staged file
+  // is removed locally with no network call; an already-confirmed upload
+  // needs a real DELETE so it's actually removed from GCS too.
+  const removeDoc = (doc: string): Promise<boolean> => {
+    if (doc in stagedDocs) {
+      setStagedDocs((prev) => {
+        const next = { ...prev };
+        delete next[doc];
+        return next;
+      });
+      return Promise.resolve(true);
+    }
+    return withSync(async () => {
+      if (!account) return;
+      await deleteDocument(account.lrn, doc);
+      updateAccount({ uploadedDocs: uploadedDocs.filter((d) => d !== doc) });
+    }, "Couldn't remove your file. Check your connection and try again.");
+  };
+
+  // The "Submit Documents" action - uploads every currently-staged file
+  // to GCS one at a time (not in parallel: several large files competing
+  // for one slow connection is worse than uploading them in sequence,
+  // and it keeps failure attribution to one specific document instead of
+  // several at once). Tracks success as it goes, both so `docUploadProgress`
+  // can drive a real progress bar (Paula's call, over a per-request
+  // timeout - a timeout would abort a slow-but-working upload instead of
+  // letting it finish) and so a retry after a failure never re-uploads a
+  // document that already made it through.
+  const submitDocuments = async (): Promise<boolean> => {
+    if (!account) return false;
+    const entries = Object.entries(stagedDocs);
+    if (entries.length === 0) return true;
+
+    setIsSyncing(true);
+    setSyncError(null);
+    setDocUploadProgress({ completed: 0, total: entries.length });
+
+    let nextUploaded = uploadedDocs;
+    for (const [doc, file] of entries) {
+      try {
+        await uploadDocument(account.lrn, doc, file);
+      } catch {
+        setSyncError(
+          `Couldn't upload "${doc}." Check your connection and try again.`
+        );
+        setIsSyncing(false);
+        setDocUploadProgress(null);
+        return false;
+      }
+      nextUploaded = nextUploaded.includes(doc)
+        ? nextUploaded
+        : [...nextUploaded, doc];
+      updateAccount({ uploadedDocs: nextUploaded });
+      setStagedDocs((prev) => {
+        const next = { ...prev };
+        delete next[doc];
+        return next;
+      });
+      setDocUploadProgress((prev) =>
+        prev ? { ...prev, completed: prev.completed + 1 } : null
+      );
+    }
+
+    setIsSyncing(false);
+    setDocUploadProgress(null);
+    return true;
   };
 
   // ── SURVEY ───────────────────────────────────────────────────────
@@ -461,8 +589,6 @@ export function useApplicationState(schools: School[]) {
     if (!wishlistOk) return;
     const surveyOk = await persistSurvey(surveyAnswers);
     if (!surveyOk) return;
-    // uploadedDocs has no backend table yet (Chunk 18) — local only.
-    updateAccount({ uploadedDocs });
     await advance("submitted");
   };
 
@@ -521,8 +647,11 @@ export function useApplicationState(schools: School[]) {
     uploadedDocs,
     requiredDocs,
     docsReady,
-    uploadDoc,
-    simulateAllUploads,
+    stagedDocs,
+    docUploadProgress,
+    stageDoc,
+    removeDoc,
+    submitDocuments,
 
     surveyAnswers,
     setSurveyAnswers,
