@@ -2,6 +2,9 @@
 
 import { useRef, useState, type ReactNode } from "react";
 import Button from "@mui/material/Button";
+import Checkbox from "@mui/material/Checkbox";
+import FormControlLabel from "@mui/material/FormControlLabel";
+import Tooltip from "@mui/material/Tooltip";
 import ToggleButtonGroup from "@mui/material/ToggleButtonGroup";
 import ToggleButton from "@mui/material/ToggleButton";
 import {
@@ -15,6 +18,7 @@ import {
   Check,
   GripVertical,
   Upload,
+  XCircle,
 } from "lucide-react";
 import {
   DndContext,
@@ -35,25 +39,29 @@ import {
 import { CSS } from "@dnd-kit/utilities";
 import AccountSection from "@/components/molecules/AccountSection";
 import { useApplication } from "@/components/templates/ApplicationStateProvider";
-import { SCHOOL_STATUS_META } from "@/lib/applicationState";
+import { MAX_ESC_APPLICATIONS, SCHOOL_STATUS_META } from "@/lib/applicationState";
 import {
   ALLOWED_DOCUMENT_TYPES,
   MAX_DOCUMENT_SIZE_BYTES,
 } from "@/lib/documents";
-import type { EscSchoolStatus } from "@/types/application";
+import type { EscApplicationEntry, EscSchoolStatus } from "@/types/application";
 import type { School } from "@/types/school";
 
 type PanelTab = "status" | "documents" | "choices" | "survey";
 
 const STATUS_ICON: Record<EscSchoolStatus, React.ReactNode> = {
+  queued: <Clock3 className="h-6 w-6 shrink-0 text-slate-400" />,
   submitted: <Clock3 className="h-6 w-6 shrink-0 text-blue-500" />,
   rejected: <AlertCircle className="h-6 w-6 shrink-0 text-red-500" />,
   docs_pending: <FileCheck className="h-6 w-6 shrink-0 text-amber-500" />,
   docs_submitted: <FileCheck className="h-6 w-6 shrink-0 text-blue-500" />,
   granted: <Award className="h-6 w-6 shrink-0 text-purple-500" />,
   redeemed: <Check className="h-6 w-6 shrink-0 text-green-500" />,
-  withdrawn: <X className="h-6 w-6 shrink-0 text-slate-400" />,
+  declined: <XCircle className="h-6 w-6 shrink-0 text-slate-400" />,
 };
+
+const NON_ESC_TOOLTIP =
+  "PAARAL currently only processes direct applications to ESC-participating schools. This is a pilot program.";
 
 // UI-only demo controls (deliberately not part of the ported hook/lib —
 // see memory-sessions.md, SCHOOL_STATUS_META dropped these on purpose).
@@ -114,24 +122,23 @@ export default function ApplicationPanel() {
   const app = useApplication();
   const {
     account,
-    applicationState,
     isPostSubmission,
     wishlist,
-    escStatuses,
+    escApplications,
+    escParticipatingWishlistSchools,
+    selectedEscSchoolIds,
+    toggleEscSelection,
+    canFinalizeWishlist,
     removeFromWishlist,
     reorderWishlist,
-    hasPublicAlternative,
-    hasPrivateChoice,
-    privateChoices,
+    currentEscApplication,
+    queuedEscApplications,
+    resolvedEscApplications,
     redeemedChoice,
-    rejectedChoices,
-    backfillCandidate,
-    isSlateExhausted,
+    hasDocsPending,
     advanceSchool,
     redeemChoice,
-    backfillSlate,
-    continueWithoutSubsidy,
-    applyAgainDifferentSchool,
+    declineOffer,
     requiredDocs,
     uploadedDocs,
     stagedDocs,
@@ -144,28 +151,19 @@ export default function ApplicationPanel() {
     setSurveyAnswers,
     generalSurveyComplete,
     escSurveyComplete,
+    showEscSurveySection,
     canSubmitEsc,
-    canEnrollNonEsc,
     handleSubmitEsc,
-    handleEnrollNonEsc,
+    showEnrollWithoutSubsidyMessage,
+    canSubmitGeneralFeedback,
+    submitGeneralFeedback,
     isSyncing,
     syncError,
   } = app;
 
-  // Which rejected school is picked for "Continue Enrollment (No Subsidy)"
-  // once the private-school slate is fully exhausted — only meaningful when
-  // more than one school ended in 'rejected', otherwise it's the only one.
-  const [nonEscPickId, setNonEscPickId] = useState<string | null>(null);
-
   if (!account) return null;
 
-  const docsPendingChoices = privateChoices.filter(
-    (s) => escStatuses[s.school_id] === "docs_pending"
-  );
-  const selectedNonEscChoice =
-    rejectedChoices.find((s) => s.school_id === nonEscPickId) ??
-    rejectedChoices[0] ??
-    null;
+  const isEligible = account.isEligible;
 
   const tabList: PanelTab[] = isPostSubmission
     ? ["status", "documents", "choices"]
@@ -182,9 +180,15 @@ export default function ApplicationPanel() {
     : "Prepare your required documents";
 
   const surveyTitle =
-    applicationState === "not_eligible"
+    isEligible === false
       ? "Tell us about your experience"
       : "A few quick questions, then submit";
+
+  // History list excludes the redeemed choice (shown as its own banner)
+  // and, once eligibility resolves to false, nothing is submitted at all.
+  const resolvedHistory = resolvedEscApplications.filter(
+    (s) => s.school_id !== redeemedChoice?.school_id
+  );
 
   const sectionFor: Record<
     PanelTab,
@@ -195,10 +199,10 @@ export default function ApplicationPanel() {
       title: "Track your subsidy application",
       content: (
         <div className="space-y-4">
-          {applicationState === "granted" &&
+          {redeemedChoice &&
             (() => {
               const cfg = SCHOOL_STATUS_META.redeemed;
-              const name = redeemedChoice?.school_name || "your chosen school";
+              const name = redeemedChoice.school_name || "your chosen school";
               return (
                 <div className={`rounded-xl border p-4 ${cfg.color}`}>
                   <div className="flex items-start gap-3">
@@ -221,42 +225,132 @@ export default function ApplicationPanel() {
               );
             })()}
 
-          {applicationState === "non_esc" &&
+          {!redeemedChoice && showEnrollWithoutSubsidyMessage && (
+            <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4 shadow-sm">
+              <div className="flex items-start gap-3">
+                <Info className="h-6 w-6 shrink-0 text-slate-400" />
+                <div>
+                  <p className="text-sm font-bold text-slate-800">
+                    Enroll Without ESC
+                  </p>
+                  <p className="mt-1 text-xs leading-relaxed text-slate-600">
+                    None of your ESC applications worked out this time. You
+                    can still enroll directly at any school you&apos;re
+                    interested in — contact them about their regular
+                    admission process.
+                  </p>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {!redeemedChoice &&
+            currentEscApplication &&
             (() => {
-              const school = wishlist.find(
-                (s) => s.school_id === account.nonEscSchoolId
-              );
-              const name = school?.school_name || "your chosen school";
+              const school = currentEscApplication;
+              const status = escApplications[school.school_id]?.status;
+              if (!status) return null;
+              const cfg = SCHOOL_STATUS_META[status];
+              const demo = DEMO_TRANSITIONS[status] ?? [];
               return (
-                <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4 shadow-sm">
+                <div className={`rounded-xl border p-4 ${cfg.color}`}>
                   <div className="flex items-start gap-3">
-                    <Info className="h-6 w-6 shrink-0 text-slate-400" />
-                    <div>
+                    {STATUS_ICON[status]}
+                    <div className="min-w-0 flex-1">
+                      <p className="text-xs font-semibold text-slate-500">
+                        {school.school_name}
+                      </p>
                       <p className="text-sm font-bold text-slate-800">
-                        Enrolling Without ESC
+                        {cfg.title}
                       </p>
                       <p className="mt-1 text-xs leading-relaxed text-slate-600">
-                        You&apos;re proceeding with enrollment at {name}{" "}
-                        without the ESC fee subsidy.
+                        {cfg.desc(school.school_name)}
                       </p>
                     </div>
                   </div>
+                  {status === "granted" && (
+                    <div className="mt-3 flex gap-2">
+                      <Button
+                        fullWidth
+                        variant="contained"
+                        sx={{ minHeight: 48 }}
+                        disabled={isSyncing}
+                        onClick={() => redeemChoice(school.school_id)}
+                      >
+                        {isSyncing ? "Saving…" : "Redeem This Offer"}
+                      </Button>
+                      <Button
+                        fullWidth
+                        variant="outlined"
+                        sx={{ minHeight: 48 }}
+                        disabled={isSyncing}
+                        onClick={() => declineOffer(school.school_id)}
+                      >
+                        Decline
+                      </Button>
+                    </div>
+                  )}
+                  {demo.length > 0 && (
+                    <div className="mt-3 rounded-xl border border-dashed border-slate-300 p-4">
+                      <p className={`${SECTION_LABEL} mb-3 text-slate-400`}>
+                        Demo Controls
+                      </p>
+                      <div className="space-y-2">
+                        {demo.map((d) => (
+                          <button
+                            key={d.next}
+                            type="button"
+                            disabled={isSyncing}
+                            onClick={() =>
+                              advanceSchool(school.school_id, d.next)
+                            }
+                            className={`w-full rounded-lg py-2.5 text-xs font-bold uppercase tracking-wide text-white disabled:opacity-50 ${d.className}`}
+                          >
+                            {d.label}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  )}
                 </div>
               );
             })()}
 
-          {applicationState === "submitted" && (
-            <>
-              {privateChoices
-                .filter((school) => Boolean(escStatuses[school.school_id]))
-                .map((school) => {
-                  const status = escStatuses[school.school_id];
+          {queuedEscApplications.length > 0 && (
+            <div>
+              <p className={`${SECTION_LABEL} mb-2`}>Up Next</p>
+              <div className="space-y-2">
+                {queuedEscApplications.map((school) => (
+                  <div
+                    key={school.school_id}
+                    className="flex items-start gap-3 rounded-xl border border-slate-200 bg-slate-50 p-3"
+                  >
+                    {STATUS_ICON.queued}
+                    <p className="text-xs leading-relaxed text-slate-600">
+                      <span className="font-semibold text-slate-700">
+                        {school.school_name}
+                      </span>{" "}
+                      will be reviewed once your higher-ranked choice has
+                      been decided.
+                    </p>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {resolvedHistory.length > 0 && (
+            <div>
+              <p className={`${SECTION_LABEL} mb-2`}>Previous Applications</p>
+              <div className="space-y-2">
+                {resolvedHistory.map((school) => {
+                  const status = escApplications[school.school_id]?.status;
+                  if (!status) return null;
                   const cfg = SCHOOL_STATUS_META[status];
-                  const demo = DEMO_TRANSITIONS[status] ?? [];
                   return (
                     <div
                       key={school.school_id}
-                      className={`rounded-xl border p-4 ${cfg.color}`}
+                      className={`rounded-xl border p-3 ${cfg.color}`}
                     >
                       <div className="flex items-start gap-3">
                         {STATUS_ICON[status]}
@@ -267,142 +361,13 @@ export default function ApplicationPanel() {
                           <p className="text-sm font-bold text-slate-800">
                             {cfg.title}
                           </p>
-                          <p className="mt-1 text-xs leading-relaxed text-slate-600">
-                            {cfg.desc(school.school_name)}
-                          </p>
                         </div>
                       </div>
-                      {status === "granted" && (
-                        <Button
-                          fullWidth
-                          variant="contained"
-                          sx={{ minHeight: 48, mt: 3 }}
-                          disabled={isSyncing}
-                          onClick={() => redeemChoice(school.school_id)}
-                        >
-                          {isSyncing ? "Saving…" : "Redeem This Offer"}
-                        </Button>
-                      )}
-                      {demo.length > 0 && (
-                        <div className="mt-3 rounded-xl border border-dashed border-slate-300 p-4">
-                          <p className={`${SECTION_LABEL} mb-3 text-slate-400`}>
-                            Demo Controls
-                          </p>
-                          <div className="space-y-2">
-                            {demo.map((d) => (
-                              <button
-                                key={d.next}
-                                type="button"
-                                disabled={isSyncing}
-                                onClick={() =>
-                                  advanceSchool(school.school_id, d.next)
-                                }
-                                className={`w-full rounded-lg py-2.5 text-xs font-bold uppercase tracking-wide text-white disabled:opacity-50 ${d.className}`}
-                              >
-                                {d.label}
-                              </button>
-                            ))}
-                          </div>
-                        </div>
-                      )}
                     </div>
                   );
                 })}
-
-              {backfillCandidate && (
-                <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
-                  <p className="mb-3 text-sm text-slate-700">
-                    One of your schools said no. Would you like to add your
-                    next choice,{" "}
-                    <span className="font-semibold">
-                      {backfillCandidate.school_name}
-                    </span>
-                    , to your active applications?
-                  </p>
-                  <Button
-                    fullWidth
-                    variant="contained"
-                    sx={{ minHeight: 48 }}
-                    disabled={isSyncing}
-                    onClick={backfillSlate}
-                  >
-                    {isSyncing
-                      ? "Saving…"
-                      : `Yes, Add ${backfillCandidate.school_name}`}
-                  </Button>
-                </div>
-              )}
-
-              {isSlateExhausted && (
-                <div className="space-y-3 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
-                  <p className="text-sm text-slate-700">
-                    None of your private school choices worked out this
-                    time. What would you like to do next?
-                  </p>
-
-                  {rejectedChoices.length > 1 && (
-                    <div>
-                      <p className="mb-2 text-xs font-semibold text-slate-500">
-                        Which school would you like to enroll at without a
-                        subsidy?
-                      </p>
-                      <ToggleButtonGroup
-                        fullWidth
-                        exclusive
-                        orientation="vertical"
-                        value={selectedNonEscChoice?.school_id ?? null}
-                        onChange={(_, value) =>
-                          value !== null && setNonEscPickId(value)
-                        }
-                      >
-                        {rejectedChoices.map((s) => (
-                          <ToggleButton
-                            key={s.school_id}
-                            value={s.school_id}
-                            sx={{ minHeight: 44, justifyContent: "flex-start" }}
-                          >
-                            {s.school_name}
-                          </ToggleButton>
-                        ))}
-                      </ToggleButtonGroup>
-                    </div>
-                  )}
-
-                  <div className="space-y-2">
-                    {selectedNonEscChoice && (
-                      <Button
-                        fullWidth
-                        variant="contained"
-                        color="inherit"
-                        sx={{
-                          minHeight: 48,
-                          bgcolor: "#1e293b",
-                          color: "white",
-                          "&:hover": { bgcolor: "#0f172a" },
-                        }}
-                        disabled={isSyncing}
-                        onClick={() =>
-                          continueWithoutSubsidy(selectedNonEscChoice.school_id)
-                        }
-                      >
-                        {isSyncing
-                          ? "Saving…"
-                          : `Continue Enrollment at ${selectedNonEscChoice.school_name} (No Subsidy)`}
-                      </Button>
-                    )}
-                    <Button
-                      fullWidth
-                      variant="outlined"
-                      sx={{ minHeight: 48 }}
-                      disabled={isSyncing}
-                      onClick={applyAgainDifferentSchool}
-                    >
-                      Stop and Choose Different Private Schools
-                    </Button>
-                  </div>
-                </div>
-              )}
-            </>
+              </div>
+            </div>
           )}
         </div>
       ),
@@ -434,7 +399,9 @@ export default function ApplicationPanel() {
             (!isPostSubmission ? (
               <SortableWishlist
                 wishlist={wishlist}
-                escStatuses={escStatuses}
+                escApplications={escApplications}
+                selectedEscSchoolIds={selectedEscSchoolIds}
+                onToggleEscSelection={toggleEscSelection}
                 onRemove={removeFromWishlist}
                 onReorder={reorderWishlist}
               />
@@ -445,18 +412,25 @@ export default function ApplicationPanel() {
                   rank={i + 1}
                   school={school}
                   meta={
-                    escStatuses[school.school_id]
-                      ? SCHOOL_STATUS_META[escStatuses[school.school_id]]
+                    escApplications[school.school_id]
+                      ? SCHOOL_STATUS_META[escApplications[school.school_id].status]
                       : null
                   }
                 />
               ))
             ))}
-          {!isPostSubmission && !hasPublicAlternative && wishlist.length > 0 && (
+          {!isPostSubmission && wishlist.length > 0 && !canFinalizeWishlist && (
             <div className="rounded-lg border border-amber-200 bg-amber-50 p-3 text-xs text-amber-700">
-              Add at least one public school to guarantee a placement,
-              even if your ESC application isn&apos;t approved.
+              Your ranked list needs 3–5 schools, including at least one
+              ESC-participating school, before you can submit.
             </div>
+          )}
+          {!isPostSubmission && wishlist.length > 0 && (
+            <p className="text-xs text-slate-400">
+              {escParticipatingWishlistSchools.length > 0
+                ? `${selectedEscSchoolIds.length} of ${MAX_ESC_APPLICATIONS} ESC schools selected to apply to`
+                : "Add an ESC-participating school to your list to apply for a subsidy."}
+            </p>
           )}
         </div>
       ),
@@ -466,7 +440,7 @@ export default function ApplicationPanel() {
       title: documentsTitle,
       content: (
         <DocumentsTab
-          applicationState={applicationState}
+          isEligible={isEligible}
           isPostSubmission={isPostSubmission}
           category={account.category}
           requiredDocs={requiredDocs}
@@ -478,7 +452,8 @@ export default function ApplicationPanel() {
           removeDoc={removeDoc}
           submitDocuments={submitDocuments}
           isSyncing={isSyncing}
-          docsPendingChoices={docsPendingChoices}
+          hasDocsPending={hasDocsPending}
+          currentEscApplication={currentEscApplication}
           advanceSchool={advanceSchool}
         />
       ),
@@ -489,9 +464,9 @@ export default function ApplicationPanel() {
       content: (
         <div className="space-y-6">
           <p className="text-xs text-slate-400">
-            {applicationState === "not_eligible"
-              ? "2 quick questions before you can enroll."
-              : "3 quick questions before you can submit."}
+            {showEscSurveySection
+              ? "3 quick questions before you can submit."
+              : "2 quick questions."}
           </p>
 
           <div className="space-y-5">
@@ -549,7 +524,7 @@ export default function ApplicationPanel() {
             </div>
           </div>
 
-          {applicationState !== "not_eligible" && (
+          {showEscSurveySection && (
             <div className="space-y-3">
               <p className="text-[10px] font-bold uppercase tracking-widest text-slate-400">
                 About Your ESC Application
@@ -583,28 +558,42 @@ export default function ApplicationPanel() {
             </div>
           )}
 
+          {isEligible === false && (
+            <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4 shadow-sm">
+              <div className="flex items-start gap-3">
+                <Info className="h-6 w-6 shrink-0 text-slate-400" />
+                <div>
+                  <p className="text-sm font-bold text-slate-800">
+                    Enroll Without ESC
+                  </p>
+                  <p className="mt-1 text-xs leading-relaxed text-slate-600">
+                    You&apos;re not eligible for the ESC subsidy this cycle.
+                    You can still enroll directly at any school
+                    you&apos;re interested in — contact them about their
+                    regular admission process.
+                  </p>
+                </div>
+              </div>
+            </div>
+          )}
+
           <div className="space-y-2 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
             <p className={`${SECTION_LABEL} mb-2`}>
-              {applicationState === "not_eligible"
-                ? "Enrollment Checklist"
+              {isEligible === false
+                ? "Feedback Checklist"
                 : "Submission Checklist"}
             </p>
-            {(applicationState === "not_eligible"
-              ? [
-                  {
-                    done: wishlist.length > 0,
-                    label: "At least one school added",
-                  },
-                  { done: generalSurveyComplete, label: "Survey complete" },
-                ]
+            {(isEligible === false
+              ? [{ done: generalSurveyComplete, label: "Survey complete" }]
               : [
                   {
-                    done: hasPrivateChoice,
-                    label: "At least one private school added",
+                    done: canFinalizeWishlist,
+                    label:
+                      "Ranked list complete (3–5 schools, including 1 ESC-participating school)",
                   },
                   {
-                    done: hasPublicAlternative,
-                    label: "Public school included (guaranteed fallback)",
+                    done: selectedEscSchoolIds.length >= 1,
+                    label: "At least one ESC school selected to apply to",
                   },
                   { done: docsReady, label: "Documents submitted" },
                   {
@@ -629,15 +618,15 @@ export default function ApplicationPanel() {
             ))}
           </div>
 
-          {applicationState === "not_eligible" ? (
+          {isEligible === false ? (
             <Button
               fullWidth
               variant="contained"
               sx={{ minHeight: 48 }}
-              disabled={!canEnrollNonEsc || isSyncing}
-              onClick={handleEnrollNonEsc}
+              disabled={!canSubmitGeneralFeedback || isSyncing}
+              onClick={submitGeneralFeedback}
             >
-              {isSyncing ? "Saving…" : "Enroll Without ESC"}
+              {isSyncing ? "Saving…" : "Submit Feedback"}
             </Button>
           ) : (
             <Button
@@ -706,9 +695,16 @@ function WishlistRowContent({
         {rank}
       </span>
       <div className="min-w-0 flex-1">
-        <p className="text-sm font-semibold leading-snug text-primary">
-          {school.school_name}
-        </p>
+        <div className="flex items-center gap-1.5">
+          <p className="text-sm font-semibold leading-snug text-primary">
+            {school.school_name}
+          </p>
+          {!school.is_esc_participating && (
+            <Tooltip title={NON_ESC_TOOLTIP}>
+              <Info className="h-3.5 w-3.5 shrink-0 text-slate-400" />
+            </Tooltip>
+          )}
+        </div>
         <p className="mt-0.5 text-xs text-slate-400">
           {school.school_type === "public"
             ? "Public"
@@ -731,12 +727,16 @@ function WishlistRowContent({
 // scroll gesture isn't mistaken for a drag start) handles touch. ─────────
 function SortableWishlist({
   wishlist,
-  escStatuses,
+  escApplications,
+  selectedEscSchoolIds,
+  onToggleEscSelection,
   onRemove,
   onReorder,
 }: {
   wishlist: School[];
-  escStatuses: Record<string, EscSchoolStatus>;
+  escApplications: Record<string, EscApplicationEntry>;
+  selectedEscSchoolIds: string[];
+  onToggleEscSelection: (schoolId: string) => void;
   onRemove: (schoolId: string) => void;
   onReorder: (fromIndex: number, toIndex: number) => void;
 }) {
@@ -775,10 +775,16 @@ function SortableWishlist({
               rank={i + 1}
               school={school}
               meta={
-                escStatuses[school.school_id]
-                  ? SCHOOL_STATUS_META[escStatuses[school.school_id]]
+                escApplications[school.school_id]
+                  ? SCHOOL_STATUS_META[escApplications[school.school_id].status]
                   : null
               }
+              selected={selectedEscSchoolIds.includes(school.school_id)}
+              selectionDisabled={
+                !selectedEscSchoolIds.includes(school.school_id) &&
+                selectedEscSchoolIds.length >= MAX_ESC_APPLICATIONS
+              }
+              onToggleEscSelection={onToggleEscSelection}
               onRemove={onRemove}
             />
           ))}
@@ -792,11 +798,17 @@ function SortableWishlistRow({
   rank,
   school,
   meta,
+  selected,
+  selectionDisabled,
+  onToggleEscSelection,
   onRemove,
 }: {
   rank: number;
   school: School;
   meta: SchoolStatusMetaLike | null;
+  selected: boolean;
+  selectionDisabled: boolean;
+  onToggleEscSelection: (schoolId: string) => void;
   onRemove: (schoolId: string) => void;
 }) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } =
@@ -826,9 +838,16 @@ function SortableWishlistRow({
         {rank}
       </span>
       <div className="min-w-0 flex-1">
-        <p className="text-sm font-semibold leading-snug text-primary">
-          {school.school_name}
-        </p>
+        <div className="flex items-center gap-1.5">
+          <p className="text-sm font-semibold leading-snug text-primary">
+            {school.school_name}
+          </p>
+          {!school.is_esc_participating && (
+            <Tooltip title={NON_ESC_TOOLTIP}>
+              <Info className="h-3.5 w-3.5 shrink-0 text-slate-400" />
+            </Tooltip>
+          )}
+        </div>
         <p className="mt-0.5 text-xs text-slate-400">
           {school.school_type === "public"
             ? "Public"
@@ -840,6 +859,24 @@ function SortableWishlistRow({
           <span className="mt-1.5 inline-block rounded border px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wide text-slate-500">
             {meta.title}
           </span>
+        )}
+        {school.is_esc_participating && (
+          <FormControlLabel
+            className="mt-1"
+            control={
+              <Checkbox
+                size="small"
+                checked={selected}
+                disabled={selectionDisabled}
+                onChange={() => onToggleEscSelection(school.school_id)}
+              />
+            }
+            label={
+              <span className="text-xs text-slate-600">
+                Apply for ESC subsidy here
+              </span>
+            }
+          />
         )}
       </div>
       <button
@@ -967,7 +1004,7 @@ function DocumentRow({
 }
 
 function DocumentsTab({
-  applicationState,
+  isEligible,
   isPostSubmission,
   category,
   requiredDocs,
@@ -979,10 +1016,11 @@ function DocumentsTab({
   removeDoc,
   submitDocuments,
   isSyncing,
-  docsPendingChoices,
+  hasDocsPending,
+  currentEscApplication,
   advanceSchool,
 }: {
-  applicationState: string;
+  isEligible: boolean | null;
   isPostSubmission: boolean;
   category: string | null;
   requiredDocs: string[];
@@ -994,10 +1032,10 @@ function DocumentsTab({
   removeDoc: (doc: string) => Promise<boolean>;
   submitDocuments: () => Promise<boolean>;
   isSyncing: boolean;
-  docsPendingChoices: School[];
+  hasDocsPending: boolean;
+  currentEscApplication: School | null;
   advanceSchool: (schoolId: string, toState: EscSchoolStatus) => void;
 }) {
-  const hasDocsPending = docsPendingChoices.length > 0;
   const [pendingDoc, setPendingDoc] = useState<string | null>(null);
   const stagedCount = Object.keys(stagedDocs).length;
 
@@ -1048,7 +1086,7 @@ function DocumentsTab({
 
   return (
     <div>
-      {applicationState === "not_eligible" ? (
+      {isEligible === false ? (
         <p className="text-sm text-slate-500">
           You&apos;re not eligible for the ESC fee subsidy, so no ESC
           documents are required. You can still enroll directly at a school.
@@ -1060,11 +1098,11 @@ function DocumentsTab({
         </p>
       ) : (
         <>
-          {hasDocsPending && (
+          {hasDocsPending && currentEscApplication && (
             <div className="mb-4 rounded-lg border border-amber-200 bg-amber-50 p-3 text-xs leading-relaxed text-amber-800">
-              {docsPendingChoices.length === 1
-                ? `${docsPendingChoices[0].school_name}'s ESC School Committee has requested an additional document. Please add it below.`
-                : "Some of your schools' ESC Committees have requested additional documents. Please add them below."}
+              {currentEscApplication.school_name}&apos;s ESC School
+              Committee has requested an additional document. Please add
+              it below.
             </div>
           )}
           <p className={`${SECTION_LABEL} mb-4`}>
@@ -1125,21 +1163,22 @@ function DocumentsTab({
               </div>
             )
           )}
-          {hasDocsPending && docsReady && (
+          {hasDocsPending && docsReady && currentEscApplication && (
             <div className="mt-2 space-y-2">
-              {docsPendingChoices.map((school) => (
-                <Button
-                  key={school.school_id}
-                  fullWidth
-                  variant="contained"
-                  sx={{ minHeight: 48 }}
-                  onClick={() =>
-                    advanceSchool(school.school_id, "docs_submitted")
-                  }
-                >
-                  Submit Additional Document to {school.school_name}
-                </Button>
-              ))}
+              <Button
+                fullWidth
+                variant="contained"
+                sx={{ minHeight: 48 }}
+                onClick={() =>
+                  advanceSchool(
+                    currentEscApplication.school_id,
+                    "docs_submitted"
+                  )
+                }
+              >
+                Submit Additional Document to{" "}
+                {currentEscApplication.school_name}
+              </Button>
             </div>
           )}
         </>

@@ -1,54 +1,48 @@
-import type { ApplicationState, EscSchoolStatus } from "@/types/application";
+import type { EscSchoolStatus } from "@/types/application";
 
-// ── APPLICATION STATE MACHINE ─────────────────────────────────────────
-// Decoupled model: PAARAL tracks the ESC application track only. School
-// admission/enrollment is an independent, unmodeled track — 'granted' means
-// the ESC certificate is secured, full stop, regardless of enrollment timing.
-export const POST_SUBMISSION_STATES = new Set<ApplicationState>([
-  "submitted",
-  "granted",
-  "non_esc",
-]);
-
-export const VALID_TRANSITIONS: Record<ApplicationState, ApplicationState[]> = {
-  eligibility: ["submitted"],
-  not_eligible: ["non_esc"],
-  submitted: ["granted", "non_esc", "eligibility"], // 'eligibility' = stop, choose different schools
-  granted: [],
-  non_esc: [],
-};
-
-// Per-school ESC status — private schools only. Public schools are never
-// entered into the ESC pursuit; they're just the hasPublicAlternative
-// guaranteed-placement checkbox. Up to ESC_SLATE_CAP schools can be in a
-// non-terminal (slate) status at once — 'granted' is an offer, not a win,
-// until explicitly redeemed via redeemChoice(). Redeeming one school moves
-// every other still-open slate school to 'withdrawn'. 'rejected' is a
-// school's own "no"; 'withdrawn' is the student pulling out after redeeming
-// elsewhere — the two are never conflated in the UI.
+// ── ESC APPLICATION STATE MACHINE ─────────────────────────────────────
+// Real process, confirmed directly rather than assumed: a student submits
+// ESC applications to up to MAX_ESC_APPLICATIONS schools in one action, but
+// those get reviewed one at a time, in rank order — a lower-ranked choice is
+// never looked at until the higher-ranked one is fully resolved. A student
+// can never hold two live offers at once, so there's no "redeem one,
+// withdraw the rest" step anymore — 'granted' leads to a single
+// 'redeemed'/'declined' choice by the family, and rejecting/declining
+// promotes the next 'queued' school (lowest rank) to 'submitted' — a hook
+// action, not a server-side transition, matching every other state-machine
+// decision in this app.
 export const ESC_SCHOOL_TRANSITIONS: Record<EscSchoolStatus, EscSchoolStatus[]> = {
-  submitted: ["granted", "rejected", "docs_pending", "withdrawn"],
-  docs_pending: ["docs_submitted", "withdrawn"],
-  docs_submitted: ["granted", "rejected", "withdrawn"],
-  granted: ["redeemed", "withdrawn"],
+  queued: ["submitted"],
+  submitted: ["granted", "rejected", "docs_pending"],
+  docs_pending: ["docs_submitted"],
+  docs_submitted: ["granted", "rejected"],
+  granted: ["redeemed", "declined"],
   rejected: [],
   redeemed: [],
-  withdrawn: [],
+  declined: [],
 };
 
-// Statuses that count toward the ESC_SLATE_CAP — "currently in flight" at a
-// school, including an unredeemed grant (still occupies a slate slot until
-// the student acts on it).
-export const ESC_SLATE_STATUSES = new Set<EscSchoolStatus>([
-  "submitted",
-  "docs_pending",
-  "docs_submitted",
-  "granted",
+// A resolution at one school (rejected, or the family declining an offer)
+// is what triggers promoting the next queued school to submitted.
+export const ADVANCE_TRIGGERING_STATES = new Set<EscSchoolStatus>([
+  "rejected",
+  "declined",
 ]);
 
-export const ESC_SLATE_CAP = 3;
+export const TERMINAL_UNSUCCESSFUL_STATES = new Set<EscSchoolStatus>([
+  "rejected",
+  "declined",
+]);
 
-export const REJECTED_STATES = new Set<EscSchoolStatus>(["rejected"]);
+// Ranked preference list: 3–5 schools of any type (public, private-ESC,
+// private-non-ESC) — must include at least one ESC-participating school,
+// since that's the only kind PAARAL can actually submit an application to.
+export const MIN_WISHLIST_SIZE = 3;
+export const MAX_WISHLIST_SIZE = 5;
+
+// Max ESC-participating schools selectable for submission, from within the
+// ranked wishlist — an explicit student choice, not auto-derived from rank.
+export const MAX_ESC_APPLICATIONS = 3;
 
 export interface SchoolStatusMeta {
   title: string;
@@ -60,6 +54,12 @@ export interface SchoolStatusMeta {
  * `schoolStatusConfigs` (icon/demo-button markup is a UI concern, added
  * when the status UI itself is built). */
 export const SCHOOL_STATUS_META: Record<EscSchoolStatus, SchoolStatusMeta> = {
+  queued: {
+    title: "Waiting for Your Turn",
+    desc: (name) =>
+      `${name} will review your application once your higher-ranked choice has been decided.`,
+    color: "bg-slate-50 border-slate-200",
+  },
   submitted: {
     title: "ESC Application Submitted",
     desc: (name) =>
@@ -86,7 +86,7 @@ export const SCHOOL_STATUS_META: Record<EscSchoolStatus, SchoolStatusMeta> = {
   granted: {
     title: "ESC Subsidy Offered",
     desc: (name) =>
-      `${name} has offered you an ESC subsidy. Redeem it to accept — this will withdraw your other active applications.`,
+      `${name} has offered you an ESC subsidy. Redeem it to accept, or decline if you no longer wish to enroll there.`,
     color: "bg-purple-50 border-purple-200",
   },
   redeemed: {
@@ -94,10 +94,9 @@ export const SCHOOL_STATUS_META: Record<EscSchoolStatus, SchoolStatusMeta> = {
     desc: (name) => `Your ESC subsidy for ${name} has been confirmed.`,
     color: "bg-green-50 border-green-200",
   },
-  withdrawn: {
-    title: "Application Withdrawn",
-    desc: (name) =>
-      `Your ESC application to ${name} was withdrawn after you redeemed a subsidy elsewhere.`,
+  declined: {
+    title: "Offer Declined",
+    desc: (name) => `You declined the ESC subsidy offered by ${name}.`,
     color: "bg-slate-50 border-slate-200",
   },
 };
@@ -107,24 +106,40 @@ export interface StateBadgeMeta {
   label: string;
 }
 
-/** Account-level status badge — data half of the old `renderStateBadge`.
- * Pre-submission states (eligibility/not_eligible) show no badge at all,
- * matching the original — there's no application yet. */
-export function getStateBadge(state: ApplicationState): StateBadgeMeta | null {
-  if (!POST_SUBMISSION_STATES.has(state)) return null;
-  const map: Record<string, StateBadgeMeta> = {
-    submitted: {
-      tw: "bg-blue-100 text-blue-800 border-blue-300",
-      label: "ESC Application In Progress",
-    },
-    granted: {
-      tw: "bg-purple-50 text-purple-700 border-purple-200",
-      label: "ESC Certificate Granted",
-    },
-    non_esc: {
+/** Account-level status badge, derived from `isEligible` + the set of ESC
+ * application statuses (there's no stored account-level status anymore —
+ * see `app/db/models/application.py`'s docstring for why). No badge at
+ * all before an eligibility result exists, or while eligible but not yet
+ * submitted — matches the original "no badge until there's something to
+ * report" rule. */
+export function getAccountStatusBadge(account: {
+  isEligible: boolean | null;
+  escApplications: Record<string, { status: EscSchoolStatus }>;
+}): StateBadgeMeta | null {
+  if (account.isEligible === null) return null;
+  if (account.isEligible === false) {
+    return {
       tw: "bg-slate-100 text-slate-600 border-slate-300",
-      label: "Non-ESC Pathway",
-    },
+      label: "Not Eligible for ESC",
+    };
+  }
+
+  const statuses = Object.values(account.escApplications).map((e) => e.status);
+  if (statuses.length === 0) return null;
+  if (statuses.includes("redeemed")) {
+    return {
+      tw: "bg-purple-50 text-purple-700 border-purple-200",
+      label: "ESC Certificate Redeemed",
+    };
+  }
+  if (statuses.every((s) => TERMINAL_UNSUCCESSFUL_STATES.has(s))) {
+    return {
+      tw: "bg-slate-100 text-slate-600 border-slate-300",
+      label: "ESC Applications Unsuccessful",
+    };
+  }
+  return {
+    tw: "bg-blue-100 text-blue-800 border-blue-300",
+    label: "ESC Application In Progress",
   };
-  return map[state] ?? { tw: "bg-slate-100 text-slate-500 border-slate-200", label: state };
 }

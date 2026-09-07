@@ -5,24 +5,27 @@ import type {
   EligAnswers,
   EligHistoryEntry,
   EligStep,
+  EscApplicationEntry,
   EscSchoolStatus,
   SurveyAnswers,
 } from "@/types/application";
 import { computeCategory, getDocList } from "@/lib/eligibility";
 import {
+  ADVANCE_TRIGGERING_STATES,
   ESC_SCHOOL_TRANSITIONS,
-  ESC_SLATE_CAP,
-  ESC_SLATE_STATUSES,
-  POST_SUBMISSION_STATES,
-  VALID_TRANSITIONS,
+  MAX_ESC_APPLICATIONS,
+  MAX_WISHLIST_SIZE,
+  MIN_WISHLIST_SIZE,
+  TERMINAL_UNSUCCESSFUL_STATES,
 } from "@/lib/applicationState";
 import { apiPost } from "@/lib/api";
 import {
   getApplicationState,
   replaceWishlist,
   submitEligibilityAssessment,
+  submitEscApplications,
   submitSurvey,
-  updateApplicationStatus,
+  updateEscApplicationStatus,
 } from "@/lib/application";
 import { deleteDocument, uploadDocument } from "@/lib/documents";
 import {
@@ -90,11 +93,18 @@ export async function verifyLoginEmail(
   return result;
 }
 
-/** Ported from src/App.jsx's v3 decoupled ESC application state machine —
- * unchanged in shape/logic, per SKILLS.md. UI (login modal, application
- * panel, questionnaire screens) is intentionally not part of this hook; it only
- * manages account/eligibility/wishlist/ESC-status state and the actions
- * that transition between them. */
+/** Ported from src/App.jsx's v3 decoupled ESC application state machine,
+ * then reworked for the ranked-preferences/ESC-application split: a
+ * separate ranked preference list (`wishlistIds`, 3–5 schools of any
+ * type) from an explicit ESC application submission (`escApplications`,
+ * up to `MAX_ESC_APPLICATIONS` ESC-participating schools). Real process,
+ * confirmed directly: schools review one at a time, in rank order — a
+ * lower-ranked choice is never looked at until the higher-ranked one
+ * resolves, so a student can never hold two live offers at once. UI
+ * (login modal, application panel, questionnaire screens) is
+ * intentionally not part of this hook; it only manages account/
+ * eligibility/wishlist/ESC-application state and the actions that
+ * transition between them. */
 export function useApplicationState(schools: School[]) {
   const [account, setAccountState] = useState<Account | null>(null);
 
@@ -107,14 +117,34 @@ export function useApplicationState(schools: School[]) {
     });
   };
 
-  // ── BACKEND SYNC (Chunk 17) ─────────────────────────────────────
-  // Every mutating action now waits for the backend to confirm the
-  // write before the screen updates (chosen over an instant-update-
-  // then-sync-in-background approach, since a silent background-sync
-  // failure would leave a student believing something saved when it
-  // didn't - see WORKFLOW.md's Chunk 17 entry). `isSyncing` disables
-  // actionable buttons while a request is in flight; `syncError` is a
-  // plain-language message the UI can show on failure.
+  // Patches one school's `escApplications` entry, reading the merge base
+  // from the functional updater's `prev` rather than the outer `account`
+  // closure — required because `advanceSchool` can make two sequential
+  // network calls in one action (a rejection/decline, then promoting the
+  // next queued school), and a merge based on a stale closure snapshot
+  // would silently undo the first call's change when the second commits.
+  const applyEscApplicationUpdate = (
+    schoolId: string,
+    entry: EscApplicationEntry
+  ) => {
+    setAccountState((prev) => {
+      if (!prev) return prev;
+      const next = {
+        ...prev,
+        escApplications: { ...prev.escApplications, [schoolId]: entry },
+      };
+      localStorage.setItem(APPLICATION_STORAGE_KEY, JSON.stringify(next));
+      return next;
+    });
+  };
+
+  // ── BACKEND SYNC (Chunk 17, extended for the ESC-application split) ──
+  // Every mutating action waits for the backend to confirm the write
+  // before the screen updates (chosen over an instant-update-then-sync-
+  // in-background approach, since a silent background-sync failure would
+  // leave a student believing something saved when it didn't). `isSyncing`
+  // disables actionable buttons while a request is in flight; `syncError`
+  // is a plain-language message the UI can show on failure.
   const [isSyncing, setIsSyncing] = useState(false);
   const [syncError, setSyncError] = useState<string | null>(null);
 
@@ -135,49 +165,41 @@ export function useApplicationState(schools: School[]) {
     }
   };
 
-  // Persists a wishlist/per-school-status snapshot with no
-  // account-level status change - used by add/remove/reorder/
-  // backfill and non-redeeming per-school advances.
-  const persistWishlist = (
-    wishlistIds: string[],
-    statuses: Record<string, EscSchoolStatus>
-  ): Promise<boolean> =>
+  // Persists the ranked preference list only — never touches ESC
+  // application submission, which is a separate, explicit step.
+  const persistWishlist = (wishlistIds: string[]): Promise<boolean> =>
     withSync(async () => {
       if (!account) return;
-      await replaceWishlist(account.lrn, wishlistIds, statuses);
-      updateAccount({ wishlistIds, escStatuses: statuses });
+      await replaceWishlist(account.lrn, wishlistIds);
+      updateAccount({ wishlistIds });
     }, "Couldn't save your changes. Check your connection and try again.");
-
-  // Persists an account-level status change, optionally bundled with
-  // a wishlist/status snapshot in the same call (redemption and
-  // "apply again" both change the wishlist and the status together) -
-  // mirrors the original `advance(toState, extra)` shape exactly.
-  const persistStatus = (
-    toState: Account["applicationState"],
-    extra: Partial<Account> = {}
-  ): Promise<boolean> =>
-    withSync(async () => {
-      if (!account) return;
-      if (extra.wishlistIds !== undefined || extra.escStatuses !== undefined) {
-        await replaceWishlist(
-          account.lrn,
-          extra.wishlistIds ?? account.wishlistIds,
-          extra.escStatuses ?? account.escStatuses
-        );
-      }
-      await updateApplicationStatus(
-        account.lrn,
-        toState,
-        extra.nonEscSchoolId ?? null
-      );
-      updateAccount({ applicationState: toState, ...extra });
-    }, "Couldn't save your application status. Check your connection and try again.");
 
   const persistSurvey = (answers: SurveyAnswers): Promise<boolean> =>
     withSync(async () => {
       if (!account) return;
       await submitSurvey(account.lrn, answers);
     }, "Couldn't save your survey answers. Check your connection and try again.");
+
+  // Updates one school's ESC application status - the shared primitive
+  // behind advanceSchool/redeemChoice/declineOffer. No transition-
+  // validity check here; callers already validated before calling this.
+  const persistEscStatus = (
+    schoolId: string,
+    status: EscSchoolStatus
+  ): Promise<boolean> =>
+    withSync(async () => {
+      if (!account) return;
+      const updated = await updateEscApplicationStatus(
+        account.lrn,
+        schoolId,
+        status
+      );
+      applyEscApplicationUpdate(schoolId, {
+        status: updated.status,
+        submittedAt: updated.submittedAt,
+        resolvedAt: updated.resolvedAt,
+      });
+    }, "Couldn't update this application. Check your connection and try again.");
 
   // `wishlistIds` still lets the login modal preload the LRN 100000000002
   // demo draft ("Load Draft") - but only as a fallback now (Chunk 22): the
@@ -195,29 +217,28 @@ export function useApplicationState(schools: School[]) {
       name: `${LEARNER_RECORD.firstName} ${LEARNER_RECORD.mi}. ${LEARNER_RECORD.lastName}`,
       category: null,
       eligAnswers: null,
-      applicationState: "eligibility",
+      isEligible: null,
       wishlistIds,
-      escStatuses: {},
+      escApplications: {},
       surveyAnswers: DEFAULT_SURVEY_ANSWERS,
       uploadedDocs: [],
     };
 
     // Chunk 22: restore whatever this LRN actually has saved server-side
     // (wishlist, eligibility result, survey answers, confirmed document
-    // uploads) instead of always starting from the blank shape above. A
-    // brand-new account - or a fetch failure, e.g. a dropped connection
-    // mid-login - just falls back to the blank shell rather than blocking
-    // login entirely on this one request.
+    // uploads, ESC applications) instead of always starting from the
+    // blank shape above. A brand-new account - or a fetch failure, e.g.
+    // a dropped connection mid-login - just falls back to the blank
+    // shell rather than blocking login entirely on this one request.
     let hydrated = newAccount;
     try {
       const saved = await getApplicationState(lrn);
       hydrated = {
         ...newAccount,
-        applicationState: saved.applicationState,
-        nonEscSchoolId: saved.nonEscSchoolId,
+        isEligible: saved.isEligible,
         wishlistIds:
           saved.wishlistIds.length > 0 ? saved.wishlistIds : wishlistIds,
-        escStatuses: saved.escStatuses,
+        escApplications: saved.escApplications,
         category: saved.category,
         eligAnswers: saved.eligAnswers,
         uploadedDocs: saved.uploadedDocs,
@@ -229,6 +250,7 @@ export function useApplicationState(schools: School[]) {
 
     localStorage.setItem(APPLICATION_STORAGE_KEY, JSON.stringify(hydrated));
     setAccountState(hydrated);
+    setSelectedEscSchoolIds([]);
     return hydrated;
   };
 
@@ -242,18 +264,7 @@ export function useApplicationState(schools: School[]) {
     setEligStep("schoolType");
     setEligHistory([]);
     setEligAnswers(DEFAULT_ELIG_ANSWERS);
-  };
-
-  const applicationState = account?.applicationState ?? "eligibility";
-  const isPostSubmission = POST_SUBMISSION_STATES.has(applicationState);
-
-  const advance = async (
-    toState: Account["applicationState"],
-    extra: Partial<Account> = {}
-  ) => {
-    const valid = VALID_TRANSITIONS[applicationState] ?? [];
-    if (!valid.includes(toState)) return;
-    await persistStatus(toState, extra);
+    setSelectedEscSchoolIds([]);
   };
 
   // ── ELIGIBILITY QUESTIONNAIRE ─────────────────────────────────
@@ -274,10 +285,10 @@ export function useApplicationState(schools: School[]) {
   };
 
   // UI-convenience only — resets the local questionnaire progress (not
-  // account.applicationState) so "Start over" on the ineligible result can
-  // return to the first question. Not part of the original ported logic;
-  // added while building the questionnaire screen since the old mockup
-  // had this same inline reset.
+  // account state) so "Start over" on the ineligible result can return to
+  // the first question. Not part of the original ported logic; added
+  // while building the questionnaire screen since the old mockup had this
+  // same inline reset.
   const eligRestart = () => {
     setEligStep("schoolType");
     setEligHistory([]);
@@ -298,37 +309,38 @@ export function useApplicationState(schools: School[]) {
     setEligStep(step);
   };
 
-  const completeEligibility = async () => {
-    if (!account) return;
+  // Chunk 19, simplified for the is_eligible split: the backend's
+  // eligibility-submit endpoint now sets `Application.is_eligible` itself
+  // as part of the same write, so there's no separate account-level
+  // status flip to persist afterward — one network call, then update
+  // local state to match.
+  const completeEligibility = async (): Promise<boolean> => {
+    if (!account) return false;
     const category = computeCategory(eligAnswers);
-
-    // Chunk 19: persist the assessment itself before flipping the
-    // account-level status, same "every write confirms before the next
-    // one starts" ordering used elsewhere (e.g. wishlist+survey before
-    // the submitted status in handleSubmitEsc) - a failed save here
-    // must not leave the account showing a category/state it never
-    // actually recorded on the backend.
-    const eligOk = await withSync(async () => {
+    return withSync(async () => {
       await submitEligibilityAssessment(account.lrn, eligAnswers, category);
+      updateAccount({
+        isEligible: category !== null,
+        category,
+        eligAnswers,
+      });
     }, "Couldn't save your eligibility answers. Check your connection and try again.");
-    if (!eligOk) return;
-
-    // Bypasses `advance()`'s transition-validity guard on purpose,
-    // same as the original: resolving the initial ambiguous
-    // "eligibility" state into one of its two sub-branches isn't a
-    // transition in the state-machine sense.
-    await persistStatus(category ? "eligibility" : "not_eligible", {
-      category,
-      eligAnswers,
-    });
   };
 
-  // ── WISHLIST ───────────────────────────────────────────────────
+  // ── WISHLIST (ranked preferences, 3–5 schools, any type) ──────────
   const wishlist: School[] = account
     ? account.wishlistIds
         .map((id) => schools.find((s) => s.school_id === id))
         .filter((s): s is School => Boolean(s))
     : [];
+
+  const escApplications = account?.escApplications ?? {};
+  // Locked once any ESC application exists — matches the composite
+  // foreign key from EscApplication onto Wishlist server-side (a
+  // wishlist row referenced by a submitted ESC application can't be
+  // removed without violating it), so this gate also keeps every
+  // wishlist mutation on the safe side of that constraint.
+  const isPostSubmission = Object.keys(escApplications).length > 0;
 
   const isInWishlist = (schoolId: string) =>
     (account?.wishlistIds ?? []).includes(schoolId);
@@ -336,23 +348,18 @@ export function useApplicationState(schools: School[]) {
   const addToWishlist = async (schoolId: string) => {
     if (!account || isPostSubmission) return;
     if (account.wishlistIds.includes(schoolId)) return;
-    await persistWishlist(
-      [...account.wishlistIds, schoolId],
-      account.escStatuses
-    );
+    if (account.wishlistIds.length >= MAX_WISHLIST_SIZE) return;
+    await persistWishlist([...account.wishlistIds, schoolId]);
   };
 
   const removeFromWishlist = async (schoolId: string) => {
     if (!account || isPostSubmission) return;
-    await persistWishlist(
-      account.wishlistIds.filter((id) => id !== schoolId),
-      account.escStatuses
-    );
+    setSelectedEscSchoolIds((prev) => prev.filter((id) => id !== schoolId));
+    await persistWishlist(account.wishlistIds.filter((id) => id !== schoolId));
   };
 
   // Drag-and-drop reordering (dnd-kit, touch + mouse). Only allowed
-  // pre-submission — same gate as removeFromWishlist/addToWishlist, since
-  // rank determines ESC application order (rank 1 gets applied to first).
+  // pre-submission — same gate as removeFromWishlist/addToWishlist.
   const reorderWishlist = async (fromIndex: number, toIndex: number) => {
     if (!account || isPostSubmission) return;
     if (
@@ -366,94 +373,123 @@ export function useApplicationState(schools: School[]) {
     const next = [...account.wishlistIds];
     const [moved] = next.splice(fromIndex, 1);
     next.splice(toIndex, 0, moved);
-    await persistWishlist(next, account.escStatuses);
+    await persistWishlist(next);
   };
 
-  const hasPublicAlternative = wishlist.some((s) => s.school_type === "public");
+  // 3–5 schools of any type, with at least one ESC-participating school
+  // (otherwise there's nothing to ever submit an ESC application to).
+  // Replaces the old hasPublicAlternative guaranteed-placement gate,
+  // dropped since PAARAL only processes ESC applications now.
+  const canFinalizeWishlist =
+    wishlist.length >= MIN_WISHLIST_SIZE &&
+    wishlist.length <= MAX_WISHLIST_SIZE &&
+    wishlist.some((s) => s.is_esc_participating);
 
-  // ── PER-SCHOOL ESC STATUS (private schools only) ────────────────
-  // Parallel/capped model: up to ESC_SLATE_CAP private schools can be "in
-  // the slate" (a non-terminal status) at once. 'granted' is an offer, not
-  // a win — redeemChoice() is the explicit convergence point that picks one
-  // and withdraws the rest. See memory-decisions.md for the full design.
-  const escStatuses = account?.escStatuses ?? {};
-  const privateChoices = wishlist.filter((s) => s.school_type !== "public");
-  const hasPrivateChoice = privateChoices.length > 0;
-  const slateChoices = privateChoices.filter((s) =>
-    ESC_SLATE_STATUSES.has(escStatuses[s.school_id])
+  // ── ESC APPLICATION SELECTION (pre-submission) ────────────────────
+  // Which ESC-participating wishlist schools the student has picked to
+  // actually submit to — an explicit choice, capped at
+  // MAX_ESC_APPLICATIONS, not auto-derived from rank order. Local/
+  // transient until handleSubmitEsc actually submits it.
+  const escParticipatingWishlistSchools = wishlist.filter(
+    (s) => s.is_esc_participating
   );
-  const pendingGrants = privateChoices.filter(
-    (s) => escStatuses[s.school_id] === "granted"
+  const [selectedEscSchoolIds, setSelectedEscSchoolIds] = useState<string[]>(
+    []
   );
-  const redeemedChoice =
-    privateChoices.find((s) => escStatuses[s.school_id] === "redeemed") ?? null;
-  const rejectedChoices = privateChoices.filter(
-    (s) => escStatuses[s.school_id] === "rejected"
-  );
-  // The next unengaged rank, only surfaced while there's slate room left.
-  const firstUnengaged =
-    privateChoices.find((s) => !escStatuses[s.school_id]) ?? null;
-  const backfillCandidate =
-    applicationState === "submitted" && slateChoices.length < ESC_SLATE_CAP
-      ? firstUnengaged
-      : null;
-  // Every slate school resolved (rejected/withdrawn), nothing granted or
-  // redeemed, and no one left to backfill with — the private track is dead.
-  const isSlateExhausted =
-    applicationState === "submitted" &&
-    slateChoices.length === 0 &&
-    !backfillCandidate;
 
-  // Advance one specific PRIVATE school's ESC status. Only reaching
-  // 'redeemed' ends the account-level pursuit — 'granted' is just an offer.
-  const advanceSchool = async (schoolId: string, toState: EscSchoolStatus) => {
-    if (!account) return;
-    const current = escStatuses[schoolId];
-    const valid = ESC_SCHOOL_TRANSITIONS[current] ?? [];
-    if (!valid.includes(toState)) return;
-    const nextEscStatuses = { ...escStatuses, [schoolId]: toState };
-    if (toState === "redeemed") {
-      await advance("granted", { escStatuses: nextEscStatuses });
-    } else {
-      await persistWishlist(account.wishlistIds, nextEscStatuses);
-    }
-  };
-
-  // Accept one school's ESC offer. This is the redemption/convergence
-  // point: the chosen school is redeemed, and every other school still
-  // occupying a slate slot (pending review or a competing offer) is
-  // withdrawn — not rejected, since the school never said no.
-  const redeemChoice = async (schoolId: string) => {
-    if (escStatuses[schoolId] !== "granted") return;
-    const nextEscStatuses = { ...escStatuses };
-    for (const choice of privateChoices) {
-      const id = choice.school_id;
-      if (id === schoolId) {
-        nextEscStatuses[id] = "redeemed";
-      } else if (ESC_SLATE_STATUSES.has(nextEscStatuses[id])) {
-        nextEscStatuses[id] = "withdrawn";
-      }
-    }
-    await advance("granted", { escStatuses: nextEscStatuses });
-  };
-
-  // A slate slot opened up (a rejection) and there's room — explicit
-  // opt-in, never automatic, matching the rest of this app's advance-choice
-  // pattern.
-  const backfillSlate = async () => {
-    if (!backfillCandidate || !account) return;
-    await persistWishlist(account.wishlistIds, {
-      ...escStatuses,
-      [backfillCandidate.school_id]: "submitted",
+  const toggleEscSelection = (schoolId: string) => {
+    if (isPostSubmission) return;
+    setSelectedEscSchoolIds((prev) => {
+      if (prev.includes(schoolId)) return prev.filter((id) => id !== schoolId);
+      if (prev.length >= MAX_ESC_APPLICATIONS) return prev;
+      return [...prev, schoolId];
     });
   };
 
-  const continueWithoutSubsidy = async (schoolId: string) => {
-    await advance("non_esc", { nonEscSchoolId: schoolId });
+  // ── ESC APPLICATIONS (post-submission, sequential by rank) ────────
+  // Real process, confirmed directly: schools review one at a time, in
+  // rank order — a lower-ranked choice is never looked at until the
+  // higher-ranked one resolves. So there's only ever one school that's
+  // actively "current" (submitted/docs_pending/docs_submitted/granted)
+  // at a time, by construction, not just by convention.
+  const escApplicationSchools = escParticipatingWishlistSchools.filter((s) =>
+    Boolean(escApplications[s.school_id])
+  );
+  const currentEscApplication =
+    escApplicationSchools.find((s) => {
+      const status = escApplications[s.school_id]?.status;
+      return (
+        status === "submitted" ||
+        status === "docs_pending" ||
+        status === "docs_submitted" ||
+        status === "granted"
+      );
+    }) ?? null;
+  const queuedEscApplications = escApplicationSchools.filter(
+    (s) => escApplications[s.school_id]?.status === "queued"
+  );
+  const resolvedEscApplications = escApplicationSchools.filter((s) =>
+    ["redeemed", "rejected", "declined"].includes(
+      escApplications[s.school_id]?.status ?? ""
+    )
+  );
+  const redeemedChoice =
+    escApplicationSchools.find(
+      (s) => escApplications[s.school_id]?.status === "redeemed"
+    ) ?? null;
+  // Every submitted ESC application ended unsuccessfully (rejected, or
+  // the family declined an offer), none redeemed — the ESC track is
+  // over. Drives the plain informational "enroll without a subsidy"
+  // message, alongside `isEligible === false` for the never-eligible case.
+  const allEscApplicationsUnsuccessful =
+    escApplicationSchools.length > 0 &&
+    escApplicationSchools.every((s) =>
+      TERMINAL_UNSUCCESSFUL_STATES.has(escApplications[s.school_id]?.status)
+    );
+  const hasDocsPending =
+    currentEscApplication !== null &&
+    escApplications[currentEscApplication.school_id]?.status === "docs_pending";
+
+  // Advance one school's ESC application status - demo-driven for now,
+  // standing in for what would eventually arrive from School View. A
+  // resolution that isn't a success (rejected, or the family declining
+  // an offer) also promotes the next queued school (lowest rank) to
+  // submitted — this stands in for DepEd's own round-based processing
+  // moving on, not a student action, matching the real process.
+  const advanceSchool = async (schoolId: string, toState: EscSchoolStatus) => {
+    if (!account) return;
+    const current = escApplications[schoolId]?.status;
+    if (!current) return;
+    const valid = ESC_SCHOOL_TRANSITIONS[current] ?? [];
+    if (!valid.includes(toState)) return;
+
+    const ok = await persistEscStatus(schoolId, toState);
+    if (!ok) return;
+
+    if (ADVANCE_TRIGGERING_STATES.has(toState)) {
+      const nextQueued = escParticipatingWishlistSchools.find(
+        (s) =>
+          s.school_id !== schoolId &&
+          escApplications[s.school_id]?.status === "queued"
+      );
+      if (nextQueued) {
+        await persistEscStatus(nextQueued.school_id, "submitted");
+      }
+    }
   };
 
-  const applyAgainDifferentSchool = async () => {
-    await advance("eligibility", { wishlistIds: [], escStatuses: {} });
+  // Accept the single live offer. No competing offer to withdraw
+  // anymore - a student can never hold two at once.
+  const redeemChoice = async (schoolId: string) => {
+    if (escApplications[schoolId]?.status !== "granted") return;
+    await advanceSchool(schoolId, "redeemed");
+  };
+
+  // Decline the single live offer - promotes the next queued school,
+  // same as a rejection (see advanceSchool).
+  const declineOffer = async (schoolId: string) => {
+    if (escApplications[schoolId]?.status !== "granted") return;
+    await advanceSchool(schoolId, "declined");
   };
 
   // ── DOCUMENTS ────────────────────────────────────────────────────
@@ -464,8 +500,7 @@ export function useApplicationState(schools: School[]) {
   // True only once every required document is CONFIRMED on GCS (i.e. in
   // `uploadedDocs`) - a merely-staged file doesn't count. This is what
   // `canSubmitEsc` gates on, so an application can never be submitted on
-  // documents that haven't actually reached storage yet (Paula's explicit
-  // direction, 2026-09-02).
+  // documents that haven't actually reached storage yet.
   const docsReady =
     requiredDocs.length > 0 && requiredDocs.every((d) => uploadedDocs.includes(d));
 
@@ -511,10 +546,8 @@ export function useApplicationState(schools: School[]) {
   // for one slow connection is worse than uploading them in sequence,
   // and it keeps failure attribution to one specific document instead of
   // several at once). Tracks success as it goes, both so `docUploadProgress`
-  // can drive a real progress bar (Paula's call, over a per-request
-  // timeout - a timeout would abort a slow-but-working upload instead of
-  // letting it finish) and so a retry after a failure never re-uploads a
-  // document that already made it through.
+  // can drive a real progress bar and so a retry after a failure never
+  // re-uploads a document that already made it through.
   const submitDocuments = async (): Promise<boolean> => {
     if (!account) return false;
     const entries = Object.entries(stagedDocs);
@@ -561,43 +594,56 @@ export function useApplicationState(schools: School[]) {
   );
   const generalSurveyComplete = Boolean(surveyAnswers.ease && surveyAnswers.helpful);
   const escSurveyComplete = Boolean(surveyAnswers.concern);
+  // The ESC-specific concern question only makes sense for a student
+  // actually pursuing the ESC track - hidden for a never-eligible one,
+  // same as the original two-section survey design.
+  const showEscSurveySection = account?.isEligible === true;
 
-  // ── SUBMIT / ENROLL ───────────────────────────────────────────────
+  // ── SUBMIT ───────────────────────────────────────────────────────
   const canSubmitEsc =
-    applicationState === "eligibility" &&
-    hasPrivateChoice &&
-    hasPublicAlternative &&
+    account?.isEligible === true &&
+    !isPostSubmission &&
+    canFinalizeWishlist &&
+    selectedEscSchoolIds.length >= 1 &&
     docsReady &&
     generalSurveyComplete &&
     escSurveyComplete;
 
-  const canEnrollNonEsc =
-    applicationState === "not_eligible" &&
-    wishlist.length > 0 &&
-    generalSurveyComplete;
-
   const handleSubmitEsc = async () => {
     if (!canSubmitEsc || !account) return;
-    const initialSlate = privateChoices.slice(0, ESC_SLATE_CAP);
-    const nextEscStatuses = { ...escStatuses };
-    for (const s of initialSlate) nextEscStatuses[s.school_id] = "submitted";
-
-    const wishlistOk = await persistWishlist(
-      account.wishlistIds,
-      nextEscStatuses
-    );
-    if (!wishlistOk) return;
-    const surveyOk = await persistSurvey(surveyAnswers);
-    if (!surveyOk) return;
-    await advance("submitted");
+    const ok = await withSync(async () => {
+      const entries = await submitEscApplications(
+        account.lrn,
+        selectedEscSchoolIds
+      );
+      const nextEscApplications: Record<string, EscApplicationEntry> = {};
+      for (const entry of entries) {
+        nextEscApplications[entry.schoolId] = {
+          status: entry.status,
+          submittedAt: entry.submittedAt,
+          resolvedAt: entry.resolvedAt,
+        };
+      }
+      updateAccount({ escApplications: nextEscApplications });
+    }, "Couldn't submit your ESC applications. Check your connection and try again.");
+    if (!ok) return;
+    await persistSurvey(surveyAnswers);
   };
 
-  const handleEnrollNonEsc = async () => {
-    if (!canEnrollNonEsc) return;
-    const school = wishlist[0];
-    const surveyOk = await persistSurvey(surveyAnswers);
-    if (!surveyOk) return;
-    await advance("non_esc", { nonEscSchoolId: school.school_id, surveyAnswers });
+  // For an ineligible student, or one whose ESC applications are all
+  // unsuccessful, PAARAL shows a plain informational message only - no
+  // school selection, no application, no tracking (out of scope: PAARAL
+  // only processes direct ESC applications). Their general survey
+  // feedback is still worth capturing, though, so a lightweight
+  // feedback-only submit stays available.
+  const showEnrollWithoutSubsidyMessage =
+    account?.isEligible === false || allEscApplicationsUnsuccessful;
+
+  const canSubmitGeneralFeedback = generalSurveyComplete;
+
+  const submitGeneralFeedback = async () => {
+    if (!canSubmitGeneralFeedback) return;
+    await persistSurvey(surveyAnswers);
   };
 
   return {
@@ -609,9 +655,7 @@ export function useApplicationState(schools: School[]) {
     isSyncing,
     syncError,
 
-    applicationState,
     isPostSubmission,
-    advance,
 
     eligStep,
     eligHistory,
@@ -627,22 +671,23 @@ export function useApplicationState(schools: School[]) {
     addToWishlist,
     removeFromWishlist,
     reorderWishlist,
-    hasPublicAlternative,
+    canFinalizeWishlist,
 
-    escStatuses,
-    privateChoices,
-    hasPrivateChoice,
-    slateChoices,
-    pendingGrants,
+    escApplications,
+    escParticipatingWishlistSchools,
+    selectedEscSchoolIds,
+    toggleEscSelection,
+
+    escApplicationSchools,
+    currentEscApplication,
+    queuedEscApplications,
+    resolvedEscApplications,
     redeemedChoice,
-    rejectedChoices,
-    backfillCandidate,
-    isSlateExhausted,
+    allEscApplicationsUnsuccessful,
+    hasDocsPending,
     advanceSchool,
     redeemChoice,
-    backfillSlate,
-    continueWithoutSubsidy,
-    applyAgainDifferentSchool,
+    declineOffer,
 
     uploadedDocs,
     requiredDocs,
@@ -657,10 +702,12 @@ export function useApplicationState(schools: School[]) {
     setSurveyAnswers,
     generalSurveyComplete,
     escSurveyComplete,
+    showEscSurveySection,
 
     canSubmitEsc,
-    canEnrollNonEsc,
     handleSubmitEsc,
-    handleEnrollNonEsc,
+    showEnrollWithoutSubsidyMessage,
+    canSubmitGeneralFeedback,
+    submitGeneralFeedback,
   };
 }

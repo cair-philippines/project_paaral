@@ -3,7 +3,7 @@
 import { CircleHelp, LogOut } from "lucide-react";
 import ScrollReveal from "@/components/atoms/ScrollReveal";
 import { catMeta } from "@/lib/eligibility";
-import { getStateBadge } from "@/lib/applicationState";
+import { getAccountStatusBadge } from "@/lib/applicationState";
 import type { Account } from "@/types/application";
 
 function SidebarFact({
@@ -51,7 +51,7 @@ export default function AccountSidebar({
   account: Account;
   onLogout: () => void;
 }) {
-  const badge = getStateBadge(account.applicationState);
+  const badge = getAccountStatusBadge(account);
 
   return (
     <aside className="space-y-4 lg:sticky lg:top-24 lg:self-start">

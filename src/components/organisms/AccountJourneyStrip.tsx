@@ -1,13 +1,15 @@
 "use client";
 
 import JourneyStep from "@/components/molecules/JourneyStep";
-import type { ApplicationState, EscCategory } from "@/types/application";
+import type { EscCategory } from "@/types/application";
 
 interface AccountJourneyStripProps {
   category: EscCategory;
-  applicationState: ApplicationState;
+  isEligible: boolean | null;
   isPostSubmission: boolean;
   wishlistCount: number;
+  hasRedeemed: boolean;
+  allEscApplicationsUnsuccessful: boolean;
 }
 
 /**
@@ -19,18 +21,19 @@ interface AccountJourneyStripProps {
  */
 export default function AccountJourneyStrip({
   category,
-  applicationState,
+  isEligible,
   isPostSubmission,
   wishlistCount,
+  hasRedeemed,
+  allEscApplicationsUnsuccessful,
 }: AccountJourneyStripProps) {
-  const step1Active =
-    !category && applicationState === "eligibility" && !isPostSubmission;
+  const step1Active = isEligible === null;
   const step2Active = !step1Active && !isPostSubmission;
   const step3Active = isPostSubmission;
 
   const step1Detail = category
     ? `Category ${category} determined`
-    : applicationState === "not_eligible"
+    : isEligible === false
       ? "Not eligible for the ESC subsidy"
       : "Not yet completed";
 
@@ -39,14 +42,13 @@ export default function AccountJourneyStrip({
       ? `${wishlistCount} school${wishlistCount === 1 ? "" : "s"} saved`
       : "No schools saved yet";
 
-  const step3Detail =
-    applicationState === "granted"
-      ? "ESC certificate granted"
-      : applicationState === "non_esc"
-        ? "Enrolling without a subsidy"
-        : applicationState === "submitted"
-          ? "Under review"
-          : "Not yet submitted";
+  const step3Detail = hasRedeemed
+    ? "ESC certificate redeemed"
+    : allEscApplicationsUnsuccessful
+      ? "Enrolling without a subsidy"
+      : isPostSubmission
+        ? "Under review"
+        : "Not yet submitted";
 
   return (
     <section className="border-b border-slate-200 bg-slate-50">

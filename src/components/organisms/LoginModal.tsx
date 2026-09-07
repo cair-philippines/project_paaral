@@ -82,11 +82,10 @@ export default function LoginModal({ open, onClose }: LoginModalProps) {
     setStarting(false);
     reset();
     onClose();
-    // `eligAnswers` is only ever set once the questionnaire has actually
-    // been completed (even a "not eligible" result sets it - only
-    // `category` stays null there) - a returning student with one
+    // `isEligible` is only ever non-null once the questionnaire has
+    // actually been completed - a returning student with a result
     // already on file shouldn't be sent through it again.
-    router.push(account.eligAnswers ? "/browse" : "/eligibility");
+    router.push(account.isEligible !== null ? "/browse" : "/eligibility");
   };
 
   const draftSchools = DRAFT_WISHLIST_SCHOOL_IDS.map((id) =>

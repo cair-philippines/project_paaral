@@ -1,5 +1,4 @@
 import type {
-  ApplicationState,
   EligAnswers,
   EscCategory,
   EscSchoolStatus,
@@ -10,29 +9,25 @@ import type {
 import { apiGet, apiPatch, apiPut } from "@/lib/api";
 
 /** One wishlist entry as the API expects/returns it - camelCase,
- * matching `paaral-student-api`'s `CamelModel` convention. */
+ * matching `paaral-student-api`'s `CamelModel` convention. Pure
+ * ranked-preference data - per-school ESC status lives in
+ * `ApiEscApplicationEntry` now, a separate concept. */
 export interface ApiWishlistEntry {
   schoolId: string;
   rank?: number;
-  escStatus: EscSchoolStatus | null;
 }
 
-/** Replace a learner's entire wishlist, in rank order.
+/** Replace a learner's entire ranked preference list, in rank order.
  *
- * Covers every wishlist/per-school-ESC-status mutation
- * `useApplicationState` makes (add, remove, reorder, redeem,
- * backfill, submit, reject) - they all produce a new ordered
- * snapshot, which this replaces wholesale (Chunk 17). */
+ * Covers add/remove/reorder - they all produce a new ordered
+ * snapshot, which this replaces wholesale. Never touches ESC
+ * application submission - that's a separate, explicit step. */
 export function replaceWishlist(
   lrn: string,
-  wishlistIds: string[],
-  escStatuses: Record<string, EscSchoolStatus>
+  wishlistIds: string[]
 ): Promise<ApiWishlistEntry[]> {
   return apiPut<ApiWishlistEntry[]>(`/api/v1/applications/${lrn}/wishlist`, {
-    schools: wishlistIds.map((schoolId) => ({
-      schoolId,
-      escStatus: escStatuses[schoolId] ?? null,
-    })),
+    schools: wishlistIds.map((schoolId) => ({ schoolId })),
   });
 }
 
@@ -40,22 +35,47 @@ export function getWishlist(lrn: string): Promise<ApiWishlistEntry[]> {
   return apiGet<ApiWishlistEntry[]>(`/api/v1/applications/${lrn}/wishlist`);
 }
 
-interface ApplicationStatusResponse {
-  lrn: string;
-  status: ApplicationState;
-  nonEscSchoolId: string | null;
+/** One learner's ESC application to one school, as the API returns it. */
+export interface ApiEscApplicationEntry {
+  schoolId: string;
+  rank: number;
+  status: EscSchoolStatus;
+  submittedAt: string;
+  resolvedAt: string | null;
 }
 
-/** Update a learner's account-level application status. */
-export function updateApplicationStatus(
+export function getEscApplications(
+  lrn: string
+): Promise<ApiEscApplicationEntry[]> {
+  return apiGet<ApiEscApplicationEntry[]>(
+    `/api/v1/applications/${lrn}/esc-applications`
+  );
+}
+
+/** Submit ESC applications to up to `MAX_ESC_APPLICATIONS` schools, all
+ * of which must already be in the ranked wishlist and ESC-participating
+ * (both re-validated server-side). */
+export function submitEscApplications(
   lrn: string,
-  status: ApplicationState,
-  nonEscSchoolId: string | null = null
-): Promise<ApplicationStatusResponse> {
-  return apiPatch<ApplicationStatusResponse>(`/api/v1/applications/${lrn}`, {
-    status,
-    nonEscSchoolId,
-  });
+  schoolIds: string[]
+): Promise<ApiEscApplicationEntry[]> {
+  return apiPut<ApiEscApplicationEntry[]>(
+    `/api/v1/applications/${lrn}/esc-applications`,
+    { schoolIds }
+  );
+}
+
+/** Update one school's ESC application status - a demo-driven stand-in
+ * today for what would eventually arrive from School View. */
+export function updateEscApplicationStatus(
+  lrn: string,
+  schoolId: string,
+  status: EscSchoolStatus
+): Promise<ApiEscApplicationEntry> {
+  return apiPatch<ApiEscApplicationEntry>(
+    `/api/v1/applications/${lrn}/esc-applications/${schoolId}`,
+    { status }
+  );
 }
 
 // The frontend's survey UI stores the display label itself as the
@@ -95,8 +115,8 @@ interface SurveyResponseOut {
 
 /** Submit (create or replace) a learner's survey response.
  *
- * `answers.concern` is null for a `not_eligible` learner - the
- * ESC-specific question doesn't apply to that track. */
+ * `answers.concern` is null for a learner who isn't ESC-eligible - the
+ * ESC-specific question doesn't apply to them. */
 export function submitSurvey(
   lrn: string,
   answers: SurveyAnswers
@@ -155,9 +175,10 @@ interface ApiDocumentUpload {
 
 interface ApiApplicationState {
   lrn: string;
-  status: ApplicationState;
-  nonEscSchoolId: string | null;
+  isEligible: boolean | null;
+  startedAt: string;
   wishlist: ApiWishlistEntry[];
+  escApplications: ApiEscApplicationEntry[];
   eligibility: EligibilityAssessmentResponse | null;
   survey: SurveyResponseOut | null;
   documents: ApiDocumentUpload[];
@@ -168,10 +189,12 @@ interface ApiApplicationState {
  * translating enum values back to the display labels/field shapes
  * the rest of the app already expects. */
 export interface HydratedAccountState {
-  applicationState: ApplicationState;
-  nonEscSchoolId?: string;
+  isEligible: boolean | null;
   wishlistIds: string[];
-  escStatuses: Record<string, EscSchoolStatus>;
+  escApplications: Record<
+    string,
+    { status: EscSchoolStatus; submittedAt: string; resolvedAt: string | null }
+  >;
   category: EscCategory;
   eligAnswers: EligAnswers | null;
   surveyAnswers: SurveyAnswers;
@@ -189,9 +212,13 @@ export async function getApplicationState(
 ): Promise<HydratedAccountState> {
   const state = await apiGet<ApiApplicationState>(`/api/v1/applications/${lrn}`);
 
-  const escStatuses: Record<string, EscSchoolStatus> = {};
-  for (const entry of state.wishlist) {
-    if (entry.escStatus) escStatuses[entry.schoolId] = entry.escStatus;
+  const escApplications: HydratedAccountState["escApplications"] = {};
+  for (const entry of state.escApplications) {
+    escApplications[entry.schoolId] = {
+      status: entry.status,
+      submittedAt: entry.submittedAt,
+      resolvedAt: entry.resolvedAt,
+    };
   }
 
   const eligAnswers: EligAnswers | null = state.eligibility
@@ -205,10 +232,9 @@ export async function getApplicationState(
     : null;
 
   return {
-    applicationState: state.status,
-    nonEscSchoolId: state.nonEscSchoolId ?? undefined,
+    isEligible: state.isEligible,
     wishlistIds: state.wishlist.map((entry) => entry.schoolId),
-    escStatuses,
+    escApplications,
     category: state.eligibility?.category ?? null,
     eligAnswers,
     surveyAnswers: state.survey

@@ -23,8 +23,15 @@ import { useApplication } from "@/components/templates/ApplicationStateProvider"
  * this is a presentation/layout change only.
  */
 export default function AccountPage() {
-  const { account, logout, applicationState, isPostSubmission, wishlist, openLoginModal } =
-    useApplication();
+  const {
+    account,
+    logout,
+    isPostSubmission,
+    wishlist,
+    redeemedChoice,
+    allEscApplicationsUnsuccessful,
+    openLoginModal,
+  } = useApplication();
 
   return (
     <div className="min-h-screen bg-background">
@@ -45,9 +52,11 @@ export default function AccountPage() {
           <AccountHero name={account.name} lrn={account.lrn} />
           <AccountJourneyStrip
             category={account.category}
-            applicationState={applicationState}
+            isEligible={account.isEligible}
             isPostSubmission={isPostSubmission}
             wishlistCount={wishlist.length}
+            hasRedeemed={redeemedChoice !== null}
+            allEscApplicationsUnsuccessful={allEscApplicationsUnsuccessful}
           />
           <div className="mx-auto grid max-w-6xl gap-8 px-6 py-10 md:px-12 lg:grid-cols-[minmax(0,1fr)_320px] lg:py-14">
             <ApplicationPanel />

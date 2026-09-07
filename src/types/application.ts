@@ -39,30 +39,32 @@ export interface EligHistoryEntry {
   answers: EligAnswers;
 }
 
-/** Per-private-school ESC lifecycle. Public schools never enter this —
- * they're only the `hasPublicAlternative` guaranteed-placement checkbox.
- * Up to `ESC_SLATE_CAP` private schools can be in a non-terminal status at
- * once (the "slate") — 'granted' is an offer, not a win, until the student
- * redeems it. Redeeming one school withdraws every other slate school. */
+/** Per-school ESC application lifecycle — only for schools explicitly
+ * selected for submission (see `MAX_ESC_APPLICATIONS`), a separate,
+ * smaller set than the ranked `wishlistIds`. Real process, confirmed
+ * directly: a student submits to up to `MAX_ESC_APPLICATIONS` schools in
+ * one action, but those get reviewed one at a time, in rank order — a
+ * lower-ranked choice is never looked at until the higher-ranked one
+ * fully resolves. `queued` means "submitted, but a higher-ranked choice
+ * hasn't resolved yet" — distinct from `submitted` ("actively pending a
+ * verdict"). A student can never hold two live offers at once, so
+ * there's no "redeem one, withdraw the rest" step anymore — `granted`
+ * leads to a single `redeemed`/`declined` choice by the family. */
 export type EscSchoolStatus =
+  | "queued"
   | "submitted"
   | "docs_pending"
   | "docs_submitted"
   | "granted"
   | "rejected"
   | "redeemed"
-  | "withdrawn";
+  | "declined";
 
-/** Account-level ESC application state. Decoupled model — this tracks the
- * ESC application track only; school admission/enrollment is a separate,
- * unmodeled track. 'granted' means the ESC certificate is secured, full
- * stop, regardless of enrollment timing. */
-export type ApplicationState =
-  | "eligibility"
-  | "not_eligible"
-  | "submitted"
-  | "granted"
-  | "non_esc";
+export interface EscApplicationEntry {
+  status: EscSchoolStatus;
+  submittedAt: string;
+  resolvedAt: string | null;
+}
 
 export interface SurveyAnswers {
   ease: number | null;
@@ -77,10 +79,19 @@ export interface Account {
   name: string;
   category: EscCategory;
   eligAnswers: EligAnswers | null;
-  applicationState: ApplicationState;
+  /** Mirrors the backend's `Application.is_eligible`: `null` until the
+   * eligibility assessment is completed, `true`/`false` after —
+   * disambiguates "not yet assessed" from "assessed, ineligible" more
+   * directly than inferring it from `eligAnswers`/`category` alone. */
+  isEligible: boolean | null;
+  /** The full ranked preference list (3–5 schools, any type — public,
+   * private-ESC, private-non-ESC). Separate from `escApplications`,
+   * which schools were actually submitted to. */
   wishlistIds: string[];
-  escStatuses: Record<string, EscSchoolStatus>;
+  /** The up-to-`MAX_ESC_APPLICATIONS` ESC schools actually applied to,
+   * keyed by school_id — a subset of `wishlistIds`, explicitly chosen,
+   * not auto-derived from rank order. */
+  escApplications: Record<string, EscApplicationEntry>;
   surveyAnswers: SurveyAnswers;
   uploadedDocs: string[];
-  nonEscSchoolId?: string;
 }
