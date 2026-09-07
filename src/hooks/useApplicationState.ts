@@ -20,19 +20,19 @@ import {
 } from "@/lib/applicationState";
 import { apiPost } from "@/lib/api";
 import {
+  createApplication,
   getApplicationState,
   replaceWishlist,
   submitEligibilityAssessment,
   submitEscApplications,
   submitSurvey,
   updateEscApplicationStatus,
+  type HydratedAccountState,
 } from "@/lib/application";
 import { deleteDocument, uploadDocument } from "@/lib/documents";
 import {
   APPLICATION_STORAGE_KEY,
   LEARNER_RECORD,
-  TEST_EMAIL,
-  TEST_EMAIL_WITH_DRAFT,
   TEST_LRN,
 } from "@/lib/constants";
 
@@ -62,17 +62,16 @@ export interface LoginLookupResult {
  * `/auth/verify-login-email` endpoint (Chunk 15) — replaces the old
  * hardcoded two-email mock. Same three outcomes as before (fresh
  * learner, learner with a draft wishlist, not-found), just backed by
- * a real Postgres lookup now. Only two demo LRNs actually exist in
- * the seeded dev database, so the demo hint is still added here on
- * the frontend rather than baked into the backend's (production-shaped)
- * error message. A network/server failure is reported as its own
- * distinct error rather than silently looking like "not found". */
+ * a real Postgres lookup now. The not-found error is shown as-is —
+ * the login modal already lists the demo accounts below the form, so
+ * repeating them in the error message would be redundant. A network/
+ * server failure is reported as its own distinct error rather than
+ * silently looking like "not found". */
 export async function verifyLoginEmail(
   email: string
 ): Promise<LoginLookupResult> {
-  let result: LoginLookupResult;
   try {
-    result = await apiPost<LoginLookupResult>(
+    return await apiPost<LoginLookupResult>(
       "/api/v1/auth/verify-login-email",
       { email }
     );
@@ -83,14 +82,6 @@ export async function verifyLoginEmail(
         "Couldn't reach the PAARAL server. Check your connection and try again.",
     };
   }
-
-  if (!result.ok) {
-    return {
-      ok: false,
-      error: `${result.error} Try ${TEST_EMAIL} or ${TEST_EMAIL_WITH_DRAFT} for this demo.`,
-    };
-  }
-  return result;
 }
 
 /** Ported from src/App.jsx's v3 decoupled ESC application state machine,
@@ -201,57 +192,55 @@ export function useApplicationState(schools: School[]) {
       });
     }, "Couldn't update this application. Check your connection and try again.");
 
-  // `wishlistIds` still lets the login modal preload the LRN 100000000002
-  // demo draft ("Load Draft") - but only as a fallback now (Chunk 22): the
-  // real saved wishlist, fetched below, wins whenever one actually exists,
-  // since a returning account's real data is always more meaningful than a
-  // hardcoded demo shape it happens to match anyway. Draft state is
-  // editable, not locked, per CLAUDE.md.
-  const createAccount = async (
-    lrn: string = TEST_LRN,
-    wishlistIds: string[] = []
-  ) => {
-    const newAccount: Account = {
+  // Turns a fetched/created HydratedAccountState into the actual
+  // Account object and commits it to local/global state - shared by
+  // both the existing-account login path and the new-account
+  // creation path below, since both ultimately produce the same
+  // shape from the same translated response.
+  const applyHydratedAccount = (
+    lrn: string,
+    saved: HydratedAccountState
+  ): Account => {
+    const hydrated: Account = {
       email: `${lrn}@deped.gov.ph`,
       lrn,
       name: `${LEARNER_RECORD.firstName} ${LEARNER_RECORD.mi}. ${LEARNER_RECORD.lastName}`,
-      category: null,
-      eligAnswers: null,
-      isEligible: null,
-      wishlistIds,
-      escApplications: {},
-      surveyAnswers: DEFAULT_SURVEY_ANSWERS,
-      uploadedDocs: [],
+      category: saved.category,
+      eligAnswers: saved.eligAnswers,
+      isEligible: saved.isEligible,
+      wishlistIds: saved.wishlistIds,
+      escApplications: saved.escApplications,
+      surveyAnswers: saved.surveyAnswers,
+      uploadedDocs: saved.uploadedDocs,
     };
-
-    // Chunk 22: restore whatever this LRN actually has saved server-side
-    // (wishlist, eligibility result, survey answers, confirmed document
-    // uploads, ESC applications) instead of always starting from the
-    // blank shape above. A brand-new account - or a fetch failure, e.g.
-    // a dropped connection mid-login - just falls back to the blank
-    // shell rather than blocking login entirely on this one request.
-    let hydrated = newAccount;
-    try {
-      const saved = await getApplicationState(lrn);
-      hydrated = {
-        ...newAccount,
-        isEligible: saved.isEligible,
-        wishlistIds:
-          saved.wishlistIds.length > 0 ? saved.wishlistIds : wishlistIds,
-        escApplications: saved.escApplications,
-        category: saved.category,
-        eligAnswers: saved.eligAnswers,
-        uploadedDocs: saved.uploadedDocs,
-      };
-      setSurveyAnswers(saved.surveyAnswers);
-    } catch {
-      setSurveyAnswers(DEFAULT_SURVEY_ANSWERS);
-    }
-
+    setSurveyAnswers(saved.surveyAnswers);
     localStorage.setItem(APPLICATION_STORAGE_KEY, JSON.stringify(hydrated));
     setAccountState(hydrated);
     setSelectedEscSchoolIds([]);
     return hydrated;
+  };
+
+  // Hydrates an existing account on login (Chunk 22) - restores
+  // whatever this LRN actually has saved server-side (wishlist,
+  // eligibility result, survey answers, confirmed document uploads,
+  // ESC applications). Lets any failure propagate, including a 404
+  // (`ApiError`) - a genuinely new learner has no Application row
+  // yet, and the login modal needs to tell that apart from a real
+  // network/server failure to decide whether to show the account-
+  // creation screen at all, so it's no longer silently swallowed
+  // into a blank fallback here.
+  const createAccount = async (lrn: string = TEST_LRN) => {
+    const saved = await getApplicationState(lrn);
+    return applyHydratedAccount(lrn, saved);
+  };
+
+  // Explicit account creation - the "Create My Account & Continue"
+  // button. Creates the Application row server-side if it doesn't
+  // exist yet (idempotent either way), then hydrates exactly like a
+  // normal login.
+  const createNewAccount = async (lrn: string) => {
+    const saved = await createApplication(lrn);
+    return applyHydratedAccount(lrn, saved);
   };
 
   // Mockup-only: logout wipes local account + questionnaire state so each
@@ -649,6 +638,7 @@ export function useApplicationState(schools: School[]) {
   return {
     account,
     createAccount,
+    createNewAccount,
     logout,
     updateAccount,
 

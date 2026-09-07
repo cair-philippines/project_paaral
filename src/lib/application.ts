@@ -6,7 +6,7 @@ import type {
   Seg,
   SurveyAnswers,
 } from "@/types/application";
-import { apiGet, apiPatch, apiPut } from "@/lib/api";
+import { apiGet, apiPatch, apiPost, apiPut } from "@/lib/api";
 
 /** One wishlist entry as the API expects/returns it - camelCase,
  * matching `paaral-student-api`'s `CamelModel` convention. Pure
@@ -201,17 +201,14 @@ export interface HydratedAccountState {
   uploadedDocs: string[];
 }
 
-/** Fetch and translate a learner's complete saved application state
- * (Chunk 22) - called on login instead of always starting from empty
- * defaults, since wishlist/eligibility/survey/documents all already
- * persist correctly but were never fetched back. A brand-new account
- * with nothing saved yet comes back with the same empty/default shape
- * `createAccount()` used to hardcode - not an error case. */
-export async function getApplicationState(
-  lrn: string
-): Promise<HydratedAccountState> {
-  const state = await apiGet<ApiApplicationState>(`/api/v1/applications/${lrn}`);
-
+// Shared by both getApplicationState() (an existing account, read via
+// GET) and createApplication() (a brand-new account, created via POST)
+// - both endpoints return the identical ApiApplicationState shape, so
+// there's only one place that translates enum values/field shapes
+// into what the rest of the app expects.
+function translateApplicationState(
+  state: ApiApplicationState
+): HydratedAccountState {
   const escApplications: HydratedAccountState["escApplications"] = {};
   for (const entry of state.escApplications) {
     escApplications[entry.schoolId] = {
@@ -249,4 +246,36 @@ export async function getApplicationState(
       : { ease: null, helpful: null, concern: null, suggestions: "" },
     uploadedDocs: state.documents.map((doc) => doc.documentType),
   };
+}
+
+/** Fetch and translate a learner's complete saved application state
+ * (Chunk 22) - called on login instead of always starting from empty
+ * defaults, since wishlist/eligibility/survey/documents all already
+ * persist correctly but were never fetched back. Throws (a 404, via
+ * `ApiError`) if this LRN has no Application row yet - the caller
+ * needs to tell that apart from a returning account, so it's no
+ * longer silently swallowed into a blank fallback here. */
+export async function getApplicationState(
+  lrn: string
+): Promise<HydratedAccountState> {
+  const state = await apiGet<ApiApplicationState>(
+    `/api/v1/applications/${lrn}`
+  );
+  return translateApplicationState(state);
+}
+
+/** Create a learner's account (their Application row) if one doesn't
+ * exist yet, then return their full state - same translated shape as
+ * `getApplicationState()`. Idempotent: safe to call for an account
+ * that already exists (a no-op) or to retry after a dropped
+ * connection, so the "Create My Account" button never risks a
+ * duplicate-row error. */
+export async function createApplication(
+  lrn: string
+): Promise<HydratedAccountState> {
+  const state = await apiPost<ApiApplicationState>(
+    `/api/v1/applications/${lrn}`,
+    {}
+  );
+  return translateApplicationState(state);
 }

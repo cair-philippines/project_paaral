@@ -1,6 +1,21 @@
 const API_BASE_URL =
   process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://localhost:8000";
 
+/** Thrown by `request()` on a non-2xx response, carrying the HTTP
+ * status alongside the message - lets a caller distinguish e.g. a 404
+ * ("nothing here yet", often not an error at all) from a genuine
+ * server/network failure, instead of only having a message string to
+ * pattern-match on. */
+export class ApiError extends Error {
+  status: number;
+
+  constructor(message: string, status: number) {
+    super(message);
+    this.name = "ApiError";
+    this.status = status;
+  }
+}
+
 async function request<TResponse>(
   path: string,
   init?: RequestInit
@@ -15,8 +30,9 @@ async function request<TResponse>(
       .json()
       .then((body: { detail?: string }) => body.detail)
       .catch(() => undefined);
-    throw new Error(
-      detail ?? `API request to ${path} failed with ${res.status}`
+    throw new ApiError(
+      detail ?? `API request to ${path} failed with ${res.status}`,
+      res.status
     );
   }
   if (res.status === 204) return undefined as TResponse;
