@@ -3,6 +3,10 @@
 import { useRef, useState, type ReactNode } from "react";
 import Button from "@mui/material/Button";
 import Checkbox from "@mui/material/Checkbox";
+import Dialog from "@mui/material/Dialog";
+import DialogTitle from "@mui/material/DialogTitle";
+import DialogContent from "@mui/material/DialogContent";
+import DialogActions from "@mui/material/DialogActions";
 import FormControlLabel from "@mui/material/FormControlLabel";
 import Tooltip from "@mui/material/Tooltip";
 import ToggleButtonGroup from "@mui/material/ToggleButtonGroup";
@@ -16,6 +20,7 @@ import {
   Info,
   Heart,
   Check,
+  CheckCircle2,
   GripVertical,
   Upload,
   XCircle,
@@ -160,6 +165,13 @@ export default function ApplicationPanel() {
     isSyncing,
     syncError,
   } = app;
+
+  const [showSubmittedDialog, setShowSubmittedDialog] = useState(false);
+
+  const handleSubmitEscAndConfirm = async () => {
+    const ok = await handleSubmitEsc();
+    if (ok) setShowSubmittedDialog(true);
+  };
 
   if (!account) return null;
 
@@ -634,7 +646,7 @@ export default function ApplicationPanel() {
               variant="contained"
               sx={{ minHeight: 48 }}
               disabled={!canSubmitEsc || isSyncing}
-              onClick={handleSubmitEsc}
+              onClick={handleSubmitEscAndConfirm}
             >
               {isSyncing ? "Saving…" : "Submit Application"}
             </Button>
@@ -670,6 +682,36 @@ export default function ApplicationPanel() {
           </AccountSection>
         );
       })}
+
+      <Dialog
+        open={showSubmittedDialog}
+        onClose={() => setShowSubmittedDialog(false)}
+        fullWidth
+        maxWidth="xs"
+      >
+        <DialogTitle className="flex items-center gap-2">
+          <CheckCircle2 className="h-5 w-5 shrink-0 text-green-600" />
+          Application Submitted
+        </DialogTitle>
+        <DialogContent>
+          <p className="text-sm leading-relaxed text-slate-600">
+            Your ESC subsidy application has been submitted successfully.
+            You can check your results anytime here on PAARAL, under My
+            Account. You&apos;ll also receive an update at your DepEd
+            email address whenever there&apos;s news.
+          </p>
+        </DialogContent>
+        <DialogActions sx={{ px: 3, pb: 3 }}>
+          <Button
+            fullWidth
+            variant="contained"
+            sx={{ minHeight: 44 }}
+            onClick={() => setShowSubmittedDialog(false)}
+          >
+            Got It
+          </Button>
+        </DialogActions>
+      </Dialog>
     </div>
   );
 }

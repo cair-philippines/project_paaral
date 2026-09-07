@@ -598,8 +598,8 @@ export function useApplicationState(schools: School[]) {
     generalSurveyComplete &&
     escSurveyComplete;
 
-  const handleSubmitEsc = async () => {
-    if (!canSubmitEsc || !account) return;
+  const handleSubmitEsc = async (): Promise<boolean> => {
+    if (!canSubmitEsc || !account) return false;
     const ok = await withSync(async () => {
       const entries = await submitEscApplications(
         account.lrn,
@@ -615,8 +615,8 @@ export function useApplicationState(schools: School[]) {
       }
       updateAccount({ escApplications: nextEscApplications });
     }, "Couldn't submit your ESC applications. Check your connection and try again.");
-    if (!ok) return;
-    await persistSurvey(surveyAnswers);
+    if (!ok) return false;
+    return await persistSurvey(surveyAnswers);
   };
 
   // For an ineligible student, or one whose ESC applications are all

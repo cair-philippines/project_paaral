@@ -1,10 +1,12 @@
 "use client";
 
 import { useState } from "react";
-import { createPortal } from "react-dom";
 import { Heart, Check } from "lucide-react";
-import Snackbar from "@mui/material/Snackbar";
-import Alert from "@mui/material/Alert";
+import Dialog from "@mui/material/Dialog";
+import DialogTitle from "@mui/material/DialogTitle";
+import DialogContent from "@mui/material/DialogContent";
+import DialogActions from "@mui/material/DialogActions";
+import Button from "@mui/material/Button";
 import { useApplication } from "@/components/templates/ApplicationStateProvider";
 import { MAX_WISHLIST_SIZE } from "@/lib/applicationState";
 import type { School } from "@/types/school";
@@ -20,12 +22,19 @@ interface AddToWishlistButtonProps {
  * has been submitted, since the wishlist becomes read-only at that point.
  *
  * Once the ranked list is at MAX_WISHLIST_SIZE, "add" stays tappable
- * (never uses the native `disabled` attribute) so a Snackbar can explain
+ * (never uses the native `disabled` attribute) so a dialog can explain
  * why nothing happened - a plain `disabled` button would silently do
  * nothing on tap, which is exactly the confusing gap this exists to
  * avoid, especially on touch devices where there's no hover to reveal a
  * tooltip. The button is still styled muted so the limit is visible at a
- * glance too, not just on the one time someone taps it. */
+ * glance too, not just on the one time someone taps it. A real `Dialog`
+ * (centered, no auto-dismiss timer - the student closes it explicitly)
+ * rather than a corner Snackbar, per Paula's direct instruction
+ * (2026-09-07): a limit worth interrupting for deserves a screen you
+ * have to actually read and dismiss, not a toast that can disappear
+ * before it's noticed. `Dialog` already portals to `document.body`
+ * itself, so this doesn't need the manual portal workaround the old
+ * Snackbar required to escape a transformed Mapbox-popup ancestor. */
 export default function AddToWishlistButton({
   school,
   variant = "full",
@@ -70,34 +79,31 @@ export default function AddToWishlistButton({
       ? "Your ranked list is full"
       : "Add to My Choices";
 
-  // MUI v9's Snackbar has no built-in portal (its root slot is a plain
-  // positioned `div`, not a Modal) - rendered in place, it would inherit
-  // whatever positioning context its ancestor sits in. Inside a Mapbox
-  // popup, that ancestor has a CSS `transform` for map positioning, which
-  // traps `position: fixed` into behaving like `absolute` relative to the
-  // popup - the message would render squeezed into the popup's own small
-  // box instead of the viewport. Portaling to `document.body` directly
-  // sidesteps that entirely, regardless of where this button is used.
-  const limitSnackbarContent = (
-    <Snackbar
+  const limitDialog = (
+    <Dialog
       open={showLimitMessage}
-      autoHideDuration={4000}
       onClose={() => setShowLimitMessage(false)}
-      anchorOrigin={{ vertical: "bottom", horizontal: "center" }}
+      fullWidth
+      maxWidth="xs"
     >
-      <Alert
-        severity="info"
-        variant="filled"
-        onClose={() => setShowLimitMessage(false)}
-      >
-        {`You already have ${MAX_WISHLIST_SIZE} schools in your ranked list, the most allowed. Remove one to add a different school.`}
-      </Alert>
-    </Snackbar>
+      <DialogTitle>Your ranked list is full</DialogTitle>
+      <DialogContent>
+        <p className="text-sm text-slate-600">
+          {`You already have ${MAX_WISHLIST_SIZE} schools in your ranked list, the most allowed. Remove one to add a different school.`}
+        </p>
+      </DialogContent>
+      <DialogActions sx={{ px: 3, pb: 3 }}>
+        <Button
+          fullWidth
+          variant="contained"
+          sx={{ minHeight: 44 }}
+          onClick={() => setShowLimitMessage(false)}
+        >
+          Got It
+        </Button>
+      </DialogActions>
+    </Dialog>
   );
-  const limitSnackbar =
-    typeof document !== "undefined"
-      ? createPortal(limitSnackbarContent, document.body)
-      : null;
 
   if (variant === "compact") {
     return (
@@ -121,7 +127,7 @@ export default function AddToWishlistButton({
             <Heart className="h-4 w-4" />
           )}
         </button>
-        {limitSnackbar}
+        {limitDialog}
       </>
     );
   }
@@ -147,7 +153,7 @@ export default function AddToWishlistButton({
         )}
         {label}
       </button>
-      {limitSnackbar}
+      {limitDialog}
     </>
   );
 }

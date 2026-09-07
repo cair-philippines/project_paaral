@@ -1,6 +1,6 @@
 "use client";
 
-import { CircleHelp, LogOut } from "lucide-react";
+import { CircleHelp, Info, LogOut } from "lucide-react";
 import ScrollReveal from "@/components/atoms/ScrollReveal";
 import { catMeta } from "@/lib/eligibility";
 import { getAccountStatusBadge } from "@/lib/applicationState";
@@ -104,6 +104,24 @@ export default function AccountSidebar({
             there&apos;s nothing else you need to check. If an application
             is not approved, we&apos;ll always tell you exactly what you can
             do next.
+          </p>
+        </section>
+      </ScrollReveal>
+
+      <ScrollReveal delay={0.1}>
+        <section className="rounded-2xl border border-amber-200 bg-amber-50 p-5 shadow-sm">
+          <div className="grid h-10 w-10 place-items-center rounded-xl bg-amber-500 text-white">
+            <Info className="h-5 w-5" />
+          </div>
+          <h2 className="mt-4 text-lg font-bold text-slate-800">
+            What PAARAL Covers Right Now
+          </h2>
+          <p className="mt-2 text-sm leading-6 text-slate-600">
+            PAARAL currently only handles ESC subsidy applications to
+            private, ESC-participating schools. You can&apos;t yet apply
+            to public schools or non-ESC-participating private schools
+            through PAARAL — contact those schools directly about their
+            own regular admission process.
           </p>
         </section>
       </ScrollReveal>
