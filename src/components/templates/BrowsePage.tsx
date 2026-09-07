@@ -8,6 +8,8 @@ import FilterSidebar from "@/components/organisms/FilterSidebar";
 import SchoolMap from "@/components/organisms/SchoolMap";
 import SchoolResultCard from "@/components/organisms/SchoolResultCard";
 import ViewToggle, { type BrowseViewMode } from "@/components/molecules/ViewToggle";
+import BrowseIntroNote from "@/components/molecules/BrowseIntroNote";
+import { useApplication } from "@/components/templates/ApplicationStateProvider";
 import { useSchoolFilters } from "@/hooks/useSchoolFilters";
 import { getBarangayOptions, fetchSchools } from "@/lib/schools";
 import type { School } from "@/types/school";
@@ -20,6 +22,7 @@ const PANEL_WIDTH = 320;
  * `qc-schools.json`). See `docs/post-pilot-scaling.md` for why this
  * approach, and what changes if it stops being a good fit. */
 export default function BrowsePage() {
+  const { account } = useApplication();
   const [schools, setSchools] = useState<School[] | null>(null);
   const [loadError, setLoadError] = useState<string | null>(null);
 
@@ -178,6 +181,8 @@ export default function BrowsePage() {
           </p>
           <ViewToggle value={viewMode} onChange={setViewMode} />
         </div>
+
+        {!account && <BrowseIntroNote />}
       </div>
     </div>
   );
