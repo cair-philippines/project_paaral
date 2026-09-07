@@ -13,11 +13,12 @@ export default function ReassuranceSection() {
         </p>
         <div className="mt-6 rounded-xl border-2 border-dashed border-secondary/60 bg-white p-5 text-primary">
           <p className="font-semibold">
-            You can apply to as many schools as you want.
+            You can rank as many schools as you&apos;d like.
           </p>
           <p className="mt-1 text-sm text-slate-500">
-            There&apos;s no limit — the more schools on your list, the better
-            your chances of being placed.
+            Up to 3 are pursued for an ESC subsidy at once — if one turns you
+            down, the next on your list steps in, so a single rejection never
+            ends your chances.
           </p>
         </div>
       </ScrollReveal>

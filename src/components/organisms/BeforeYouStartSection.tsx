@@ -24,7 +24,7 @@ const STEPS = [
   {
     icon: ListChecks,
     title: "Build your wishlist and apply",
-    description: "Rank as many schools as you want, then apply.",
+    description: "Rank as many as you'd like — up to 3 apply at once.",
     color: "primary" as const,
   },
 ];

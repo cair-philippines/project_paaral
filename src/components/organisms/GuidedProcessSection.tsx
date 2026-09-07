@@ -11,7 +11,7 @@ const STEPS = [
   {
     title: "Rank your preferences",
     description:
-      "Add schools to your wishlist in the order you'd prefer them — there's no limit on how many you can add.",
+      "Add as many schools as you'd like to your wishlist, ranked in order — up to 3 are pursued for an ESC subsidy at once.",
     color: "secondary" as const,
   },
   {
