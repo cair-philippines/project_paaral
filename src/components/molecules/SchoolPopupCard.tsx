@@ -21,7 +21,7 @@ export default function SchoolPopupCard({ school }: SchoolPopupCardProps) {
   return (
     <div className="flex w-64 flex-col gap-2 p-1">
       <div className="flex items-start justify-between gap-2">
-        <h3 className="text-sm font-semibold leading-snug text-primary">
+        <h3 className="line-clamp-2 min-w-0 text-sm font-semibold leading-snug text-primary">
           {school.school_name}
         </h3>
         <AddToWishlistButton school={school} variant="compact" />
