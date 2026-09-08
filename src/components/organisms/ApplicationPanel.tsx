@@ -122,8 +122,18 @@ const SECTION_LABEL = "text-[10px] font-bold uppercase tracking-widest text-slat
  * sections exist and in what order (pre- vs. post-submission), it just no
  * longer drives a tab switch. No business logic changed; every gate,
  * demo control, and the dnd-kit drag-reorder all behave exactly as before.
+ *
+ * `startIndex` (2026-09-08): lets `AccountPage.tsx` insert numbered
+ * sections of its own (`StudentRecordSection`/`FamilyRecordSection`)
+ * before this panel while keeping one continuous 01/02/03/... sequence
+ * down the page, matching the SchoolPath reference's own numbering
+ * across the whole account page, not just within this panel.
  */
-export default function ApplicationPanel() {
+export default function ApplicationPanel({
+  startIndex = 0,
+}: {
+  startIndex?: number;
+}) {
   const app = useApplication();
   const {
     account,
@@ -665,7 +675,7 @@ export default function ApplicationPanel() {
       )}
       {tabList.map((t, i) => {
         const section = sectionFor[t];
-        const number = String(i + 1).padStart(2, "0");
+        const number = String(i + 1 + startIndex).padStart(2, "0");
         const action =
           t === "choices" && !isPostSubmission
             ? { label: "Browse More Schools", href: "/browse" }

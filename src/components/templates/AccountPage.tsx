@@ -7,6 +7,8 @@ import AccountHero from "@/components/organisms/AccountHero";
 import AccountJourneyStrip from "@/components/organisms/AccountJourneyStrip";
 import AccountSidebar from "@/components/organisms/AccountSidebar";
 import ApplicationPanel from "@/components/organisms/ApplicationPanel";
+import StudentRecordSection from "@/components/organisms/StudentRecordSection";
+import FamilyRecordSection from "@/components/organisms/FamilyRecordSection";
 import { useApplication } from "@/components/templates/ApplicationStateProvider";
 
 /**
@@ -21,6 +23,14 @@ import { useApplication } from "@/components/templates/ApplicationStateProvider"
  * for the section-by-section mapping from SchoolPath's content onto
  * PAARAL's own data model. `useApplicationState` itself is untouched;
  * this is a presentation/layout change only.
+ *
+ * `StudentRecordSection`/`FamilyRecordSection` added (2026-09-08) — the
+ * SchoolPath reference's own "official student record" and "family
+ * contacts" sections, which this project had left out until now since
+ * neither has real backing data (see each component's own doc comment
+ * for exactly which fields are a schema gap vs. a plumbing gap). Numbered
+ * 01/02, with `ApplicationPanel`'s own sections continuing the same
+ * sequence via `startIndex={2}` rather than restarting at 01.
  */
 export default function AccountPage() {
   const {
@@ -59,7 +69,11 @@ export default function AccountPage() {
             allEscApplicationsUnsuccessful={allEscApplicationsUnsuccessful}
           />
           <div className="mx-auto grid max-w-6xl gap-8 px-6 py-10 md:px-12 lg:grid-cols-[minmax(0,1fr)_320px] lg:py-14">
-            <ApplicationPanel />
+            <div className="space-y-10">
+              <StudentRecordSection account={account} />
+              <FamilyRecordSection />
+              <ApplicationPanel startIndex={2} />
+            </div>
             <AccountSidebar account={account} onLogout={logout} />
           </div>
         </>

@@ -16,7 +16,13 @@ function initialsFor(name: string): string {
  * normal nav, which still renders above this. Adapted from the SchoolPath
  * reference's hero: a back link, a kicker label, the page heading, a short
  * description, and a "record matched" card naming the real PAARAL fields
- * (learner name + LRN) instead of SchoolPath's own mock student ID. */
+ * (learner name + LRN) instead of SchoolPath's own mock student ID.
+ *
+ * `/frontend-design` pass (2026-09-08): recolored/retyped to match
+ * `BrowseHero`'s solid-Navy band + white "record matched" card treatment
+ * — the two are the app's only page-level intro bands outside the
+ * landing hero, and Paula asked for them to read as the same design
+ * language (color, type scale, card style), not two different registers. */
 export default function AccountHero({
   name,
   lrn,
@@ -25,31 +31,31 @@ export default function AccountHero({
   lrn: string;
 }) {
   return (
-    <section className="border-b border-slate-200 bg-white py-8 md:py-10">
+    <section className="bg-primary py-10 md:py-14">
       <div className="mx-auto max-w-6xl px-6 md:px-12">
         <Link
           href="/browse"
-          className="inline-flex min-h-11 items-center gap-2 rounded-xl text-sm font-bold text-primary hover:underline"
+          className="inline-flex min-h-11 items-center gap-2 rounded-xl text-sm font-bold text-white hover:underline"
         >
           <ArrowLeft className="h-4 w-4" /> Back to Browse
         </Link>
 
         <div className="mt-4 grid gap-5 lg:grid-cols-[minmax(0,1fr)_340px] lg:items-end">
           <div>
-            <p className="text-[10px] font-bold uppercase tracking-widest text-slate-500">
+            <p className="text-[10px] font-bold uppercase tracking-widest text-white/70">
               Student Account
             </p>
-            <h1 className="mt-2 text-3xl font-bold tracking-tight text-primary sm:text-4xl">
+            <h1 className="mt-2 text-4xl font-extrabold tracking-tight text-white sm:text-5xl">
               {name}&apos;s Account
             </h1>
-            <p className="mt-3 max-w-2xl text-sm leading-6 text-slate-600">
+            <p className="mt-3 max-w-2xl text-sm leading-6 text-white/80">
               This page shows your ESC subsidy application and your ranked
               school choices, all in one place.
             </p>
           </div>
 
           <ScrollReveal delay={0.05}>
-            <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4 shadow-sm">
+            <div className="rounded-2xl border border-slate-100 bg-white p-4 shadow-lg">
               <div className="flex items-center gap-3">
                 <div className="grid h-11 w-11 shrink-0 place-items-center rounded-full bg-primary text-sm font-bold text-white">
                   {initialsFor(name)}
