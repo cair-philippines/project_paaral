@@ -21,6 +21,9 @@ interface SchoolResultCardProps {
   selected?: boolean;
   variant?: "card" | "list";
   onSelect: (school: School) => void;
+  /** Lets a caller (the map view's result list) scroll a specific card
+   * into view after a marker click — see `BrowsePage.tsx`. */
+  id?: string;
 }
 
 /** One school in the browse results — shared between the card grid and
@@ -43,6 +46,7 @@ export default function SchoolResultCard({
   selected = false,
   variant = "card",
   onSelect,
+  id,
 }: SchoolResultCardProps) {
   const badge = getTypeBadge(school);
   const slots = getSlotAvailability(school);
@@ -59,6 +63,7 @@ export default function SchoolResultCard({
 
   return (
     <div
+      id={id}
       onClick={() => onSelect(school)}
       className={[
         "flex w-full cursor-pointer flex-col gap-3 rounded-2xl border bg-white p-4 shadow-sm transition hover:-translate-y-0.5 hover:shadow-md",
