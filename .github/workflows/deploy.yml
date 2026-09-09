@@ -1,0 +1,39 @@
+name: Deploy Frontend
+
+# Builds the static export and deploys it to Firebase Hosting on every
+# push to main. Authenticates via Workload Identity Federation — same
+# pattern as paaral-student-api's cd.yml, no long-lived key stored in
+# GitHub. This workflow only works once the resources it references
+# below actually exist (see docs/ARCHITECTURE.md).
+
+on:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+  id-token: write
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+
+      - run: npm ci
+      - run: npm run build
+
+      - id: auth
+        uses: google-github-actions/auth@v2
+        with:
+          workload_identity_provider: projects/492355819501/locations/global/workloadIdentityPools/paaral-student-view-pool/providers/github-actions
+          service_account: paaral-student-view-cd@ecair-paaral-project.iam.gserviceaccount.com
+
+      - uses: google-github-actions/setup-gcloud@v2
+
+      - name: Deploy to Firebase Hosting
+        run: npx firebase-tools@latest deploy --only hosting --project ecair-paaral-project --non-interactive
