@@ -1,14 +1,21 @@
 name: Deploy Frontend
 
 # Builds the static export and deploys it to Firebase Hosting on every
-# push to main. Authenticates via Workload Identity Federation — same
-# pattern as paaral-student-api's cd.yml, no long-lived key stored in
-# GitHub. This workflow only works once the resources it references
-# below actually exist (see docs/ARCHITECTURE.md).
+# push to rebuild/student-view-nextjs-fastapi. Authenticates via
+# Workload Identity Federation — same pattern as paaral-student-api's
+# cd.yml, no long-lived key stored in GitHub. This workflow only works
+# once the resources it references below actually exist (see
+# docs/ARCHITECTURE.md).
+#
+# NOT triggered on push to main — main on this repo is a separate,
+# unrelated project (geospatial/discrete-choice-modeling notebooks,
+# disconnected git history from the Student View app). The Student
+# View frontend/backend live entirely on feature branches; this repo's
+# main is not ours to merge into or deploy from.
 
 on:
   push:
-    branches: [main]
+    branches: [rebuild/student-view-nextjs-fastapi]
 
 permissions:
   contents: read
